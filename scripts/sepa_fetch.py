@@ -73,12 +73,22 @@ def num(v):
         return None
 
 
+ROTOS = []   # zips internos que no se pudieron abrir (se informan al final)
+
+
 def iter_comercios(zf):
     """Devuelve (comercio, sucursales, productos) como bytes, sea que vengan en zips internos o en carpetas."""
-    names = zf.namelist()
+    # se ignoran los archivos ocultos que agrega macOS (__MACOSX/, ._archivo): tienen nombre de zip pero no lo son
+    names = [n for n in zf.namelist() if not n.startswith("__MACOSX/") and not n.rsplit("/", 1)[-1].startswith("._")]
     for n in names:
         if n.lower().endswith(".zip"):
-            with zipfile.ZipFile(io.BytesIO(zf.read(n))) as inner:
+            try:
+                inner = zipfile.ZipFile(io.BytesIO(zf.read(n)))
+            except (zipfile.BadZipFile, OSError) as e:
+                ROTOS.append(n)
+                print(f"AVISO: no se pudo abrir {n} ({e}); se sigue con el resto")
+                continue
+            with inner:
                 yield from iter_comercios(inner)
     folders = defaultdict(dict)
     for n in names:
@@ -184,6 +194,8 @@ def main():
         if s["sepa_banderas"] and not any(norm(b) in seen for b in s["sepa_banderas"]):
             print(f"AVISO: no encontré la cadena {s['name']} en SEPA. Banderas vistas parecidas:",
                   [b for b in seen if norm(s['name'])[:4] in b][:5])
+    if ROTOS:
+        print(f"AVISO: {len(ROTOS)} archivos internos dañados u ocultos se saltearon: {ROTOS[:10]}")
     if len(items) < 100:
         raise SystemExit(f"Solo {len(items)} precios: el archivo parece incompleto, no se publica")
     # se conservan los precios online leídos hoy por online_fetch.py, si ya corrió
