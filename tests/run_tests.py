@@ -33,6 +33,8 @@ def fake_zip(path):
     ])
     otra = comercio("99", "OTRA CADENA", [("1", "AR-C")], ["99|1|1|a|7790000000011|Leche|1|lt|X|10|10|1|lt|||"])
     with zipfile.ZipFile(path, "w") as z:
+        z.writestr("__MACOSX/sepa_sabado/._coto.zip", b"no es un zip")    # archivo oculto de macOS
+        z.writestr("sepa_sabado/roto.zip", b"PK\x03\x04 truncado")        # zip dañado: se saltea
         z.writestr("sepa_sabado/coto.zip", coto)
         z.writestr("sepa_sabado/otra.zip", otra)
 
