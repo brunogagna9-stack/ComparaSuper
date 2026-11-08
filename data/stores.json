@@ -1,5 +1,5 @@
 {
-  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra.",
+  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra. sepa_base: 'mayoristas' si la cadena informa en la base de mayoristas (si no, se busca en la de supermercados).",
   "stores": [
     {
       "id": "carrefour",
@@ -7,8 +7,10 @@
       "tipo": "super",
       "color": "#2563eb",
       "sepa_banderas": [
-        "CARREFOUR",
         "HIPERMERCADO CARREFOUR",
+        "CARREFOUR",
+        "MARKET",
+        "EXPRESS",
         "CARREFOUR MARKET",
         "CARREFOUR EXPRESS"
       ],
@@ -29,8 +31,8 @@
       "tipo": "super",
       "color": "#1e3a8a",
       "sepa_banderas": [
-        "CARREFOUR MAXI",
-        "MAXI CARREFOUR"
+        "MAXI",
+        "CARREFOUR MAXI"
       ],
       "web": "https://www.carrefour.com.ar",
       "buscar": null,
@@ -45,8 +47,10 @@
       "color": "#0891b2",
       "sepa_banderas": [
         "CHANGOMAS",
-        "HIPER CHANGOMAS",
-        "MI CHANGOMAS"
+        "SUPERCHANGOMAS",
+        "HIPERCHANGOMAS",
+        "MASGO",
+        "MAS GO"
       ],
       "web": "https://www.masonline.com.ar",
       "buscar": "https://www.masonline.com.ar/{q}?_q={q}&map=ft",
@@ -100,7 +104,9 @@
       "color": "#ea580c",
       "sepa_banderas": [
         "DIA",
-        "DIA ARGENTINA S.A"
+        "SUPERMERCADOS DIA",
+        "DIA ARGENTINA S.A",
+        "DIA %"
       ],
       "web": "https://diaonline.supermercadosdia.com.ar",
       "buscar": "https://diaonline.supermercadosdia.com.ar/{q}?_q={q}&map=ft",
@@ -119,7 +125,8 @@
       "tipo": "mayorista",
       "color": "#b45309",
       "sepa_banderas": [
-        "DIARCO"
+        "DIARCO",
+        "DIARCO MAYORISTA"
       ],
       "web": "https://www.diarco.com.ar",
       "buscar": null,
@@ -172,7 +179,8 @@
       "tipo": "super",
       "color": "#0d9488",
       "sepa_banderas": [
-        "JOSIMAR"
+        "JOSIMAR",
+        "SUPERMERCADOS JOSIMAR"
       ],
       "web": null,
       "buscar": null,
@@ -204,13 +212,15 @@
       "tipo": "super",
       "color": "#e11d48",
       "sepa_banderas": [
+        "HIPERMAYORISTA MAKRO",
         "MAKRO"
       ],
       "web": "https://www.makro.com.ar",
       "buscar": null,
       "online": null,
       "sigla": "Mk",
-      "nota": "Formato mayorista: algunos precios piden llevar varias unidades."
+      "nota": "Formato mayorista: algunos precios piden llevar varias unidades.",
+      "sepa_base": "mayoristas"
     },
     {
       "id": "maxiconsumo",
@@ -224,7 +234,8 @@
       "buscar": null,
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
-      "sigla": "Mx"
+      "sigla": "Mx",
+      "sepa_base": "mayoristas"
     },
     {
       "id": "nini",
@@ -232,13 +243,16 @@
       "tipo": "mayorista",
       "color": "#65a30d",
       "sepa_banderas": [
-        "NINI"
+        "NINI CENTRO DE COMPRAS MAYORISTAS",
+        "NINI",
+        "MAYORISTA NINI"
       ],
       "web": null,
       "buscar": null,
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
-      "sigla": "Ni"
+      "sigla": "Ni",
+      "sepa_base": "mayoristas"
     },
     {
       "id": "pedidosya",
@@ -265,7 +279,8 @@
       "tipo": "mayorista",
       "color": "#0f766e",
       "sepa_banderas": [
-        "PUNTO MAYORISTA"
+        "PUNTO MAYORISTA",
+        "PUNTO MAYORISTA - CHANGOMAS"
       ],
       "web": null,
       "buscar": null,
@@ -317,13 +332,16 @@
       "tipo": "mayorista",
       "color": "#4d7c0f",
       "sepa_banderas": [
-        "VITAL"
+        "VITAL",
+        "MAYORISTA VITAL",
+        "SUPERMAYORISTA VITAL"
       ],
       "web": "https://www.vital.com.ar",
       "buscar": null,
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
-      "sigla": "Vi"
+      "sigla": "Vi",
+      "sepa_base": "mayoristas"
     },
     {
       "id": "yaguar",
@@ -331,13 +349,15 @@
       "tipo": "mayorista",
       "color": "#a16207",
       "sepa_banderas": [
+        "MAYORISTA YAGUAR",
         "YAGUAR"
       ],
       "web": null,
       "buscar": null,
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
-      "sigla": "Ya"
+      "sigla": "Ya",
+      "sepa_base": "mayoristas"
     }
   ]
 }

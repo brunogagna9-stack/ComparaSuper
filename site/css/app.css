@@ -368,3 +368,5 @@ footer .sub{color:#7f968b}
   .litem .e{grid-row:1/3;font-size:22px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.more{grid-column:1/-1;display:flex;justify-content:center;padding:10px 0}

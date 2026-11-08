@@ -65,6 +65,20 @@ def test_diarco_barrio_y_mayorista():
     assert items["diarcobarrio"]["price"] == 2050 and items["diarco"]["price"] == 1550, items
 
 
+def test_formato_real_sepa():
+    """Formato real: el código de barras va en id_producto y productos_ean es 1 (EAN) o 0 (código interno)."""
+    r = {"id_producto": "7790580136260", "productos_ean": "1"}
+    assert sf.barcode(r) == "7790580136260"
+    assert sf.barcode({"id_producto": "0000000003136", "productos_ean": "0"}) is None
+    assert sf.qty_from_name("ENERGIZ MONSTER ANANA 473 cc") == ("473", "CC")
+    assert bd.size_of({"qty": 0.27, "unit": "gr.", "name": "jabon REXONA 3x90g PAS-270-gr."}) == (0.27, "kg")
+    assert bd.size_of({"qty": 1, "unit": "uni", "name": "BASTONITOS KRACHITOS X 60 GRS"}) == (0.06, "kg")
+    assert bd.nice_name("ALIM.P/GATOS SAB.CARNE WHISKAS BSA 8 KGM").startswith("Alim.p/gatos")
+    assert bd.classify("NOODLES SABOR POLLO PICANTE KNORR X 72 GRS") == "almacen"
+    assert bd.classify("ALIM.P/GATOS ADULTOS CARNE Y POLLO CAT CHOW BSA 8 KGM") == "bebes_mascotas"
+    assert bd.classify("JABON E/POLVO MATIC FRAG.ROSAS GRANBY PAQ 3 KGM") == "limpieza"
+
+
 def test_unidades_y_promos():
     assert bd.base_qty(500, "g") == (0.5, "kg") and bd.base_qty(2.25, "lt") == (2.25, "l") and bd.base_qty(900, "cc") == (0.9, "l")
     assert bd.promo_min_qty("3x2") == 3 and bd.promo_min_qty("Llevando 2, la 2da al 70%") == 2 and bd.promo_min_qty("2do al 50%") == 2

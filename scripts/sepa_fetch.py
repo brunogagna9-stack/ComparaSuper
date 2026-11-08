@@ -28,11 +28,13 @@ ROOT = Path(__file__).resolve().parent.parent
 CKAN = "https://datos.produccion.gob.ar/api/3/action/package_show?id={}"
 # Base de supermercados (minoristas) y base de mayoristas con salón de ventas.
 # La de mayoristas sigue otra resolución (448/2016): si su formato no coincide, se avisa y se sigue sin ella.
-DATASETS = [("sepa-precios", True), ("precios-claros-sepa-mayoristas", False)]   # (id, obligatoria)
+DATASETS = [("sepa-precios", True, "minoristas"), ("precios-claros-sepa-mayoristas", False, "mayoristas")]   # (id, obligatoria, base)
 PROVINCIAS = ["AR-C", "AR-B"]   # CABA y provincia de Buenos Aires (códigos ISO 3166-2)
 REGION = "CABA y provincia de Buenos Aires"
 UA = {"User-Agent": "ComparaSuper/0.1 (comparador independiente de precios)"}
-MIN_SUCURSALES = 2              # un precio informado por una sola sucursal no se publica
+MIN_SUCURSALES = 2
+EXTRA_DIAS = 2       # cuántos días anteriores se revisan para completar cadenas que faltan en el archivo de hoy
+MAYORISTAS = set()   # se completa con data/stores.json (tipo "mayorista")              # un precio informado por una sola sucursal no se publica
 
 
 def norm(s):
@@ -40,14 +42,15 @@ def norm(s):
     return "".join(c for c in s if unicodedata.category(c) != "Mn").strip()
 
 
-def latest_resource(dataset):
+def resources(dataset):
+    """Archivos del dataset (uno por día de la semana), del más nuevo al más viejo."""
     with urllib.request.urlopen(urllib.request.Request(CKAN.format(dataset), headers=UA), timeout=60) as r:
         pkg = json.load(r)["result"]
     res = [x for x in pkg["resources"] if x.get("url", "").lower().endswith(".zip")]
     res.sort(key=lambda x: x.get("last_modified") or x.get("created") or "", reverse=True)
     if not res:
         raise SystemExit("El portal no devolvió archivos .zip de SEPA")
-    return res[0]
+    return res
 
 
 def download(url, dest):
@@ -63,6 +66,27 @@ def read_csv(data):
         if not row or not row.get(rows.fieldnames[0]) or norm(row[rows.fieldnames[0]]).startswith("ULTIMA"):
             continue
         yield {k.strip().lower(): (v or "").strip() for k, v in row.items() if k}
+
+
+def barcode(r):
+    """El código de barras está en id_producto; productos_ean dice si ese código es un EAN (1) o un código interno (0)."""
+    pid = (r.get("id_producto") or "").strip()
+    flag = (r.get("productos_ean") or "").strip()
+    if flag not in ("0", "1") and len(flag) >= 8:   # por si algún archivo trae el EAN en esa columna
+        pid, flag = flag, "1"
+    if flag != "1" or not pid.isdigit() or len(pid.lstrip("0")) < 8:
+        return None
+    return pid.lstrip("0").zfill(13) if len(pid.lstrip("0")) <= 13 else pid.lstrip("0")
+
+
+def qty_from_name(name):
+    """Los mayoristas no informan la presentación aparte: se lee del nombre (ej. '473 cc', 'X150GR', '1,5 LT')."""
+    import re
+    m = re.findall(r"(\d+(?:[.,]\d+)?)\s*(KG|KGS|GRS?|G|ML|CC|CM3|LTS?|L)\b", (name or "").upper())
+    if not m:
+        return "1", "un"
+    q, u = m[-1]
+    return q.replace(",", "."), u
 
 
 def num(v):
@@ -100,11 +124,14 @@ def iter_comercios(zf):
             yield zf.read(f["comercio.csv"]), zf.read(f["sucursales.csv"]), zf.read(f["productos.csv"])
 
 
-def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None):
+def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None, only=None):
     # nombre de bandera normalizado -> id de nuestra tienda
     # una bandera puede ir a varias tiendas (Diarco Mayorista / Diarco Barrio): se decide por el nombre de la sucursal
+    MAYORISTAS.update(s["id"] for s in stores if s.get("tipo") == "mayorista" or s["id"] == "makro")
     alias = defaultdict(list)
     for s in stores:
+        if only is not None and s["id"] not in only:
+            continue
         for b in s["sepa_banderas"]:
             alias[norm(b)].append((s["id"], [norm(k) for k in s.get("sepa_sucursal_contiene", [])]))
     seen = seen if seen is not None else set()
@@ -132,26 +159,36 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None):
                     sucs[key + (r["id_sucursal"],)] = sid
             for r in read_csv(prod_b):
                 sid = sucs.get((r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal")))
-                ean = r.get("productos_ean") or r.get("id_producto")
-                price = num(r.get("productos_precio_lista"))
-                if not sid or not ean or not price:
+                if not sid:
                     continue
-                if ean.strip("0") == "" or len(ean) < 8:   # códigos internos o vacíos: no comparables entre cadenas
+                ean = barcode(r)
+                if not ean:   # código interno de la cadena: no se puede comparar con otras
+                    continue
+                if "precio_unitario_bulto_por_unidad_venta_con_iva" in r:   # formato de la base de mayoristas
+                    price = num(r.get("precio_unitario_bulto_por_unidad_venta_con_iva"))
+                    leg, pu = r.get("productos_leyenda_promo1", ""), num(r.get("productos_precio_unitario_con_iva_promo1"))
+                    qty, unit = qty_from_name(r.get("productos_descripcion", ""))
+                    bulto = int(num(r.get("unidad_venta")) or 1)
+                else:
+                    price = num(r.get("productos_precio_lista"))
+                    leg, pu = r.get("productos_leyenda_promo1", ""), num(r.get("productos_precio_unitario_promo1"))
+                    qty, unit = r.get("productos_cantidad_presentacion", ""), r.get("productos_unidad_medida_presentacion", "")
+                    bulto = 1
+                if not price:
                     continue
                 a = acc[(sid, ean)]
                 a["prices"].append(price)
-                a["names"][r.get("productos_descripcion", "")] += 1
+                a["names"][r.get("productos_descripcion", "").strip()] += 1
+                a["bulto"] = max(a.get("bulto", 1), bulto)
                 if a["meta"] is None:
-                    a["meta"] = (r.get("productos_marca", ""), r.get("productos_cantidad_presentacion", ""),
-                                 r.get("productos_unidad_medida_presentacion", ""))
-                leg, pu = r.get("productos_leyenda_promo1", ""), num(r.get("productos_precio_unitario_promo1"))
+                    a["meta"] = (r.get("productos_marca", ""), qty, unit)
                 if leg and pu and pu < price:
                     a["promos"][leg] += 1
                     a["promo_pu"][leg].append(pu)
     items = []
     for (sid, ean), a in acc.items():
         n = len(a["prices"])
-        if n < MIN_SUCURSALES:
+        if n < (1 if sid in MAYORISTAS else MIN_SUCURSALES):   # un mayorista suele tener el mismo precio en todos sus locales
             continue
         brand, qty, unit = a["meta"]
         qty_n = num(qty) or 1
@@ -159,6 +196,8 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None):
         it = {"store": sid, "ean": ean, "name": a["names"].most_common(1)[0][0].strip(), "brand": brand.title(),
               "qty": qty_n, "unit": unit.lower(), "price": med, "price_min": round(min(a["prices"])),
               "price_max": round(max(a["prices"])), "branches": n}
+        if a.get("bulto", 1) > 1:
+            it["bulto"] = a["bulto"]   # mayorista: ese precio por unidad es llevando el bulto completo
         if a["promos"]:
             leg, cnt = a["promos"].most_common(1)[0]
             if cnt / n >= 0.3:   # la promo tiene que estar en al menos 30% de las sucursales
@@ -173,22 +212,35 @@ def main():
     if len(sys.argv) > 1:
         items = summarize(Path(sys.argv[1]), stores, seen=seen)
     else:
-        for dataset, required in DATASETS:
-            tmp = Path(tempfile.mkdtemp())
+        for dataset, required, base in DATASETS:
+            wanted = {st["id"] for st in stores if st["sepa_banderas"] and st.get("sepa_base", "minoristas") == base}
             try:
-                res = latest_resource(dataset)
-                if required:
-                    date = (res.get("last_modified") or res.get("created") or date)[:10]
-                print("Descargando", res["url"]); download(res["url"], tmp / "sepa.zip")
-                got = summarize(tmp / "sepa.zip", stores, seen=seen)
-                print(f"  {dataset}: {len(got)} precios")
-                items += got
+                files = resources(dataset)
             except Exception as e:
                 if required:
                     raise
-                print(f"AVISO: no se pudo leer {dataset} ({e}); se sigue sin esos datos")
-            finally:
-                shutil.rmtree(tmp, ignore_errors=True)
+                print(f"AVISO: no se pudo consultar {dataset} ({e})"); continue
+            # el archivo más nuevo; si una cadena no vino (archivo vacío o dañado), se busca en los días anteriores
+            for k, res in enumerate(files[:EXTRA_DIAS + 1]):
+                have = {i["store"] for i in items}
+                missing = None if k == 0 else (wanted - have)
+                if missing is not None and not missing:
+                    break
+                if k == 0 and required:
+                    date = (res.get("last_modified") or res.get("created") or date)[:10]
+                tmp = Path(tempfile.mkdtemp())
+                try:
+                    print("Descargando", res["url"], "" if k == 0 else f"(para completar: {sorted(missing)})")
+                    download(res["url"], tmp / "sepa.zip")
+                    got = summarize(tmp / "sepa.zip", stores, seen=seen, only=missing)
+                    print(f"  {dataset}: {len(got)} precios de {sorted({i['store'] for i in got})}")
+                    items += got
+                except Exception as e:
+                    if required and k == 0:
+                        raise
+                    print(f"AVISO: no se pudo leer {res['url']} ({e}); se sigue")
+                finally:
+                    shutil.rmtree(tmp, ignore_errors=True)
     # cadenas configuradas que no aparecieron en el archivo: hay que revisar su nombre en stores.json
     for s in stores:
         if s["sepa_banderas"] and not any(norm(b) in seen for b in s["sepa_banderas"]):

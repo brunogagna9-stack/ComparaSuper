@@ -223,8 +223,23 @@ const storeSelect = (id, val, label = "Todos los comercios") => `<select class="
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
 /* ---------- INICIO ---------- */
-const CANASTA = ["Leche entera", "Yerba mate Playadito", "Azúcar", "Harina 0000", "Aceite de girasol Natura", "Arroz largo fino Gallo", "Fideos spaghetti", "Puré de tomate", "Huevos", "Pan lacteado", "Papel higiénico", "Detergente Magistral"];
-const canasta = () => CANASTA.map(k => D.products.find(p => p.name.toLowerCase().startsWith(k.toLowerCase()))).filter(Boolean).map(p => ({ p, qty: 1 }));
+/* canasta: para cada búsqueda, el producto que esté en más comercios (con datos reales cambia solo) */
+const CANASTA = ["leche entera 1 l", "yerba mate 1 kg", "azucar 1 kg", "harina 0000 1 kg", "aceite girasol 1,5 l", "arroz largo fino 1 kg",
+  "fideos spaghetti 500", "pure tomate", "huevos", "pan lactal", "papel higienico", "detergente 500"];
+let CAN = null;
+function canasta() {
+  if (!CAN) {
+    const used = new Set();
+    CAN = CANASTA.map(q => {
+      const ws = nrm(q).replace(/(\d),(\d)/g, "$1.$2").split(/\s+/).filter(Boolean);
+      const hits = D.products.filter(p => !used.has(p.id) && ws.every(w => nrm(p.name).replace(/(\d),(\d)/g, "$1.$2").includes(w)));
+      const p = hits.sort((a, b) => b.offers.length - a.offers.length)[0];
+      if (p) used.add(p.id);
+      return p;
+    }).filter(Boolean);
+  }
+  return CAN.map(p => ({ p, qty: 1 }));
+}
 
 function vInicio() {
   setTab("inicio");
@@ -320,6 +335,7 @@ function results() {
     ahorro: (a, b) => spread(b) - spread(a), baja: (a, b) => drop(a) - drop(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
   return list.sort(sorters[S.sort] || sorters.precio);
 }
+const PAGE = 60;   // productos por tanda, para que la página no se ponga lenta con miles de resultados
 function vBuscar() {
   setTab("buscar");
   const cat = D.cats.find(c => c.id === S.cat);
@@ -348,7 +364,13 @@ function vBuscar() {
   const draw = () => {
     const r = results();
     $("#rcount").textContent = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}`;
-    $("#res").innerHTML = r.map(card).join("") || `<div class="empty" style="grid-column:1/-1">No encontramos productos con esos filtros.<br><br><button class="btn sec sm" id="clr">Limpiar filtros</button></div>`;
+    let shown = PAGE;
+    const paint = () => {
+      $("#res").innerHTML = (r.slice(0, shown).map(card).join("") || `<div class="empty" style="grid-column:1/-1">No encontramos productos con esos filtros.<br><br><button class="btn sec sm" id="clr">Limpiar filtros</button></div>`)
+        + (r.length > shown ? `<div class="more"><button class="btn sec" id="more">Ver más (${(r.length - shown).toLocaleString("es-AR")} restantes)</button></div>` : "");
+      const m = $("#more"); if (m) m.onclick = () => { shown += PAGE; paint(); };
+    };
+    paint();
     const c = $("#clr"); if (c) c.onclick = () => { S.q = ""; $("#q").value = ""; S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; vBuscar(); };
     $("#stall").textContent = S.stores.size ? "ver todos" : "";
   };
@@ -380,7 +402,7 @@ function vOfertas() {
   $("#view").innerHTML = `<div class="wrap"><section class="blk">
     <div class="toolbar"><div><h1>🏷️ Ofertas vigentes</h1><span class="sub">${list.length} ofertas · ordenadas por mayor descuento real por unidad</span></div>${storeSelect("ostore", S.ostore)}</div>
     <div class="chips" style="margin-bottom:18px"><button class="chip${S.otipo ? "" : " on"}" data-ot="">Todas</button>${tipos.map(t => `<button class="chip${S.otipo === t ? " on" : ""}" data-ot="${esc(t)}">${esc(t)}</button>`).join("")}</div>
-    <div class="grid">${list.map(({ p, o, c, pr }) => {
+    <div class="grid">${list.slice(0, S.olim || PAGE).map(({ p, o, c, pr }) => {
       const off = Math.round((1 - pr.pu / base(o, c)) * 100), b = best(p);
       return `<article class="prod" data-open="${p.id}" tabindex="0"><div class="ph">${emoji(p)}</div>
         <div class="tags"><span class="tag">🏷️ ${esc(pr.txt)}</span></div>
@@ -389,8 +411,10 @@ function vOfertas() {
         <div class="unit">${pr.n > 1 ? `llevando ${pr.n} · ` : ""}<s>${money(base(o, c))}</s> · <b class="okc">−${off}%</b></div>
         ${b.o.s !== o.s && b.v < pr.pu ? `<div class="note">Ojo: sin oferta está más barato en ${esc(chanName(b.o.s, b.c))} (${money(b.v)})</div>` : ""}</div>
         <div class="meta"><span class="sub">${unitTxt(p, pr.pu)}</span><button class="add${LISTA[p.id] ? " in" : ""}" data-add="${p.id}">${LISTA[p.id] ? "✓" : "+"}</button></div></article>`;
-    }).join("") || `<div class="empty" style="grid-column:1/-1">No hay ofertas con ese filtro.</div>`}</div></section></div>`;
-  $$("[data-ot]").forEach(b => b.onclick = () => { S.otipo = b.dataset.ot; vOfertas(); });
+    }).join("") || `<div class="empty" style="grid-column:1/-1">No hay ofertas con ese filtro.</div>`}
+    ${list.length > (S.olim || PAGE) ? `<div class="more"><button class="btn sec" id="omore">Ver más (${(list.length - (S.olim || PAGE)).toLocaleString("es-AR")} restantes)</button></div>` : ""}</div></section></div>`;
+  const om = $("#omore"); if (om) om.onclick = () => { S.olim = (S.olim || PAGE) + PAGE; const y = scrollY; vOfertas(); scrollTo(0, y); };
+  $$("[data-ot]").forEach(b => b.onclick = () => { S.otipo = b.dataset.ot; S.olim = 0; vOfertas(); });
   $("#ostore").onchange = e => { S.ostore = e.target.value; vOfertas(); };
 }
 
@@ -603,6 +627,7 @@ async function openProduct(id) {
         ${rows.map((o, i) => `<tr class="${i ? "" : "top"}"><td>${storeChip(o.s)}${o.low ? '<div><span class="tag g sm">mín. 60 días</span></div>' : ""}
             ${o.chg && !o.anom ? `<div class="chg ${o.chg.pct < 0 ? "dn" : "up"}">${o.chg.pct < 0 ? "▼" : "▲"} ${Math.abs(o.chg.pct)}% <span class="sub">desde ayer</span></div>` : ""}
             ${o.pmax ? `<div class="sub">hasta ${money(o.pmax)} según sucursal</div>` : ""}
+            ${o.bulto > 1 ? `<div class="sub">📦 Precio por unidad llevando el bulto de ${o.bulto}</div>` : ""}
             ${ST[o.s].nota ? `<div class="sub">${esc(ST[o.s].nota)}</div>` : ""}
             ${o.anom ? `<div class="warn">⚠️ Precio inusual: cambió ${o.chg.pct}% de un día al otro. Puede ser un error de carga; confirmalo antes de ir.</div>` : ""}</td>
           <td data-l="🏬 En el local">${priceCell(o, "tienda")}</td>
