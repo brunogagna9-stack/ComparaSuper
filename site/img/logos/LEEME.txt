@@ -1,0 +1,1 @@
+Guardá acá los logos oficiales (svg o png) y registralos en site/config.json.

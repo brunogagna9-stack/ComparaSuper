@@ -1,0 +1,2681 @@
+{
+ "_comentario": "Descuentos por medio de pago. Se cargan A MANO desde la página oficial del banco, billetera o súper, con 'fuente' (enlace) y 'verificado' (fecha). check_data.py rechaza promos reales sin fuente. dias: 0=domingo ... 6=sábado. tope en pesos (null = sin tope). periodo_tope: dia|semana|mes|compra. canal: tienda|online|ambos. pago: claves de 'formas_pago' (cómo hay que pagar para que aplique). ejemplo=true: promo inventada del prototipo, reemplazar antes de publicar. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
+ "relevado": "2026-11-08",
+ "tipos": {
+  "banco": "Bancos",
+  "billetera": "Billeteras virtuales",
+  "tarjeta": "Tarjetas",
+  "programa": "Clubes y beneficios",
+  "general": "Para todos"
+ },
+ "formas_pago": {
+  "credito_fisica": {
+   "t": "Tarjeta de crédito física",
+   "d": "Pasando el plástico por el posnet de la caja. Si pagás con QR o con el celular, NO aplica.",
+   "i": "💳"
+  },
+  "debito_fisica": {
+   "t": "Tarjeta de débito física",
+   "d": "Pasando la tarjeta de débito por el posnet. Con crédito o con QR no aplica.",
+   "i": "💳"
+  },
+  "qr_modo": {
+   "t": "QR con MODO",
+   "d": "Con la tarjeta del banco cargada en MODO (o en la app del banco con MODO), escaneando el QR de la caja. Con el plástico NO aplica.",
+   "i": "📱"
+  },
+  "qr_billetera": {
+   "t": "QR de la billetera, con dinero en cuenta",
+   "d": "Abrís la app de la billetera, escaneás el QR de la caja y pagás con la plata que tenés en la cuenta.",
+   "i": "📱"
+  },
+  "qr_billetera_tarjeta": {
+   "t": "QR de la billetera, con tarjeta",
+   "d": "Escaneando el QR con la app de la billetera, pero eligiendo pagar con una tarjeta cargada en ella.",
+   "i": "📱"
+  },
+  "nfc": {
+   "t": "Celular contactless (NFC)",
+   "d": "Acercando el celular al posnet, sin escanear nada. Necesitás la tarjeta cargada en la app y el NFC activado (en general, solo Android).",
+   "i": "📶"
+  },
+  "cuenta_digital": {
+   "t": "Con la cuenta digital del banco",
+   "d": "Pagando con el saldo o la tarjeta de la cuenta digital del banco de la cadena.",
+   "i": "🏦"
+  },
+  "online_tarjeta": {
+   "t": "Compra online con tarjeta",
+   "d": "Comprando en la página o app del súper y pagando ahí con la tarjeta.",
+   "i": "🛒"
+  },
+  "online_billetera": {
+   "t": "Compra online con la billetera",
+   "d": "Comprando en la página o app del súper y eligiendo la billetera como medio de pago.",
+   "i": "🛒"
+  },
+  "presentar": {
+   "t": "Identificándote como socio o beneficiario",
+   "d": "Mostrás la tarjeta, la app o el DNI en la caja (u online, el cupón del club) y pagás con cualquier medio.",
+   "i": "🪪"
+  },
+  "ver_condiciones": {
+   "t": "Medio de pago a confirmar",
+   "d": "La fuente no aclara si es con tarjeta física, QR o celular: revisá las condiciones antes de pagar.",
+   "i": "❔"
+  }
+ },
+ "medios": [
+  {
+   "id": "bna",
+   "name": "Banco Nación",
+   "tipo": "banco"
+  },
+  {
+   "id": "ciudad",
+   "name": "Banco Ciudad",
+   "tipo": "banco"
+  },
+  {
+   "id": "columbia",
+   "name": "Banco Columbia",
+   "tipo": "banco"
+  },
+  {
+   "id": "comafi",
+   "name": "Banco Comafi",
+   "tipo": "banco"
+  },
+  {
+   "id": "credicoop",
+   "name": "Credicoop",
+   "tipo": "banco"
+  },
+  {
+   "id": "hipotecario",
+   "name": "Banco Hipotecario",
+   "tipo": "banco"
+  },
+  {
+   "id": "icbc",
+   "name": "ICBC",
+   "tipo": "banco"
+  },
+  {
+   "id": "patagonia",
+   "name": "Banco Patagonia",
+   "tipo": "banco"
+  },
+  {
+   "id": "supervielle",
+   "name": "Supervielle",
+   "tipo": "banco"
+  },
+  {
+   "id": "galicia",
+   "name": "Galicia",
+   "tipo": "banco"
+  },
+  {
+   "id": "cencopay",
+   "name": "CencoPay",
+   "tipo": "billetera"
+  },
+  {
+   "id": "cuentacarrefour",
+   "name": "Carrefour Banco (cuenta digital)",
+   "tipo": "billetera"
+  },
+  {
+   "id": "cuentadni",
+   "name": "Cuenta DNI",
+   "tipo": "billetera"
+  },
+  {
+   "id": "mp",
+   "name": "Mercado Pago",
+   "tipo": "billetera"
+  },
+  {
+   "id": "modo",
+   "name": "MODO",
+   "tipo": "billetera"
+  },
+  {
+   "id": "naranjax",
+   "name": "Naranja X",
+   "tipo": "billetera"
+  },
+  {
+   "id": "personalpay",
+   "name": "Personal Pay",
+   "tipo": "billetera"
+  },
+  {
+   "id": "naranja",
+   "name": "Tarjeta Naranja (Plan Z)",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "tcarrefour",
+   "name": "Tarjeta Carrefour (crédito)",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "tci",
+   "name": "Tarjeta Coto TCI",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "credito",
+   "name": "Cualquier tarjeta de crédito",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "ciudadania",
+   "name": "Ciudadanía Porteña",
+   "tipo": "programa"
+  },
+  {
+   "id": "clublanacion",
+   "name": "Club La Nación",
+   "tipo": "programa"
+  },
+  {
+   "id": "comunidadcoto",
+   "name": "Comunidad Coto",
+   "tipo": "programa"
+  },
+  {
+   "id": "jubilados",
+   "name": "Jubilados y pensionados (ANSES)",
+   "tipo": "programa"
+  },
+  {
+   "id": "masclub",
+   "name": "MasClub (ChangoMás)",
+   "tipo": "programa"
+  },
+  {
+   "id": "micarrefour",
+   "name": "Mi Carrefour",
+   "tipo": "programa"
+  },
+  {
+   "id": "todos",
+   "name": "Cualquier medio de pago",
+   "tipo": "general"
+  }
+ ],
+ "promos": [
+  {
+   "id": "n001",
+   "medio": "tcarrefour",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    0,
+    1,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n002",
+   "medio": "tcarrefour",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n003",
+   "medio": "cuentacarrefour",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "cuenta_digital"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n004",
+   "medio": "cuentacarrefour",
+   "stores": [
+    "carrefour",
+    "carrefourmaxi"
+   ],
+   "dias": [
+    6,
+    0
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "cuenta_digital"
+   ],
+   "reintegro": "en la caja",
+   "nota": "En Carrefour Maxi no se acumula con otras promociones.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/?p=16402",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n005",
+   "medio": "cuentacarrefour",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n006",
+   "medio": "clublanacion",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n007",
+   "medio": "clublanacion",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    0
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo entrega inmediata, según la zona. Hay que registrarse 24 horas antes.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n008",
+   "medio": "micarrefour",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    1,
+    2,
+    3
+   ],
+   "pct": 10,
+   "tope": 35000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Para socios de Mi Carrefour que cobran por ANSES o tienen más de 60 años.",
+   "cuotas": null,
+   "requiere": [
+    "jubilados"
+   ],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n009",
+   "medio": "patagonia",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 15,
+   "tope": 10000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con cuenta sueldo o carteras Plus/Singular el descuento sube hasta 35%.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n010",
+   "medio": "cuentadni",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 20000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Jubilados que cobran por Cuenta DNI: 5% adicional.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n011",
+   "medio": "mp",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 20000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Acumulable con las ofertas del súper.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n012",
+   "medio": "mp",
+   "stores": [
+    "carrefour",
+    "carrefourmaxi"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n013",
+   "medio": "todos",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 10,
+   "tope": 8000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta",
+    "online_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Exclusivo compra online.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n014",
+   "medio": "mp",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 150000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": "3 cuotas sin interés pagando con el QR de Mercado Pago.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/?p=16402",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n015",
+   "medio": "naranjax",
+   "stores": [
+    "carrefour"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Con tarjeta Naranja X, solo en tiendas físicas.",
+   "cuotas": 4,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/?p=16402",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n016",
+   "medio": "ciudad",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 25,
+   "tope": 30000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "En sucursal pagando con MODO desde la app del Ciudad; online con crédito Visa, Mastercard o Cabal.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n017",
+   "medio": "icbc",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Plan Sueldo ICBC: 30%, tope $20.000.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n018",
+   "medio": "icbc",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "debito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con débito Visa ICBC.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n019",
+   "medio": "jubilados",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    1,
+    2,
+    3,
+    4
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Beneficios ANSES, con tarjeta de crédito o débito. No vale en Coto Digital.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n020",
+   "medio": "jubilados",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Presentando el DNI; cualquier medio de pago.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n021",
+   "medio": "comafi",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 35,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Online: 35% con tope $15.000 por compra.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n022",
+   "medio": "supervielle",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 30,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Online: 20% con crédito o débito Visa.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n023",
+   "medio": "supervielle",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    6,
+    0
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con crédito, pagando con MODO desde la app de Supervielle. Clientes Identité: 25%, tope $15.000.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n024",
+   "medio": "columbia",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 30,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n025",
+   "medio": "columbia",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 30,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n026",
+   "medio": "credicoop",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 30,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "En sucursal con MODO desde la app Credicoop (Cabal o Visa Credicoop); online con Cabal.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n027",
+   "medio": "tci",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n028",
+   "medio": "ciudadania",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1,
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo en sucursales de CABA.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n029",
+   "medio": "ciudadania",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2,
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo en sucursales de CABA.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n030",
+   "medio": "naranjax",
+   "stores": [
+    "coto",
+    "jumbo",
+    "disco",
+    "vea",
+    "dia",
+    "changomas"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 3000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Plan Inicial. Con Plan Turbo: 25% (tope $9.500); con Plan Épico: 30% (tope $12.000).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n031",
+   "medio": "comunidadcoto",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Para socios de Comunidad Coto (es gratis).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n032",
+   "medio": "patagonia",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "online",
+   "pago": [
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n033",
+   "medio": "mp",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 25,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n034",
+   "medio": "mp",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    6,
+    0
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n035",
+   "medio": "ciudad",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    6,
+    0
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con débito Visa o Maestro.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/coto",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n036",
+   "medio": "bna",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 25,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Visa crédito o débito del Nación, en BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n037",
+   "medio": "galicia",
+   "stores": [
+    "coto",
+    "changomas"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": "Hasta 18 cuotas con Mastercard Galicia; hasta 12 con Visa o American Express.",
+   "cuotas": 18,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16396/descuentos-supermercados-galicia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n038",
+   "medio": "cencopay",
+   "stores": [
+    "jumbo",
+    "disco",
+    "vea"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 25,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "CencoPay Cuenta, con crédito.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/jumbo",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n039",
+   "medio": "cencopay",
+   "stores": [
+    "jumbo",
+    "disco",
+    "vea"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/jumbo",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n040",
+   "medio": "hipotecario",
+   "stores": [
+    "jumbo",
+    "disco"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 25,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/jumbo",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n041",
+   "medio": "modo",
+   "stores": [
+    "jumbo"
+   ],
+   "dias": [
+    2,
+    4
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 100000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco: con tarjetas de dos bancos distintos podés sumar dos topes.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/jumbo",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n042",
+   "medio": "modo",
+   "stores": [
+    "disco"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 100000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/disco",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n043",
+   "medio": "modo",
+   "stores": [
+    "vea"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 100000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/vea",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n044",
+   "medio": "supervielle",
+   "stores": [
+    "jumbo",
+    "disco",
+    "vea"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 25,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "debito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo jubilados que cobran en Supervielle. No aplica a todos los productos.",
+   "cuotas": null,
+   "requiere": [
+    "jubilados"
+   ],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/jumbo",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n045",
+   "medio": "jubilados",
+   "stores": [
+    "vea"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 10,
+   "tope": 5000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/vea",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-07",
+   "ejemplo": false
+  },
+  {
+   "id": "n046",
+   "medio": "mp",
+   "stores": [
+    "vea"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false
+  },
+  {
+   "id": "n047",
+   "medio": "modo",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 75000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n048",
+   "medio": "bna",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 10,
+   "tope": 7500,
+   "periodo_tope": "mes",
+   "minimo": 75000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n049",
+   "medio": "modo",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    0
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 30000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n050",
+   "medio": "hipotecario",
+   "stores": [
+    "changomas",
+    "puntomayorista"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 25,
+   "tope": 10000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con débito Visa del Hipotecario, pagando con MODO desde la App BH. Tope según convi.ar.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.hipotecario.com.ar/alianzas-bh/changomas/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n051",
+   "medio": "comafi",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 12000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n052",
+   "medio": "columbia",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    2,
+    6
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n053",
+   "medio": "mp",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta",
+    "online_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "No aplica a todos los productos.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n054",
+   "medio": "mp",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta",
+    "online_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n055",
+   "medio": "supervielle",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "debito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo jubilados, con débito Visa.",
+   "cuotas": null,
+   "requiere": [
+    "jubilados"
+   ],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n056",
+   "medio": "bna",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 35,
+   "tope": 15000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con crédito Visa o Mastercard del Nación en BNA+ MODO. No aplica a todos los productos.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n057",
+   "medio": "masclub",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    3,
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "En Más GO: 20%.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n058",
+   "medio": "ciudad",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 35,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "ver_condiciones"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con crédito Mastercard a través de Buepp y la App Ciudad.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n059",
+   "medio": "credicoop",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 30,
+   "tope": 9000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Cabal.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n060",
+   "medio": "icbc",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Plan Sueldo ICBC: 30%, tope $15.000.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n061",
+   "medio": "cuentadni",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Incluye MasGO. Jubilados que cobran por Cuenta DNI: 5% adicional.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.bancoprovincia.com.ar/Noticias/MasNoticias/todas-las-promociones-de-cuenta-dni-en-supermercados-3031",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-06",
+   "ejemplo": false
+  },
+  {
+   "id": "n062",
+   "medio": "cuentadni",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "nfc"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con tarjeta de crédito Visa cargada en la app, pagando por NFC.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.bancoprovincia.com.ar/Noticias/MasNoticias/todas-las-promociones-de-cuenta-dni-en-supermercados-3031",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-06",
+   "ejemplo": false
+  },
+  {
+   "id": "n063",
+   "medio": "patagonia",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    6
+   ],
+   "pct": 15,
+   "tope": 10000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con carteras Plus o Singular: 20% o 30%.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/masonline",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n064",
+   "medio": "cuentadni",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "nfc"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con tarjeta de crédito Visa cargada en la app, pagando por NFC.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.bancoprovincia.com.ar/Noticias/MasNoticias/todas-las-promociones-de-cuenta-dni-en-supermercados-3031",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-06",
+   "ejemplo": false
+  },
+  {
+   "id": "n065",
+   "medio": "cuentadni",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Pagando con Clave DNI. Jubilados que cobran por la app: 5% adicional (tope $5.000 por semana).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n066",
+   "medio": "jubilados",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 10,
+   "tope": 2000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "debito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n067",
+   "medio": "mp",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_billetera",
+    "online_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con dinero en cuenta.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n068",
+   "medio": "personalpay",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "nfc",
+    "qr_billetera_tarjeta",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con la Visa de Personal Pay.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n069",
+   "medio": "modo",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 35000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n070",
+   "medio": "bna",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 10,
+   "tope": 7500,
+   "periodo_tope": "mes",
+   "minimo": 35000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n071",
+   "medio": "credito",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": "3 cuotas sin interés con Visa, Mastercard, American Express o Cabal.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n072",
+   "medio": "naranja",
+   "stores": [
+    "dia",
+    "nini"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": "Plan Z: 3 cuotas sin interés.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false
+  },
+  {
+   "id": "n073",
+   "medio": "cuentadni",
+   "stores": [
+    "josimar"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 10,
+   "tope": 6000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16379/supermercados-cuenta-dni-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false
+  },
+  {
+   "id": "n074",
+   "medio": "bna",
+   "stores": [
+    "josimar"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 20,
+   "tope": 6000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n075",
+   "medio": "cuentadni",
+   "stores": [
+    "nini"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 15,
+   "tope": 20000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Tope según calcularsueldo.com.ar.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.nini.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n076",
+   "medio": "bna",
+   "stores": [
+    "nini"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-05",
+   "hasta": "2026-11-26",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n077",
+   "medio": "bna",
+   "stores": [
+    "diarco"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Diarco Mayorista.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-07",
+   "hasta": "2026-11-29",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n078",
+   "medio": "bna",
+   "stores": [
+    "diarcobarrio"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 35000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Diarco Barrio y Diarco Pueblo.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-07",
+   "hasta": "2026-11-29",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n079",
+   "medio": "mp",
+   "stores": [
+    "diarco",
+    "diarcobarrio"
+   ],
+   "dias": [
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false
+  },
+  {
+   "id": "n080",
+   "medio": "bna",
+   "stores": [
+    "makro"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  },
+  {
+   "id": "n081",
+   "medio": "mp",
+   "stores": [
+    "makro"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false
+  },
+  {
+   "id": "n082",
+   "medio": "mp",
+   "stores": [
+    "maxiconsumo"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 5,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con dinero en cuenta.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false
+  },
+  {
+   "id": "n083",
+   "medio": "bna",
+   "stores": [
+    "carrefour",
+    "coto",
+    "jumbo",
+    "makro",
+    "changomas",
+    "dia",
+    "josimar"
+   ],
+   "dias": [
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "pct": 5,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Para jubilados que cobran en el Nación. Se suma a las otras promos del comercio.",
+   "cuotas": null,
+   "requiere": [
+    "jubilados"
+   ],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-01",
+   "ejemplo": false
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ComparáSúper · Precios de supermercados</title>
+<meta name="description" content="Compará precios de supermercados, mayoristas y apps de CABA y GBA: el mismo producto en cada comercio, en el local y online, ofertas vigentes y descuentos por medio de pago de cada día.">
+<meta name="theme-color" content="#0e7a55">
+<script>try{var t=JSON.parse(localStorage.getItem("cs_tema"));if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E🛒%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="demo" class="demo" hidden><b>Prototipo:</b> los precios de productos son <b>de ejemplo</b><span class="dl"> (con SEPA / Precios Claros se llenan solos todos los días)</span>; los descuentos con medios de pago son <b>reales de noviembre 2026</b>.</div>
+<header class="site">
+  <div class="hin">
+    <a class="logo" href="#inicio" aria-label="ComparáSúper, ir al inicio"><span class="lg-ic" aria-hidden="true">🛒</span><span class="lt">Compará<span>Súper</span></span></a>
+    <form class="hsearch" id="hform" role="search">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Buscá: leche, yerba, aceite…" aria-label="Buscar productos" autocomplete="off">
+    </form>
+    <button class="hbtn theme" id="themebtn" type="button">🌙<span class="hl">Modo Oscuro</span></button>
+    <button class="hbtn" id="mbtn" type="button" aria-haspopup="dialog" title="Mis medios de pago">💳<span class="hl">Mis medios</span><span class="dot" id="mdot" hidden></span></button>
+    <button class="hbtn" id="abtn" type="button" aria-haspopup="dialog" title="Avisos de baja de precio" hidden>🔔<span class="badge" id="acount">0</span></button>
+    <a class="hbtn cart" href="#lista" title="Mi lista de compras">🧺<span class="hl">Mi lista</span><span class="badge" id="lcount" data-n="0">0</span></a>
+  </div>
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#inicio" data-v="inicio">Inicio</a>
+    <a href="#buscar" data-v="buscar">Productos</a>
+    <a href="#ofertas" data-v="ofertas">Ofertas</a>
+    <a href="#pagos" data-v="pagos">Descuentos por día</a>
+    <a href="#lista" data-v="lista">¿Dónde conviene mi compra?</a>
+  </nav>
+</header>
+
+<main id="view" tabindex="-1"><div class="loading">Cargando precios…</div></main>
+
+<footer class="site">
+  <div class="fin">
+    <div><div class="flogo">Compará<span>Súper</span></div>
+      <p>Comparador independiente de precios de supermercados, mayoristas y apps de delivery de CABA y GBA: el mismo producto en cada comercio, sus ofertas y los descuentos de cada día según cómo pagás.</p>
+      <p><b>No vendemos productos.</b> El botón «Ver» te lleva a la tienda de cada comercio.</p>
+      <p><button class="btn sm" data-news>📬 Recibir novedades por correo</button></p></div>
+    <div><h4>De dónde salen los datos</h4>
+      <p>Precios y ofertas: base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal. Comparamos por <b>código de barras</b>, así que siempre es exactamente el mismo producto.</p>
+      <p>Precios online: los de la tienda web o app de cada comercio, sin envío.</p>
+      <p>Descuentos con medios de pago: cargados a mano desde la página oficial de cada banco, billetera o tarjeta, con enlace y fecha.</p></div>
+    <div><h4>Importante</h4>
+      <p>Mostramos el precio <b>más común</b> entre las sucursales de la zona; en tu sucursal puede variar. Los descuentos bancarios tienen topes y no suelen sumarse entre sí: <b>verificá antes de pagar</b>.</p>
+      <p id="fupd" class="sub"></p></div>
+  </div>
+  <div class="fbot">© <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</div>
+</footer>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden></aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

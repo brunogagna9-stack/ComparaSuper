@@ -1,0 +1,13 @@
+{
+  "_comentario": "Configuración que se edita a mano. 'novedades': formulario de Google para guardar los correos de quienes se registran (gratis; las respuestas quedan en una planilla de Google). Ver README, sección 'Registro de novedades'. Mientras 'form_action' esté vacío, el formulario avisa que todavía no está conectado.",
+  "novedades": {
+    "form_action": "",
+    "campo_email": "",
+    "campo_temas": "",
+    "campo_zona": ""
+  },
+  "sitio_url": "",
+  "_comentario_logos": "Logos: para mostrar el logo oficial de un comercio o de un medio de pago, guardá la imagen en site/img/logos/ (por ejemplo coto.svg o mercadopago.png) y agregala acá con su id, por ejemplo \"coto\": \"img/logos/coto.svg\". Usá solo logos que la marca permita usar (kit de prensa o con autorización). Si un id no está, se muestra una insignia con sus iniciales.",
+  "logos": {},
+  "logos_medios": {}
+}

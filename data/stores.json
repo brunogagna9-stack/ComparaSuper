@@ -1,0 +1,343 @@
+{
+  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra.",
+  "stores": [
+    {
+      "id": "carrefour",
+      "name": "Carrefour",
+      "tipo": "super",
+      "color": "#2563eb",
+      "sepa_banderas": [
+        "CARREFOUR",
+        "HIPERMERCADO CARREFOUR",
+        "CARREFOUR MARKET",
+        "CARREFOUR EXPRESS"
+      ],
+      "web": "https://www.carrefour.com.ar",
+      "buscar": "https://www.carrefour.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Carrefour online",
+        "vtex": "www.carrefour.com.ar",
+        "envio": 4500,
+        "gratis_desde": 80000,
+        "retiro": true
+      },
+      "sigla": "C"
+    },
+    {
+      "id": "carrefourmaxi",
+      "name": "Carrefour Maxi",
+      "tipo": "super",
+      "color": "#1e3a8a",
+      "sepa_banderas": [
+        "CARREFOUR MAXI",
+        "MAXI CARREFOUR"
+      ],
+      "web": "https://www.carrefour.com.ar",
+      "buscar": null,
+      "online": null,
+      "sigla": "CM",
+      "nota": "Formato mayorista: algunos precios piden llevar varias unidades."
+    },
+    {
+      "id": "changomas",
+      "name": "ChangoMás",
+      "tipo": "super",
+      "color": "#0891b2",
+      "sepa_banderas": [
+        "CHANGOMAS",
+        "HIPER CHANGOMAS",
+        "MI CHANGOMAS"
+      ],
+      "web": "https://www.masonline.com.ar",
+      "buscar": "https://www.masonline.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Más Online",
+        "vtex": "www.masonline.com.ar",
+        "envio": 4000,
+        "gratis_desde": 70000,
+        "retiro": true
+      },
+      "sigla": "Ch"
+    },
+    {
+      "id": "coto",
+      "name": "Coto",
+      "tipo": "super",
+      "color": "#dc2626",
+      "sepa_banderas": [
+        "COTO CICSA",
+        "COTO"
+      ],
+      "web": "https://www.cotodigital.com.ar",
+      "buscar": "https://www.cotodigital.com.ar/sitios/cdigi/categoria?_dyncharset=utf-8&Ntt={q}",
+      "online": {
+        "nombre": "Coto Digital",
+        "adaptador": "pendiente",
+        "envio": 5000,
+        "gratis_desde": 90000,
+        "retiro": true
+      },
+      "sigla": "Co"
+    },
+    {
+      "id": "dar",
+      "name": "Supermercados Dar",
+      "tipo": "super",
+      "color": "#be185d",
+      "sepa_banderas": [
+        "DAR",
+        "SUPERMERCADOS DAR"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "sigla": "Da"
+    },
+    {
+      "id": "dia",
+      "name": "Día",
+      "tipo": "super",
+      "color": "#ea580c",
+      "sepa_banderas": [
+        "DIA",
+        "DIA ARGENTINA S.A"
+      ],
+      "web": "https://diaonline.supermercadosdia.com.ar",
+      "buscar": "https://diaonline.supermercadosdia.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Día Online",
+        "vtex": "diaonline.supermercadosdia.com.ar",
+        "envio": 3500,
+        "gratis_desde": 60000,
+        "retiro": false
+      },
+      "sigla": "Dí"
+    },
+    {
+      "id": "diarco",
+      "name": "Diarco Mayorista",
+      "tipo": "mayorista",
+      "color": "#b45309",
+      "sepa_banderas": [
+        "DIARCO"
+      ],
+      "web": "https://www.diarco.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Local mayorista de Diarco (no incluye Diarco Barrio). Algunos precios piden llevar varias unidades.",
+      "sigla": "DM"
+    },
+    {
+      "id": "diarcobarrio",
+      "name": "Diarco Barrio",
+      "tipo": "super",
+      "color": "#d97706",
+      "sigla": "DB",
+      "sepa_banderas": [
+        "DIARCO BARRIO",
+        "DIARCO PUEBLO",
+        "DIARCO"
+      ],
+      "sepa_sucursal_contiene": [
+        "BARRIO",
+        "PUEBLO"
+      ],
+      "web": "https://www.diarco.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Locales de cercanía de Diarco (Diarco Barrio y Diarco Pueblo), con precios distintos a los del Diarco Mayorista."
+    },
+    {
+      "id": "disco",
+      "name": "Disco",
+      "tipo": "super",
+      "color": "#9333ea",
+      "sepa_banderas": [
+        "DISCO"
+      ],
+      "web": "https://www.disco.com.ar",
+      "buscar": "https://www.disco.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Disco online",
+        "vtex": "www.disco.com.ar",
+        "envio": 4500,
+        "gratis_desde": 90000,
+        "retiro": true
+      },
+      "sigla": "Ds"
+    },
+    {
+      "id": "josimar",
+      "name": "Josimar",
+      "tipo": "super",
+      "color": "#0d9488",
+      "sepa_banderas": [
+        "JOSIMAR"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "sigla": "Jo"
+    },
+    {
+      "id": "jumbo",
+      "name": "Jumbo",
+      "tipo": "super",
+      "color": "#16a34a",
+      "sepa_banderas": [
+        "JUMBO"
+      ],
+      "web": "https://www.jumbo.com.ar",
+      "buscar": "https://www.jumbo.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Jumbo online",
+        "vtex": "www.jumbo.com.ar",
+        "envio": 4500,
+        "gratis_desde": 90000,
+        "retiro": true
+      },
+      "sigla": "Ju"
+    },
+    {
+      "id": "makro",
+      "name": "Makro",
+      "tipo": "super",
+      "color": "#e11d48",
+      "sepa_banderas": [
+        "MAKRO"
+      ],
+      "web": "https://www.makro.com.ar",
+      "buscar": null,
+      "online": null,
+      "sigla": "Mk",
+      "nota": "Formato mayorista: algunos precios piden llevar varias unidades."
+    },
+    {
+      "id": "maxiconsumo",
+      "name": "Maxiconsumo",
+      "tipo": "mayorista",
+      "color": "#7c3aed",
+      "sepa_banderas": [
+        "MAXICONSUMO"
+      ],
+      "web": "https://www.maxiconsumo.com",
+      "buscar": null,
+      "online": null,
+      "nota": "Mayorista: algunos precios piden llevar varias unidades.",
+      "sigla": "Mx"
+    },
+    {
+      "id": "nini",
+      "name": "Nini",
+      "tipo": "mayorista",
+      "color": "#65a30d",
+      "sepa_banderas": [
+        "NINI"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "nota": "Mayorista: algunos precios piden llevar varias unidades.",
+      "sigla": "Ni"
+    },
+    {
+      "id": "pedidosya",
+      "name": "PedidosYa Market",
+      "tipo": "app",
+      "color": "#ea0050",
+      "sepa_banderas": [],
+      "web": "https://www.pedidosya.com.ar",
+      "buscar": null,
+      "online": {
+        "nombre": "App PedidosYa",
+        "adaptador": "pendiente",
+        "envio": 1800,
+        "gratis_desde": null,
+        "retiro": false,
+        "solo_app": true
+      },
+      "nota": "Precio dentro de la app; cambia según tu dirección.",
+      "sigla": "PY"
+    },
+    {
+      "id": "puntomayorista",
+      "name": "Punto Mayorista",
+      "tipo": "mayorista",
+      "color": "#0f766e",
+      "sepa_banderas": [
+        "PUNTO MAYORISTA"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "nota": "Mayorista: algunos precios piden llevar varias unidades.",
+      "sigla": "PM"
+    },
+    {
+      "id": "rappi",
+      "name": "Rappi Turbo",
+      "tipo": "app",
+      "color": "#f97316",
+      "sepa_banderas": [],
+      "web": "https://www.rappi.com.ar",
+      "buscar": null,
+      "online": {
+        "nombre": "App Rappi",
+        "adaptador": "pendiente",
+        "envio": 1500,
+        "gratis_desde": null,
+        "retiro": false,
+        "solo_app": true
+      },
+      "nota": "Precio dentro de la app; cambia según tu dirección.",
+      "sigla": "Ra"
+    },
+    {
+      "id": "vea",
+      "name": "Vea",
+      "tipo": "super",
+      "color": "#ca8a04",
+      "sepa_banderas": [
+        "VEA"
+      ],
+      "web": "https://www.vea.com.ar",
+      "buscar": "https://www.vea.com.ar/{q}?_q={q}&map=ft",
+      "online": {
+        "nombre": "Vea online",
+        "vtex": "www.vea.com.ar",
+        "envio": 4000,
+        "gratis_desde": 70000,
+        "retiro": true
+      },
+      "sigla": "Ve"
+    },
+    {
+      "id": "vital",
+      "name": "Vital",
+      "tipo": "mayorista",
+      "color": "#4d7c0f",
+      "sepa_banderas": [
+        "VITAL"
+      ],
+      "web": "https://www.vital.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Mayorista: algunos precios piden llevar varias unidades.",
+      "sigla": "Vi"
+    },
+    {
+      "id": "yaguar",
+      "name": "Yaguar",
+      "tipo": "mayorista",
+      "color": "#a16207",
+      "sepa_banderas": [
+        "YAGUAR"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "nota": "Mayorista: algunos precios piden llevar varias unidades.",
+      "sigla": "Ya"
+    }
+  ]
+}
