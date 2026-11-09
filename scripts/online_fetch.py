@@ -11,7 +11,8 @@ data/imagenes.json para no volver a buscarlas todos los días.
 
 Uso: python scripts/online_fetch.py   (después de sepa_fetch.py)
 """
-import json, time, urllib.request, urllib.parse
+import json
+import re, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -71,6 +72,23 @@ def fetch_store(host, eans):
     return found, errors
 
 
+def guardar_foto(found, info, imgs):
+    n = 0
+    for ean, d in found.items():
+        if d.get("img") and ean in info and info[ean]["ean"] not in imgs:
+            imgs[info[ean]["ean"]] = d["img"]; n += 1
+    return n
+
+
+def fotos_extra(hosts, faltan, info, imgs):
+    """Fotos que no aparecieron en la búsqueda normal: algunas tiendas guardan el código de barras sin los ceros de adelante."""
+    sin_ceros = [ean_key(e) for e in faltan if str(e) != ean_key(e)]
+    if sin_ceros:
+        with ThreadPoolExecutor(max_workers=len(hosts)) as ex:
+            for h, (found, _) in zip(hosts, ex.map(lambda h: fetch_store(h, sin_ceros), hosts)):
+                print(f"  fotos con código sin ceros en {h}: {guardar_foto(found, info, imgs)}")
+
+
 def main():
     stores = json.loads((ROOT / "data" / "stores.json").read_text(encoding="utf-8"))["stores"]
     vtex = {s["id"]: s["online"]["vtex"] for s in stores if (s.get("online") or {}).get("vtex")}
@@ -112,6 +130,9 @@ def main():
                 it["promo_online"] = {"txt": f"{off}% off online (antes {d['list']:,})".replace(",", "."), "pu": d["price"], "n": 1, "list": d["list"]}
                 it["price_online"] = d["list"]
     faltan = [e for e in eans if info.get(ean_key(e)) and info[ean_key(e)]["ean"] not in imgs]
+    print(f"Faltan fotos de {len(faltan)} productos: se buscan de otras formas")
+    fotos_extra(list(vtex.values()) + SOLO_FOTOS, faltan, info, imgs)
+    faltan = [e for e in faltan if info[ean_key(e)]["ean"] not in imgs]
     for host in SOLO_FOTOS:
         if not faltan:
             break
