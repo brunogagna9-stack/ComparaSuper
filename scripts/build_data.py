@@ -178,6 +178,8 @@ def clean_promo_txt(txt):
         t = "Precio rebajado"
     if n > 1 and "llevando" not in norm(t) and not re.search(r"\d\s*x\s*\d|2da|2do", norm(t)):
         t += f" llevando {n}"
+    if len(t) > 28 and ". " in t:
+        t = t.split(". ")[0]
     return (t[:44] + "…") if len(t) > 45 else t
 
 

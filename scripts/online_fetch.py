@@ -20,6 +20,8 @@ UA = {"User-Agent": "Mozilla/5.0 (compatible; ComparaSuper/0.2; comparador indep
 LOTE = 50            # códigos por consulta
 PAUSA = 0.4          # segundos entre consultas a una misma tienda
 MAX_ERRORES = 15
+# Tiendas que solo se usan para buscar fotos de los productos que todavía no tienen
+SOLO_FOTOS = ["www.farmacity.com", "www.toledodigital.com.ar", "www.cordiez.com.ar"]
 
 
 def ean_key(e):
@@ -36,6 +38,8 @@ def parse_vtex(products, host):
             if not ean:
                 continue
             img = next((i.get("imageUrl") for i in it.get("images", []) if i.get("imageUrl")), None)
+            if img and ean not in out:
+                out[ean] = {"img": img}   # la foto sirve aunque el producto esté sin stock online
             for seller in it.get("sellers", []):
                 off = seller.get("commertialOffer") or {}
                 price, lst = off.get("Price"), off.get("ListPrice")
@@ -90,6 +94,10 @@ def main():
         for ean, d in found.items():
             if ean not in info:
                 continue
+            if d.get("img") and info[ean]["ean"] not in imgs:
+                imgs[info[ean]["ean"]] = d["img"]
+            if not d.get("price"):   # sin stock online: solo se aprovecha la foto
+                continue
             it = idx.get((sid, ean))
             if it is None:   # se vende online pero no figura en las sucursales de la zona
                 base = info[ean]
@@ -103,8 +111,17 @@ def main():
                 off = round((1 - d["price"] / d["list"]) * 100)
                 it["promo_online"] = {"txt": f"{off}% off online (antes {d['list']:,})".replace(",", "."), "pu": d["price"], "n": 1, "list": d["list"]}
                 it["price_online"] = d["list"]
-            if d.get("img") and info[ean]["ean"] not in imgs:
-                imgs[info[ean]["ean"]] = d["img"]
+    faltan = [e for e in eans if info.get(ean_key(e)) and info[ean_key(e)]["ean"] not in imgs]
+    for host in SOLO_FOTOS:
+        if not faltan:
+            break
+        found, _ = fetch_store(host, faltan)
+        n = 0
+        for ean, d in found.items():
+            if d.get("img") and ean in info and info[ean]["ean"] not in imgs:
+                imgs[info[ean]["ean"]] = d["img"]; n += 1
+        print(f"  fotos extra de {host}: {n}")
+        faltan = [e for e in faltan if info[ean_key(e)]["ean"] not in imgs]
     raw[-1].write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
     ip.write_text(json.dumps(imgs, separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(imgs)} fotos de productos guardadas")

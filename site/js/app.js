@@ -13,7 +13,7 @@ const TIPO_ST = { mayorista: "Mayorista", app: "App de delivery" };
 const GRUPOS = [["super", "Comercios"], ["mayorista", "Mayoristas"], ["app", "Apps de delivery"]];   // dentro de cada grupo, orden alfabético
 const grupos = () => GRUPOS.map(([t, n]) => [n, D.stores.filter(s => s.tipo === t)]).filter(g => g[1].length);
 
-const S = { canal: "ambos", q: "", cat: "", stores: new Set(), onlyPromo: false, sort: "precio", lday: HOY, pday: HOY, pstore: "", pmine: false, ptipo: "", otipo: "", ostore: "" };
+const S = { canal: "ambos", q: "", cat: "", stores: new Set(), onlyPromo: false, sort: "relev", lday: HOY, pday: HOY, pstore: "", pmine: false, ptipo: "", otipo: "", ostore: "" };
 
 /* ---------- guardado local (lista, medios, avisos, tema) ---------- */
 const LS = {
@@ -343,9 +343,9 @@ function results() {
   const pr = p => best(p, flt).v;
   const spread = p => { const vs = p.offers.flatMap(o => allChans(o).map(c => price1(o, c))); return vs.length < 2 ? 0 : (Math.max(...vs) - Math.min(...vs)) / Math.max(...vs); };
   const drop = p => Math.min(0, ...p.offers.map(o => (o.chg && !o.anom ? o.chg.pct : 0)));
-  const sorters = { precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
+  const sorters = { relev: (a, b) => (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
     ahorro: (a, b) => spread(b) - spread(a), baja: (a, b) => drop(a) - drop(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
-  return list.sort(sorters[S.sort] || sorters.precio);
+  return list.sort(sorters[S.sort] || sorters.relev);
 }
 const PAGE = 48;
 /* paginado con números: 1 2 3 … 10 */
@@ -377,7 +377,7 @@ function vBuscar() {
       <div class="toolbar"><div><h1>${title}</h1><span class="sub" id="rcount"></span></div>
         <div style="display:flex;gap:8px"><button class="btn sec sm fbtn" id="fopen">Filtros</button>
         <select class="sel" id="sort" aria-label="Ordenar">
-          ${[["precio", "Menor precio"], ["unidad", "Menor precio por kg / litro"], ["ahorro", "Mayor diferencia entre comercios"], ["baja", "Más bajaron"], ["nombre", "Nombre (A-Z)"]].map(([v, t]) => `<option value="${v}" ${S.sort === v ? "selected" : ""}>${t}</option>`).join("")}
+          ${[["relev", "Más populares"], ["precio", "Menor precio"], ["unidad", "Menor precio por kg / litro"], ["ahorro", "Mayor diferencia entre comercios"], ["baja", "Más bajaron"], ["nombre", "Nombre (A-Z)"]].map(([v, t]) => `<option value="${v}" ${S.sort === v ? "selected" : ""}>${t}</option>`).join("")}
         </select></div></div>
       <div class="grid" id="res"></div>
     </div></div>`;
