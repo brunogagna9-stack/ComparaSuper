@@ -72,8 +72,8 @@
         "COTO CICSA",
         "COTO"
       ],
-      "web": "https://www.cotodigital.com.ar",
-      "buscar": "https://www.cotodigital.com.ar/sitios/cdigi/categoria?_dyncharset=utf-8&Ntt={q}",
+      "web": "https://www.coto.com.ar",
+      "buscar": "https://www.coto.com.ar/categoria?_dyncharset=utf-8&Ntt={q}",
       "online": {
         "nombre": "Coto Digital",
         "adaptador": "pendiente",
@@ -231,7 +231,7 @@
         "MAXICONSUMO"
       ],
       "web": "https://www.maxiconsumo.com",
-      "buscar": null,
+      "buscar": "https://www.maxiconsumo.com/catalogsearch/result/?q={q}",
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Mx",

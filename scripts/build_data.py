@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RAW, OUT = ROOT / "data" / "raw", ROOT / "site" / "data"
 HIST_DAYS = 90               # días de historial que se guardan
 ANOM_DOWN, ANOM_UP = -50, 80
+MIN_PRECIO = 50      # pesos: debajo de esto es un error de carga
 MIN_OFERTAS = 2      # con datos reales solo se publican productos que se venden en 2 o más comercios (si no, no hay qué comparar)  # % de cambio diario a partir del cual se avisa "precio inusual"
 
 CATS = [  # id, nombre, emoji, palabras clave. Se comparan con el nombre sin tildes ni signos: una palabra clave de 4+ letras
@@ -158,6 +159,28 @@ def base_qty(qty, unit):
     return qty, "un"
 
 
+def clean_promo_txt(txt):
+    """Pasa las leyendas de SEPA a algo legible.
+    'Promo A valida desde el 01/09 hasta el 30/11' -> 'Oferta hasta 30/11'
+    'Paga solo Cantidad minima 1 UN' -> 'Precio rebajado'
+    '20% - Llevando promo precio x unidad Cantidad minima 2 UN' -> '20% llevando 2'"""
+    t = (txt or "").strip()
+    nt = norm(t)
+    m = re.search(r"cantidad\s*minima\s*(\d+)", nt)
+    n = int(m.group(1)) if m else 0
+    hasta = re.search(r"hasta\s*(?:el\s*)?(\d{1,2})/(\d{1,2})", t, re.I)
+    if re.match(r"promo\s*[a-z]?\s*valida", nt) or nt.startswith("valida desde"):
+        return f"Oferta hasta {int(hasta.group(1)):02d}/{int(hasta.group(2)):02d}" if hasta else "Oferta del comercio"
+    t = re.sub(r"\s*-?\s*llev(?:ando)?\s*promo.*$", "", t, flags=re.I)
+    t = re.sub(r"\s*cantidad\s*m[ií]nima.*$", "", t, flags=re.I)
+    t = re.sub(r"\s*\(?v[aá]lid[ao] desde.*$", "", t, flags=re.I).strip(" -.,#")
+    if not t or re.fullmatch(r"paga\s*solo", norm(t).strip()):
+        t = "Precio rebajado"
+    if n > 1 and "llevando" not in norm(t) and not re.search(r"\d\s*x\s*\d|2da|2do", norm(t)):
+        t += f" llevando {n}"
+    return (t[:44] + "…") if len(t) > 45 else t
+
+
 def promo_min_qty(txt):
     """Cantidad mínima para que aplique la promo, leída de la leyenda (ej. '3x2', 'llevando 2')."""
     t = norm(txt)
@@ -213,6 +236,12 @@ def build(snap, hist, stores, min_offers=1):
         first = min(its, key=lambda x: NAME_PREF.get(x["store"], 99))
         sizes = Counter((round(b, 3), u) for b, u in (size_of(i) for i in its))
         (bq, bu), _ = sizes.most_common(1)[0]
+        # precios absurdos (ej. $1 por un error de carga): fuera si valen menos de un cuarto de la mediana de las demás cadenas
+        refs = sorted((i.get("price") or i.get("price_online")) for i in its)
+        med = refs[len(refs) // 2]
+        its = [i for i in its if (i.get("price") or i.get("price_online")) >= max(MIN_PRECIO, med * 0.25)]
+        if len({i["store"] for i in its}) < min_offers or not its:
+            continue
         offers = []
         for it in its:
             o = {"s": it["store"]}
@@ -222,13 +251,30 @@ def build(snap, hist, stores, min_offers=1):
                 o["po"] = it["price_online"]             # precio en la web / app
             if it.get("bulto"):
                 o["bulto"] = it["bulto"]
-            if it.get("price") and it.get("price_max") and it["price_max"] > it["price"]:
+            # enlace exacto (se guarda solo la parte final: https://<tienda>/<lk>/p) y código para el carrito online
+            m = re.match(r"https://[^/]+/(.+)/p$", it.get("url") or "")
+            if m:
+                o["lk"] = m.group(1)
+            elif it.get("url"):
+                o["url"] = it["url"]
+            if it.get("sku"):
+                o["sku"] = it["sku"]
+            if it.get("seller") and str(it["seller"]) != "1":
+                o["seller"] = it["seller"]
+            if it.get("price") and it.get("price_max") and it["price_max"] > it["price"] * 1.05:
                 o["pmax"] = it["price_max"]
-            for key, out in (("promo", "promo"), ("promo_online", "promoo")):
+            po = it.get("promo_online")
+            if po and po.get("list") and it.get("price_online") and po["pu"] < it["price_online"] * 0.5:
+                o["po"] = po["pu"]   # "precio de lista" absurdo de la tienda: se usa el precio real
+                po = None
+            if po and po.get("list") and it.get("price_online") and po["pu"] < it["price_online"] and po["pu"] >= it["price_online"] * 0.5:
+                o["pon"] = po["pu"]   # precio online rebajado (la web arma el texto de la rebaja)
+                po = None
+            for key, out in (("promo", "promo"), ("promo_online" if po else "_", "promoo")):
                 pr = it.get(key)
                 ref_p = it.get("price") if key == "promo" else it.get("price_online")
                 if pr and pr.get("pu") and ref_p and pr["pu"] < ref_p:   # una "promo" que no baja el precio no se muestra
-                    o[out] = {"txt": pr["txt"], "pu": pr["pu"], "n": pr.get("n") or promo_min_qty(pr["txt"])}
+                    o[out] = {"txt": clean_promo_txt(pr["txt"]), "pu": pr["pu"], "n": pr.get("n") or promo_min_qty(pr["txt"])}
             ref = o.get("p") or o.get("po")
             ser = hist["series"].get(ean, {}).get(it["store"], [])
             prev = next((v for v in reversed(ser[:-1]) if v), None) if len(ser) > 1 else None
@@ -244,8 +290,9 @@ def build(snap, hist, stores, min_offers=1):
         offers.sort(key=lambda o: o.get("p") or o.get("po"))
         name = nice_name(first["name"])
         cat = next((c for c in (classify(i["name"]) for i in its) if c != OTROS[0]), OTROS[0])
-        products.append({"id": ean, "name": name, "brand": (first.get("brand") or "").title(), "cat": cat,
-                         "qty": first["qty"], "unit": first["unit"], "bq": round(bq, 4), "bu": bu, "offers": offers})
+        img = pack_img(IMGS.get(ean) or IMGS.get(ean.lstrip("0")))
+        products.append({"id": ean, **({"img": img} if img else {}), "name": name, "brand": (first.get("brand") or "").title(), "cat": cat,
+                         "bq": round(bq, 4), "bu": bu, "offers": offers})
     products.sort(key=lambda p: p["name"])
     return products
 
@@ -253,7 +300,7 @@ def build(snap, hist, stores, min_offers=1):
 def public_online(o):
     if not o:
         return None
-    return {k: o.get(k) for k in ("nombre", "envio", "gratis_desde", "retiro", "solo_app")}
+    return {k: o.get(k) for k in ("nombre", "envio", "gratis_desde", "retiro", "solo_app", "vtex")}
 
 
 def active_promos(promos, today):
@@ -261,7 +308,36 @@ def active_promos(promos, today):
     return [p for p in promos["promos"] if p["desde"] <= t <= p["hasta"]]
 
 
+IMGS = {}
+
+
+IMGHOSTS = []
+
+
+def pack_img(u):
+    """Foto comprimida: "h/id/archivo" (h = índice del servidor de fotos). La web la arma en tamaño miniatura."""
+    if not u:
+        return None
+    m = re.match(r"https://([^/]+)/arquivos/ids/(\d+)(?:-\d+-\d+)?/([^?]+)", u)
+    if not m:
+        return u
+    if m.group(1) not in IMGHOSTS:
+        IMGHOSTS.append(m.group(1))
+    return f"{IMGHOSTS.index(m.group(1))}/{m.group(2)}/{m.group(3)}"
+
+
+def small_img(u):
+    """Foto en tamaño miniatura (las tiendas VTEX la sirven achicada si se pide /ids/<n>-300-300/)."""
+    if not u:
+        return None
+    u = u.split("?")[0]
+    return re.sub(r"/arquivos/ids/(\d+)/", r"/arquivos/ids/\1-300-300/", u)
+
+
 def main():
+    ip = ROOT / "data" / "imagenes.json"
+    if ip.exists():
+        IMGS.update(json.loads(ip.read_text(encoding="utf-8")))
     stores = json.loads((ROOT / "data" / "stores.json").read_text(encoding="utf-8"))["stores"]
     promos = json.loads((ROOT / "data" / "promos_pago.json").read_text(encoding="utf-8"))
     hp = ROOT / "data" / "history.json"
@@ -275,7 +351,7 @@ def main():
     last = snaps[-1]
     products = build(last, hist, stores, min_offers=1 if last.get("source") == "demo" else MIN_OFERTAS)
     OUT.mkdir(parents=True, exist_ok=True)
-    meta = {"updated": last["date"], "source": last.get("source", "sepa"), "region": last.get("region", ""),
+    meta = {"imghosts": IMGHOSTS, "updated": last["date"], "source": last.get("source", "sepa"), "region": last.get("region", ""),
             "demo": last.get("source") == "demo",
             "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota")} | {"online": public_online(s.get("online"))}
                        for s in stores if s["id"] in {o["s"] for p in products for o in p["offers"]}],

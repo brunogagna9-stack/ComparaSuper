@@ -55,6 +55,62 @@ El costo de envío y el mínimo para envío gratis de cada tienda online están 
 
 Mientras `form_action` esté vacío, el formulario avisa que todavía no está conectado y no guarda nada.
 
+## Sugerencias con aprobación y votos (gratis, con Formularios y Planillas de Google)
+
+Las sugerencias se guardan en una planilla tuya. Solo se ven en la web las que marcás como aprobadas.
+
+**1. Formulario de sugerencias**
+- En forms.google.com crear un formulario con dos preguntas: *Sugerencia* (párrafo) y *Nombre* (respuesta corta, no obligatoria).
+- Pestaña «Respuestas» → ícono de planilla → «Crear una hoja de cálculo nueva». Se crea la pestaña `Respuestas de formulario 1` con las columnas: A marca temporal, B sugerencia, C nombre.
+- En esa pestaña escribir `Aprobada` en la celda D1. Seleccionar la columna D desde la fila 2 → Insertar → Casilla de verificación.
+
+**2. Formulario de votos**
+- Crear otro formulario con dos preguntas de respuesta corta: *id* y *voto*.
+- En «Respuestas» → «Vincular a Hojas» → elegir **la misma planilla**. Se crea la pestaña `Respuestas de formulario 2` (A marca temporal, B id, C voto).
+
+**3. Pestaña pública**
+- Crear una pestaña nueva llamada `Publico`. En la fila 1 escribir: `id`, `fecha`, `nombre`, `texto`, `positivos`, `negativos`.
+- En la fila 2 pegar estas fórmulas (están con `;` y `VERDADERO`, como las usa una planilla en español; si tu planilla está en inglés, cambiá `;` por `,` y `VERDADERO` por `TRUE`):
+
+| Celda | Fórmula |
+|---|---|
+| A2 | `=IFERROR(FILTER(ROW('Respuestas de formulario 1'!A2:A);'Respuestas de formulario 1'!D2:D=VERDADERO))` |
+| B2 | `=IFERROR(ARRAYFORMULA(TEXT(FILTER('Respuestas de formulario 1'!A2:A;'Respuestas de formulario 1'!D2:D=VERDADERO);"dd/mm/yyyy")))` |
+| C2 | `=IFERROR(FILTER('Respuestas de formulario 1'!C2:C;'Respuestas de formulario 1'!D2:D=VERDADERO))` |
+| D2 | `=IFERROR(FILTER('Respuestas de formulario 1'!B2:B;'Respuestas de formulario 1'!D2:D=VERDADERO))` |
+| E2 | `=ARRAYFORMULA(IF(A2:A="";"";COUNTIFS('Respuestas de formulario 2'!B:B;A2:A;'Respuestas de formulario 2'!C:C;"positivo")))` |
+| F2 | `=ARRAYFORMULA(IF(A2:A="";"";COUNTIFS('Respuestas de formulario 2'!B:B;A2:A;'Respuestas de formulario 2'!C:C;"negativo")))` |
+
+- Archivo → Compartir → Publicar en la web → elegir solo la pestaña `Publico` y el formato «Valores separados por comas (.csv)» → Publicar. Copiar el enlace.
+
+**4. Conectar con la web** (`site/config.json`, bloque `sugerencias`)
+- En cada formulario: ⋮ → «Obtener enlace prellenado», completar algo y copiar el enlace para ver los `entry.…` de cada pregunta.
+- `form_action`: dirección del formulario de sugerencias, cambiando `/viewform` por `/formResponse`.
+- `campo_texto` y `campo_nombre`: los `entry.…` de *Sugerencia* y *Nombre*.
+- `votos_form_action`: lo mismo para el formulario de votos.
+- `campo_voto_id` y `campo_voto`: los `entry.…` de *id* y *voto*.
+- `csv_publico`: el enlace del paso 3.
+
+**Para aprobar:** tildar la casilla en la columna D. La web se actualiza sola en unos 5 minutos, que es lo que tarda Google en refrescar el CSV publicado. Para sacar una sugerencia, destildá la casilla.
+
+Mientras `csv_publico` esté vacío, la página muestra tres sugerencias de ejemplo y no envía nada. Cada navegador puede votar una vez por sugerencia. Es un control simple: alguien insistente podría votar más de una vez.
+
+## Fotos, links a productos y carrito online
+
+- **Fotos de productos:** las saca `online_fetch.py` de las tiendas online que usan la plataforma VTEX (Carrefour, ChangoMás, Día, Disco, Jumbo y Vea) y las guarda en `data/imagenes.json`. Los productos que no se venden en ninguna de esas tiendas muestran un ícono de su categoría.
+- **«Ver producto ↗»:** lleva a la página exacta del producto en esas tiendas. En las demás aparece «Buscar en la tienda ↗», que abre el buscador de la tienda con el nombre del producto, o nada si la cadena no tiene tienda online.
+- **«Armar el carrito en…»:** en «¿Dónde conviene mi compra?», si una tienda VTEX tiene todos los productos, el botón abre esa tienda con el carrito ya cargado. El envío o retiro y el pago se eligen en la tienda.
+
+## Logos de comercios y bancos
+
+La web no incluye logos de marcas. Para usarlos:
+
+1. Conseguir el archivo oficial, por ejemplo del kit de prensa de cada empresa, y verificar que se pueda usar.
+2. Subirlo a `site/img/logos/`, por ejemplo `site/img/logos/coto.png`. Conviene que sea cuadrado o apaisado y con fondo transparente.
+3. En `site/config.json` agregarlo así: `"logos": {"coto": "img/logos/coto.png"}`. La clave es el `id` del comercio que figura en `data/stores.json`. Para bancos y billeteras se usa `"logos_medios"`, con el `id` del medio que figura en `data/promos_pago.json`.
+
+Mientras no haya logo, se muestra un cuadradito con las iniciales del comercio.
+
 ## Estructura
 
 ```

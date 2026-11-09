@@ -1,11 +1,13 @@
-"""Lee el precio ONLINE (tienda web) de las cadenas que usan la plataforma VTEX y lo suma a la lectura del día.
+"""Completa la lectura del día con datos de las tiendas online que usan VTEX
+(Carrefour, ChangoMás/Más Online, Día, Disco, Jumbo y Vea):
 
-A veces comprar online sale más barato que en el local (ofertas exclusivas web), y a veces más caro.
-SEPA solo trae precios de sucursal, así que el precio web se lee de la propia tienda, buscando por
-código de barras (EAN) los productos que ya tenemos de SEPA.
+  - precio online (y si la tienda lo muestra rebajado, la rebaja)
+  - enlace exacto al producto en la tienda (no a la portada)
+  - código del producto en la tienda (sku), para armar el carrito online de un toque
+  - foto del producto
 
-Cadenas: las que en data/stores.json tienen "online": {"vtex": "<dominio>"}.
-Coto Digital, PedidosYa Market y Rappi Turbo tienen "adaptador": "pendiente" (todavía no se leen).
+Busca por código de barras, de a 50 productos por consulta. Las fotos se guardan en
+data/imagenes.json para no volver a buscarlas todos los días.
 
 Uso: python scripts/online_fetch.py   (después de sepa_fetch.py)
 """
@@ -14,39 +16,55 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-UA = {"User-Agent": "ComparaSuper/0.1 (comparador independiente de precios)", "Accept": "application/json"}
-MAX_EANS = 1200      # productos por cadena y por día (los que están en más cadenas primero)
-PAUSA = 0.35         # segundos entre pedidos a una misma tienda, para no sobrecargarla
+UA = {"User-Agent": "Mozilla/5.0 (compatible; ComparaSuper/0.2; comparador independiente de precios)", "Accept": "application/json"}
+LOTE = 50            # códigos por consulta
+PAUSA = 0.4          # segundos entre consultas a una misma tienda
+MAX_ERRORES = 15
 
 
-def parse_vtex(products, ean):
-    """Del JSON de búsqueda de VTEX saca el precio del producto con ese EAN (o None si no hay stock)."""
+def ean_key(e):
+    return str(e).lstrip("0")
+
+
+def parse_vtex(products, host):
+    """De la respuesta de VTEX arma {ean: datos} con precio, rebaja, enlace, sku y foto."""
+    out = {}
     for prod in products or []:
+        link = prod.get("link") or (f"https://{host}/{prod['linkText']}/p" if prod.get("linkText") else None)
         for it in prod.get("items", []):
-            if str(it.get("ean", "")).lstrip("0") != str(ean).lstrip("0"):
+            ean = ean_key(it.get("ean", ""))
+            if not ean:
                 continue
+            img = next((i.get("imageUrl") for i in it.get("images", []) if i.get("imageUrl")), None)
             for seller in it.get("sellers", []):
                 off = seller.get("commertialOffer") or {}
-                if off.get("AvailableQuantity", 0) > 0 and off.get("Price"):
-                    return round(off["Price"])
-    return None
+                price, lst = off.get("Price"), off.get("ListPrice")
+                if not price or off.get("AvailableQuantity", 0) <= 0:
+                    continue
+                d = {"price": round(price), "url": link, "sku": it.get("itemId"), "seller": seller.get("sellerId", "1"), "img": img}
+                if lst and price * 1.02 < lst <= price * 2:   # rebaja creíble (hasta 50%); listas absurdas se ignoran
+                    d["list"] = round(lst)
+                out[ean] = d
+                break
+    return out
 
 
 def fetch_store(host, eans):
-    prices, errors = {}, 0
-    for ean in eans:
-        url = f"https://{host}/api/catalog_system/pub/products/search?fq=" + urllib.parse.quote(f"alternateIds_Ean:{ean}")
+    found, errors = {}, 0
+    for i in range(0, len(eans), LOTE):
+        q = "&".join("fq=" + urllib.parse.quote(f"alternateIds_Ean:{e}") for e in eans[i:i + LOTE])
+        url = f"https://{host}/api/catalog_system/pub/products/search?{q}&_from=0&_to={LOTE - 1}"
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=20) as r:
-                p = parse_vtex(json.load(r), ean)
-            if p:
-                prices[ean] = p
-        except Exception:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
+                found.update(parse_vtex(json.load(r), host))
+        except Exception as e:
             errors += 1
-            if errors > 30:   # la tienda bloquea o no responde: se corta para no insistir
+            print(f"  {host}: error {e}")
+            if errors >= MAX_ERRORES:
+                print(f"  {host}: demasiados errores, se corta")
                 break
         time.sleep(PAUSA)
-    return prices, errors
+    return found, errors
 
 
 def main():
@@ -59,21 +77,37 @@ def main():
     count = {}
     for it in snap["items"]:
         count[it["ean"]] = count.get(it["ean"], 0) + 1
-    eans = sorted(count, key=lambda e: -count[e])[:MAX_EANS]
+    eans = [e for e in sorted(count, key=lambda e: -count[e]) if count[e] >= 2]   # solo los que se pueden comparar
+    print(f"Buscando {len(eans)} productos en {len(vtex)} tiendas online")
     with ThreadPoolExecutor(max_workers=len(vtex) or 1) as ex:
         results = dict(zip(vtex, ex.map(lambda h: fetch_store(h, eans), vtex.values())))
-    idx = {(it["store"], it["ean"]): it for it in snap["items"]}
-    info = {it["ean"]: it for it in snap["items"]}
-    for sid, (prices, errors) in results.items():
-        print(f"{sid}: {len(prices)} precios online ({errors} errores)")
-        for ean, p in prices.items():
+    idx = {(it["store"], ean_key(it["ean"])): it for it in snap["items"]}
+    info = {ean_key(it["ean"]): it for it in snap["items"]}
+    ip = ROOT / "data" / "imagenes.json"
+    imgs = json.loads(ip.read_text(encoding="utf-8")) if ip.exists() else {}
+    for sid, (found, errors) in results.items():
+        print(f"{sid}: {len(found)} productos online ({errors} errores)")
+        for ean, d in found.items():
+            if ean not in info:
+                continue
             it = idx.get((sid, ean))
             if it is None:   # se vende online pero no figura en las sucursales de la zona
                 base = info[ean]
                 it = {k: base[k] for k in ("ean", "name", "brand", "qty", "unit")} | {"store": sid, "price": None, "branches": 0}
-                snap["items"].append(it)
-            it["price_online"] = p
+                snap["items"].append(it); idx[(sid, ean)] = it
+            it["price_online"] = d["price"]
+            it["url"] = d["url"]
+            it["sku"] = d["sku"]
+            it["seller"] = d["seller"]
+            if d.get("list"):
+                off = round((1 - d["price"] / d["list"]) * 100)
+                it["promo_online"] = {"txt": f"{off}% off online (antes {d['list']:,})".replace(",", "."), "pu": d["price"], "n": 1, "list": d["list"]}
+                it["price_online"] = d["list"]
+            if d.get("img") and info[ean]["ean"] not in imgs:
+                imgs[info[ean]["ean"]] = d["img"]
     raw[-1].write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
+    ip.write_text(json.dumps(imgs, separators=(",", ":")), encoding="utf-8")
+    print(f"OK: {len(imgs)} fotos de productos guardadas")
 
 
 if __name__ == "__main__":

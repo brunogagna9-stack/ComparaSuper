@@ -106,11 +106,14 @@ def test_cambio_e_inusual():
 
 
 def test_vtex_precio_online():
-    prods = [{"items": [{"ean": "7790000000011", "sellers": [{"commertialOffer": {"Price": 1799.9, "AvailableQuantity": 50}}]},
-                        {"ean": "7790000000999", "sellers": [{"commertialOffer": {"Price": 10, "AvailableQuantity": 5}}]}]}]
-    assert of.parse_vtex(prods, "7790000000011") == 1800
-    sin_stock = [{"items": [{"ean": "1", "sellers": [{"commertialOffer": {"Price": 5, "AvailableQuantity": 0}}]}]}]
-    assert of.parse_vtex(sin_stock, "1") is None and of.parse_vtex([], "1") is None
+    prods = [{"linkText": "yerba-x", "items": [
+        {"ean": "7790000000011", "itemId": "123", "images": [{"imageUrl": "https://img/x.jpg"}],
+         "sellers": [{"sellerId": "1", "commertialOffer": {"Price": 1799.9, "ListPrice": 2200, "AvailableQuantity": 50}}]},
+        {"ean": "7790000000999", "itemId": "9", "sellers": [{"commertialOffer": {"Price": 10, "AvailableQuantity": 0}}]}]}]
+    d = of.parse_vtex(prods, "www.tienda.com")
+    x = d["7790000000011"]
+    assert x["price"] == 1800 and x["list"] == 2200 and x["sku"] == "123" and x["url"] == "https://www.tienda.com/yerba-x/p" and x["img"]
+    assert "7790000000999" not in d   # sin stock
 
 
 def test_precio_online_y_app():

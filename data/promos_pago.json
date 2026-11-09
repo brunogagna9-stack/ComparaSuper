@@ -1,5 +1,5 @@
 {
- "_comentario": "Descuentos por medio de pago. Se cargan A MANO desde la página oficial del banco, billetera o súper, con 'fuente' (enlace) y 'verificado' (fecha). check_data.py rechaza promos reales sin fuente. dias: 0=domingo ... 6=sábado. tope en pesos (null = sin tope). periodo_tope: dia|semana|mes|compra. canal: tienda|online|ambos. pago: claves de 'formas_pago' (cómo hay que pagar para que aplique). ejemplo=true: promo inventada del prototipo, reemplazar antes de publicar. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
+ "_comentario": "Descuentos por medio de pago. Se cargan A MANO desde la página oficial del banco, billetera o súper, con 'fuente' (enlace) y 'verificado' (fecha). check_data.py rechaza promos reales sin fuente. dias: 0=domingo ... 6=sábado. tope en pesos (null = sin tope). periodo_tope: dia|semana|mes|compra. canal: tienda|online|ambos. pago: claves de 'formas_pago' (cómo hay que pagar para que aplique). ejemplo=true: promo inventada del prototipo, reemplazar antes de publicar. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
  "relevado": "2026-11-08",
  "tipos": {
   "banco": "Bancos",
@@ -2409,14 +2409,14 @@
    ],
    "pct": 15,
    "tope": 20000,
-   "periodo_tope": "semana",
+   "periodo_tope": "dia",
    "minimo": 0,
    "canal": "tienda",
    "pago": [
     "qr_billetera"
    ],
-   "reintegro": "en la caja",
-   "nota": "Tope según calcularsueldo.com.ar.",
+   "reintegro": "reintegro",
+   "nota": "Pago Clave DNI. Solo venta minorista; no incluye bebidas con alcohol ni electrodomésticos. Jubilados que cobran en Provincia: 5% adicional (tope $5.000 por semana).",
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
@@ -2428,6 +2428,34 @@
   },
   {
    "id": "n076",
+   "medio": "credicoop",
+   "stores": [
+    "nini"
+   ],
+   "dias": [
+    6
+   ],
+   "pct": 30,
+   "tope": 13500,
+   "periodo_tope": "dia",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo el sábado 28/11. Con tarjetas Cabal Credicoop por QR de MODO; si cobrás el sueldo en Credicoop el reintegro es mayor (hasta $18.000).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-28",
+   "hasta": "2026-11-28",
+   "fuente": "https://www.nini.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n077",
    "medio": "bna",
    "stores": [
     "nini"
@@ -2455,7 +2483,129 @@
    "ejemplo": false
   },
   {
-   "id": "n077",
+   "id": "n078",
+   "medio": "modo",
+   "stores": [
+    "diarco"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo sucursales Diarco Mayorista seleccionadas (en AMBA: Martínez, Mercado Central y San Martín). No incluye carnes, embutidos ni pollo.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-08",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n079",
+   "medio": "modo",
+   "stores": [
+    "diarcobarrio"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 35000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "en la caja",
+   "nota": "No incluye carnes, embutidos ni pollo.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-08",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n080",
+   "medio": "mp",
+   "stores": [
+    "diarco"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Sucursales Diarco Mayorista seleccionadas.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-08",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n081",
+   "medio": "mp",
+   "stores": [
+    "diarcobarrio"
+   ],
+   "dias": [
+    5,
+    6,
+    0
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 35000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera",
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-08",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n082",
    "medio": "bna",
    "stores": [
     "diarco"
@@ -2485,7 +2635,7 @@
    "ejemplo": false
   },
   {
-   "id": "n078",
+   "id": "n083",
    "medio": "bna",
    "stores": [
     "diarcobarrio"
@@ -2515,38 +2665,7 @@
    "ejemplo": false
   },
   {
-   "id": "n079",
-   "medio": "mp",
-   "stores": [
-    "diarco",
-    "diarcobarrio"
-   ],
-   "dias": [
-    6,
-    0
-   ],
-   "pct": 15,
-   "tope": null,
-   "periodo_tope": null,
-   "minimo": 0,
-   "canal": "tienda",
-   "pago": [
-    "qr_billetera",
-    "qr_billetera_tarjeta"
-   ],
-   "reintegro": "en la caja",
-   "nota": null,
-   "cuotas": null,
-   "requiere": [],
-   "desde": "2026-11-01",
-   "hasta": "2026-11-30",
-   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
-   "fuente_tipo": "prensa",
-   "verificado": "2026-10-30",
-   "ejemplo": false
-  },
-  {
-   "id": "n080",
+   "id": "n084",
    "medio": "bna",
    "stores": [
     "makro"
@@ -2574,7 +2693,7 @@
    "ejemplo": false
   },
   {
-   "id": "n081",
+   "id": "n085",
    "medio": "mp",
    "stores": [
     "makro"
@@ -2604,7 +2723,7 @@
    "ejemplo": false
   },
   {
-   "id": "n082",
+   "id": "n086",
    "medio": "mp",
    "stores": [
     "maxiconsumo"
@@ -2627,18 +2746,108 @@
     "qr_billetera"
    ],
    "reintegro": "en la caja",
-   "nota": "Con dinero en cuenta.",
+   "nota": "QR de Mercado Pago o transferencia, con dinero en cuenta. Solo compras en el salón; no se acumula con otras promos.",
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
    "hasta": "2026-11-30",
-   "fuente": "https://calcularsueldo.com.ar/finanzas/16359/supermercados-mercado-pago-la-guia-completa-de-descuentos-y-cuotas-por-dia.html",
-   "fuente_tipo": "prensa",
-   "verificado": "2026-10-30",
+   "fuente": "https://www.maxiconsumo.com/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
    "ejemplo": false
   },
   {
-   "id": "n083",
+   "id": "n087",
+   "medio": "bna",
+   "stores": [
+    "maxiconsumo"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 30,
+   "tope": 12000,
+   "periodo_tope": "dia",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con crédito Visa o Mastercard del Nación por QR de MODO BNA+ (no con saldo en cuenta). Reintegro dentro de los 30 días.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.maxiconsumo.com/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n088",
+   "medio": "credicoop",
+   "stores": [
+    "maxiconsumo"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 7000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con débito o crédito Cabal Credicoop por QR de MODO. Si cobrás el sueldo en Credicoop: 30%, tope $10.500.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.maxiconsumo.com/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n089",
+   "medio": "naranja",
+   "stores": [
+    "maxiconsumo"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Plan Z de Naranja X.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.maxiconsumo.com/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-08",
+   "ejemplo": false
+  },
+  {
+   "id": "n090",
    "medio": "bna",
    "stores": [
     "carrefour",

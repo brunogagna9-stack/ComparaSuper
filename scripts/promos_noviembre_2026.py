@@ -29,6 +29,8 @@ F = {  # fuentes: (url, tipo, fecha en que se verificó)
     "cs_galicia": ("https://calcularsueldo.com.ar/finanzas/16396/descuentos-supermercados-galicia-noviembre-2026.html", "prensa", "2026-11-02"),
     "bp": ("https://www.bancoprovincia.com.ar/Noticias/MasNoticias/todas-las-promociones-de-cuenta-dni-en-supermercados-3031", "oficial", "2026-11-06"),
     "nini": ("https://www.nini.com.ar/promociones", "oficial", "2026-11-08"),
+    "maxi": ("https://www.maxiconsumo.com/promociones", "oficial", "2026-11-08"),
+    "diarco": ("https://www.diarco.com.ar/promociones", "oficial", "2026-11-08"),
     "hipo": ("https://www.hipotecario.com.ar/alianzas-bh/changomas/", "oficial", "2026-11-08"),
 }
 
@@ -187,16 +189,28 @@ add("naranja", ["dia", "nini"], TODOS, 0, "cs_dia", canal="ambos", pago=(CR, OT)
 # ---------- Josimar, mayoristas y otros ----------
 add("cuentadni", ["josimar"], [MIE], 10, "cs_dni", tope=6000, per="semana", pago=(QR,), reintegro="en la caja")
 add("bna", ["josimar"], [VIE], 20, "cs_bna", tope=6000, per="semana", canal="ambos", pago=(MO,), reintegro="reintegro", hasta="2026-12-31")
-add("cuentadni", ["nini"], [MAR], 15, "nini", tope=20000, per="semana", pago=(QR,), reintegro="en la caja", nota="Tope según calcularsueldo.com.ar.")
+add("cuentadni", ["nini"], [MAR], 15, "nini", tope=20000, per="dia", pago=(QR,), reintegro="reintegro",
+    nota="Pago Clave DNI. Solo venta minorista; no incluye bebidas con alcohol ni electrodomésticos. Jubilados que cobran en Provincia: 5% adicional (tope $5.000 por semana).")
+add("credicoop", ["nini"], [SAB], 30, "nini", tope=13500, per="dia", pago=(MO,), reintegro="reintegro", desde="2026-11-28", hasta="2026-11-28",
+    nota="Solo el sábado 28/11. Con tarjetas Cabal Credicoop por QR de MODO; si cobrás el sueldo en Credicoop el reintegro es mayor (hasta $18.000).")
 add("bna", ["nini"], [JUE], 20, "cs_bna", tope=20000, per="mes", pago=(MO,), reintegro="reintegro", desde="2026-11-05", hasta="2026-11-26")
-add("bna", ["diarco"], [VIE, SAB, DOM], 15, "cs_bna", pago=(MO,), reintegro="reintegro", desde="2026-11-07", hasta="2026-11-29",
-    nota="Diarco Mayorista.")
+add("modo", ["diarco"], [VIE, SAB, DOM], 15, "diarco", pago=(MO,), reintegro="en la caja", hasta="2026-11-08",
+    nota="Solo sucursales Diarco Mayorista seleccionadas (en AMBA: Martínez, Mercado Central y San Martín). No incluye carnes, embutidos ni pollo.")
+add("modo", ["diarcobarrio"], [VIE, SAB, DOM], 20, "diarco", minimo=35000, pago=(MO,), reintegro="en la caja", hasta="2026-11-08",
+    nota="No incluye carnes, embutidos ni pollo.")
+add("mp", ["diarco"], [VIE, SAB, DOM], 15, "diarco", pago=(QR, QRT), reintegro="en la caja", hasta="2026-11-08", nota="Sucursales Diarco Mayorista seleccionadas.")
+add("mp", ["diarcobarrio"], [VIE, SAB, DOM], 15, "diarco", minimo=35000, pago=(QR, QRT), reintegro="en la caja", hasta="2026-11-08")
+add("bna", ["diarco"], [VIE, SAB, DOM], 15, "cs_bna", pago=(MO,), reintegro="reintegro", desde="2026-11-07", hasta="2026-11-29", nota="Diarco Mayorista.")
 add("bna", ["diarcobarrio"], [VIE, SAB, DOM], 20, "cs_bna", minimo=35000, pago=(MO,), reintegro="reintegro", desde="2026-11-07", hasta="2026-11-29",
     nota="Diarco Barrio y Diarco Pueblo.")
-add("mp", ["diarco", "diarcobarrio"], [SAB, DOM], 15, "cs_mp", pago=(QR, QRT), reintegro="en la caja")
 add("bna", ["makro"], [JUE], 20, "cs_bna", tope=20000, per="mes", pago=(MO,), reintegro="reintegro")
 add("mp", ["makro"], [VIE, SAB], 10, "cs_mp", pago=(QR, QRT), reintegro="en la caja")
-add("mp", ["maxiconsumo"], TODOS, 5, "cs_mp", pago=(QR,), reintegro="en la caja", nota="Con dinero en cuenta.")
+add("mp", ["maxiconsumo"], TODOS, 5, "maxi", pago=(QR,), reintegro="en la caja", nota="QR de Mercado Pago o transferencia, con dinero en cuenta. Solo compras en el salón; no se acumula con otras promos.")
+add("bna", ["maxiconsumo"], [MIE], 30, "maxi", tope=12000, per="dia", pago=(MO,), reintegro="reintegro",
+    nota="Con crédito Visa o Mastercard del Nación por QR de MODO BNA+ (no con saldo en cuenta). Reintegro dentro de los 30 días.")
+add("credicoop", ["maxiconsumo"], [JUE], 20, "maxi", tope=7000, per="semana", pago=(MO,), reintegro="reintegro",
+    nota="Con débito o crédito Cabal Credicoop por QR de MODO. Si cobrás el sueldo en Credicoop: 30%, tope $10.500.")
+add("naranja", ["maxiconsumo"], TODOS, 0, "maxi", pago=(CR,), cuotas=3, nota="Plan Z de Naranja X.")
 add("bna", ["carrefour", "coto", "jumbo", "makro", "changomas", "dia", "josimar"], [LUN, MAR, MIE, JUE, VIE], 5, "cs_bna", tope=20000, per="mes",
     pago=(MO,), reintegro="reintegro", requiere=["jubilados"], hasta="2026-12-31",
     nota="Para jubilados que cobran en el Nación. Se suma a las otras promos del comercio.")
