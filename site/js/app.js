@@ -329,6 +329,14 @@ function vInicio() {
 
 /* ---------- BUSCAR / CATEGORÍAS ---------- */
 const nrm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+/* qué tan bien coincide el nombre con lo buscado: 0 = empieza con la palabra, 1 = la tiene como palabra entera, 2 = la tiene dentro de otra */
+function matchScore(p, words) {
+  if (!words.length) return 0;
+  const n = nrm(p.name), w = words[0];
+  if (n.startsWith(w)) return 0;
+  if (new RegExp("(^|[^a-z0-9])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(n)) return 1;
+  return 2;
+}
 function results() {
   const words = nrm(S.q).split(/\s+/).filter(Boolean);
   const list = D.products.filter(p => {
@@ -343,7 +351,7 @@ function results() {
   const pr = p => best(p, flt).v;
   const spread = p => { const vs = p.offers.flatMap(o => allChans(o).map(c => price1(o, c))); return vs.length < 2 ? 0 : (Math.max(...vs) - Math.min(...vs)) / Math.max(...vs); };
   const drop = p => Math.min(0, ...p.offers.map(o => (o.chg && !o.anom ? o.chg.pct : 0)));
-  const sorters = { relev: (a, b) => (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
+  const sorters = { relev: (a, b) => (matchScore(a, words) - matchScore(b, words)) || (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
     ahorro: (a, b) => spread(b) - spread(a), baja: (a, b) => drop(a) - drop(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
   return list.sort(sorters[S.sort] || sorters.relev);
 }
@@ -361,7 +369,9 @@ function vBuscar() {
   const cat = D.cats.find(c => c.id === S.cat);
   const title = S.q ? `Resultados para «${esc(S.q)}»` : cat ? `${cat.emoji} ${esc(cat.name)}` : "Todos los productos";
   $("#view").innerHTML = `<div class="wrap layout">
-    <aside class="filters" id="filters" aria-label="Filtros">
+    <div class="fback${S.fopen ? " open" : ""}" id="fback"></div>
+    <aside class="filters${S.fopen ? " open" : ""}" id="filters" aria-label="Filtros">
+      <div class="fhead"><b>Filtros</b><button class="fx" id="fx" type="button" aria-label="Cerrar filtros">✕</button></div>
       <h4>Categoría</h4>
       <label><input type="radio" name="cat" value="" ${S.cat ? "" : "checked"}> Todas</label>
       ${D.cats.filter(c => D.products.some(p => p.cat === c.id)).map(c => `<label><input type="radio" name="cat" value="${c.id}" ${S.cat === c.id ? "checked" : ""}> ${c.emoji} ${esc(c.name)}</label>`).join("")}
@@ -371,7 +381,7 @@ function vBuscar() {
       <div class="stlist">${ss.map(s => `<label><input type="checkbox" name="st" value="${s.id}" ${S.stores.has(s.id) ? "checked" : ""}> ${storeChip(s.id)}</label>`).join("")}</div>`).join("")}
       <h4>Mostrar</h4>
       <label><input type="checkbox" id="fpromo" ${S.onlyPromo ? "checked" : ""}> Solo con oferta</label>
-      <button class="btn sm fbtn" id="fclose" style="margin-top:12px">Ver resultados</button>
+      <div class="ffoot"><button class="btn sec sm" id="freset" type="button">Limpiar</button><button class="btn sm" id="fclose" type="button">Ver resultados</button></div>
     </aside>
     <div>
       <div class="toolbar"><div><h1>${title}</h1><span class="sub" id="rcount"></span></div>
@@ -391,15 +401,23 @@ function vBuscar() {
     $$("[data-pg]", $("#res")).forEach(b => b.onclick = () => { S.bpage = +b.dataset.pg.split("|")[1]; draw(); $("#view").scrollIntoView({ behavior: "smooth" }); });
     const c = $("#clr"); if (c) c.onclick = () => { S.q = ""; $("#q").value = ""; S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; vBuscar(); };
     $("#stall").textContent = S.stores.size ? "ver todos" : "";
+    const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
+    $("#fopen").textContent = nf ? `Filtros (${nf})` : "Filtros";
+    $("#fclose").textContent = r.length ? `Ver ${r.length} ${r.length === 1 ? "producto" : "productos"}` : "Sin resultados";
   };
-  $$("input[name=cat]").forEach(i => i.onchange = () => { S.bpage = 1; S.cat = i.value; history.replaceState(null, "", S.cat ? "#c-" + S.cat : "#buscar"); vBuscar(); });
+  $$("input[name=cat]").forEach(i => i.onchange = () => { S.bpage = 1; S.cat = i.value; history.replaceState(null, "", S.cat ? "#c-" + S.cat : "#buscar"); const st = $("#filters").scrollTop; vBuscar(); $("#filters").scrollTop = st; });
   $$("input[name=can]").forEach(i => i.onchange = () => { S.bpage = 1; S.canal = i.value; draw(); });
   $$("input[name=st]").forEach(i => i.onchange = () => { S.bpage = 1; i.checked ? S.stores.add(i.value) : S.stores.delete(i.value); draw(); });
   $("#stall").onclick = () => { S.stores.clear(); $$("input[name=st]").forEach(i => (i.checked = false)); draw(); };
   $("#fpromo").onchange = e => { S.bpage = 1; S.onlyPromo = e.target.checked; draw(); };
   $("#sort").onchange = e => { S.bpage = 1; S.sort = e.target.value; draw(); };
-  $("#fopen").onclick = () => $("#filters").classList.add("open");
-  $("#fclose").onclick = () => $("#filters").classList.remove("open");
+  const setF = open => { S.fopen = open; $("#filters").classList.toggle("open", open); $("#fback").classList.toggle("open", open); document.body.classList.toggle("noscroll", open); };
+  $("#fopen").onclick = () => setF(true);
+  $("#fclose").onclick = () => { setF(false); $("#view").scrollIntoView(); };
+  $("#fx").onclick = () => setF(false);
+  $("#fback").onclick = () => setF(false);
+  $("#freset").onclick = () => { S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; S.bpage = 1; history.replaceState(null, "", "#buscar"); vBuscar(); };
+  document.body.classList.toggle("noscroll", !!S.fopen);
   draw();
 }
 
@@ -659,7 +677,7 @@ function bindPlanner() {
   q.oninput = () => {
     const ws = nrm(q.value).split(/\s+/).filter(Boolean);
     if (!ws.length) { res.hidden = true; return; }
-    const hits = D.products.filter(p => ws.every(w => nrm(p.name + " " + p.brand).includes(w))).sort((a, b) => b.offers.length - a.offers.length).slice(0, 8);
+    const hits = D.products.filter(p => ws.every(w => nrm(p.name + " " + p.brand).includes(w))).sort((a, b) => (matchScore(a, ws) - matchScore(b, ws)) || (b.offers.length - a.offers.length)).slice(0, 8);
     res.innerHTML = hits.map(p => `<button class="pr" data-padd="${p.id}">${prodImg(p, "e")}<span>${esc(p.name)}<br><span class="sub">desde ${money(best(p).v)} · en ${p.offers.length} comercios</span></span>${PLAN[p.id] ? "✓" : "+"}</button>`).join("") || `<div class="sub" style="padding:10px">Sin resultados</div>`;
     res.hidden = false;
     $$("[data-padd]", res).forEach(b => b.onclick = () => { PLAN[b.dataset.padd] = (PLAN[b.dataset.padd] || 0) + 1; savePlan(); vConviene(); setTimeout(() => $("#pq") && $("#pq").focus(), 0); });
@@ -919,6 +937,7 @@ function modalNews() {
 
 /* ---------- navegación ---------- */
 function route() {
+  if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
   if (h.startsWith("l-")) { importList(h.slice(2)); return; }
@@ -943,6 +962,7 @@ document.addEventListener("click", e => {
   const so = e.target.closest("[data-sort]"); if (so) { S.sort = so.dataset.sort; S.cat = ""; S.q = ""; }
 });
 document.addEventListener("keydown", e => {
+  if (e.key === "Escape" && S.fopen && $("#fx")) { $("#fx").click(); return; }
   if (e.key === "Escape") { if (!$("#modal").hidden) closeModal(); else if (!$("#drawer").hidden) closeDrawer(); }
   if (e.key === "Enter" && e.target.matches("article[data-open]")) openProduct(e.target.dataset.open);
 });
