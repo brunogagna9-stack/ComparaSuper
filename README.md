@@ -101,6 +101,14 @@ Mientras `csv_publico` esté vacío, la página muestra tres sugerencias de ejem
 - **«Ver producto ↗»:** lleva a la página exacta del producto en esas tiendas. En las demás aparece «Buscar en la tienda ↗», que abre el buscador de la tienda con el nombre del producto, o nada si la cadena no tiene tienda online.
 - **«Armar el carrito en…»:** en «¿Dónde conviene mi compra?», si una tienda VTEX tiene todos los productos, el botón abre esa tienda con el carrito ya cargado. El envío o retiro y el pago se eligen en la tienda.
 
+## Comercios cerca de mí
+
+`sepa_fetch.py` guarda en `data/sucursales.json` la ubicación de cada sucursal de CABA y GBA, tomada de la base oficial. La página la usa cuando la persona marca su ubicación con el GPS o escribe su barrio o localidad. Con eso muestra los comercios dentro del radio que elija y filtra las promos del día y los productos. La ubicación se guarda solo en ese navegador.
+
+## Promos de MODO y bancos adheridos
+
+Las promos de MODO llevan la lista de bancos que participan en el campo `bancos` (`MODO_BANCOS` en `scripts/promos_noviembre_2026.py`), y las de Cuenta DNI llevan Banco Provincia. Si alguien elige solo "BBVA" en Mis medios, igual ve las promos de MODO, porque las puede usar cargando su tarjeta de BBVA en MODO.
+
 ## Logos de comercios y bancos
 
 La web no incluye logos de marcas. Para usarlos:

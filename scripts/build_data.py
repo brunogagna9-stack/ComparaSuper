@@ -362,6 +362,9 @@ def main():
     used = {p["id"] for p in products}
     (OUT / "history.json").write_text(json.dumps({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}},
                                                  separators=(",", ":")), encoding="utf-8")
+    suc = ROOT / "data" / "sucursales.json"   # ubicación de las sucursales, para "comercios cerca de mí"
+    if suc.exists():
+        (OUT / "sucursales.json").write_text(suc.read_text(encoding="utf-8"), encoding="utf-8")
     (OUT / "promos.json").write_text(json.dumps({k: promos.get(k) for k in ("tipos", "formas_pago", "medios", "relevado")} | {"promos": active_promos(promos, dt.date.fromisoformat(last["date"]))},
                                                 ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     hp.write_text(json.dumps(hist, separators=(",", ":")), encoding="utf-8")

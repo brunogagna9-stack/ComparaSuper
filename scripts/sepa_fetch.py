@@ -98,6 +98,19 @@ def num(v):
 
 
 ROTOS = []   # zips internos que no se pudieron abrir (se informan al final)
+SUCURSALES = {}   # (tienda, comercio, bandera, sucursal) -> ubicación, para "comercios cerca de mí"
+
+
+def sucursal_info(r):
+    try:
+        lat, lon = float(r.get("sucursales_latitud") or 0), float(r.get("sucursales_longitud") or 0)
+    except ValueError:
+        return None
+    if not (-35.5 < lat < -33.5 and -59.6 < lon < -57.5):   # fuera de CABA y GBA (o coordenadas mal cargadas)
+        return None
+    calle = " ".join(x for x in (r.get("sucursales_calle", "").strip().title(), r.get("sucursales_numero", "").strip()) if x)
+    zona = (r.get("sucursales_barrio") or r.get("sucursales_localidad") or "").strip().title()
+    return [round(lat, 5), round(lon, 5), calle, zona]
 
 
 def iter_comercios(zf):
@@ -157,6 +170,9 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None, only=None):
                     or next((c for c, kw in cands if not kw), None)
                 if sid:
                     sucs[key + (r["id_sucursal"],)] = sid
+                    info = sucursal_info(r)
+                    if info:
+                        SUCURSALES[(sid,) + key + (r["id_sucursal"],)] = info
             for r in read_csv(prod_b):
                 sid = sucs.get((r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal")))
                 if not sid:
@@ -259,6 +275,15 @@ def main():
         (ROOT / "data" / "history.json").unlink()   # y su historial inventado
     for old in sorted(raw.glob("*.json"))[:-3]:   # se guardan solo las últimas lecturas; el historial va aparte
         old.unlink()
+    # sucursales con su ubicación (se mezclan con las ya guardadas, por si un día falta una cadena)
+    suc_path = ROOT / "data" / "sucursales.json"
+    prev = json.loads(suc_path.read_text(encoding="utf-8")) if suc_path.exists() else {}
+    nuevas = defaultdict(list)
+    for (sid, *_), info in SUCURSALES.items():
+        nuevas[sid].append(info)
+    prev.update({k: sorted(v) for k, v in nuevas.items()})
+    suc_path.write_text(json.dumps(prev, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    print(f"Sucursales con ubicación: {sum(len(v) for v in prev.values())} de {len(prev)} cadenas")
     out = {"date": date, "source": "sepa", "region": REGION, "items": items}
     (raw / f"sepa-{date}.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(f"OK: {len(items)} precios de {len({i['ean'] for i in items})} productos ({date})")

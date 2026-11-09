@@ -48,7 +48,11 @@
     "tci": "img/logos/coto.png",
     "micarrefour": "img/logos/carrefour.png",
     "cuentacarrefour": "img/logos/carrefour.png",
-    "masclub": "img/logos/changomas.png"
+    "masclub": "img/logos/changomas.png",
+    "bbva": "img/logos/m-bbva.png",
+    "santander": "img/logos/m-santander.png",
+    "provincia": "img/logos/m-provincia.png",
+    "macro": "img/logos/m-macro.png"
   },
   "sugerencias": {
     "form_action": "",

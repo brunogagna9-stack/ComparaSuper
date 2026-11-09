@@ -32,13 +32,22 @@ F = {  # fuentes: (url, tipo, fecha en que se verificó)
     "maxi": ("https://www.maxiconsumo.com/promociones", "oficial", "2026-11-08"),
     "diarco": ("https://www.diarco.com.ar/promociones", "oficial", "2026-11-08"),
     "hipo": ("https://www.hipotecario.com.ar/alianzas-bh/changomas/", "oficial", "2026-11-08"),
+    "losandes": ("https://www.losandes.com.ar/economia/coto-ofrece-25-reintegro-tope-que-bancos-permiten-ahorrar-25000-compra-n6013527", "prensa", "2026-11-09"),
+    "makro": ("https://makro.com.ar/beneficios-bancarios/", "oficial", "2026-11-09"),
+    "macro": ("https://hacetecliente.macro.com.ar/abritucuenta", "oficial", "2026-11-09"),
+    "vadillo": ("https://mariovadillo.com.ar/nacion-macro-y-santander-descuentos-de-hasta-30-en-noviembre-dias-topes-y-que-revisar-antes/", "prensa", "2026-11-09"),
 }
+
+# Bancos que participan de las promos de MODO en supermercados (Los Andes, 09/11/2026, lista de la promo de Coto; Makro publica una lista igual).
+# Pagando con la tarjeta de cualquiera de estos bancos cargada en MODO (o en la app del banco con MODO) aplica el descuento.
+MODO_BANCOS = ["bna", "santander", "bbva", "galicia", "credicoop", "supervielle", "comafi", "icbc", "macro", "ciudad", "hipotecario", "columbia"]
 
 MEDIOS = [
     ("bna", "Banco Nación", "banco"), ("ciudad", "Banco Ciudad", "banco"), ("columbia", "Banco Columbia", "banco"),
     ("comafi", "Banco Comafi", "banco"), ("credicoop", "Credicoop", "banco"), ("hipotecario", "Banco Hipotecario", "banco"),
     ("icbc", "ICBC", "banco"), ("patagonia", "Banco Patagonia", "banco"), ("supervielle", "Supervielle", "banco"),
-    ("galicia", "Galicia", "banco"),
+    ("galicia", "Galicia", "banco"), ("bbva", "BBVA", "banco"), ("santander", "Santander", "banco"),
+    ("provincia", "Banco Provincia", "banco"), ("macro", "Banco Macro", "banco"),
     ("cencopay", "CencoPay", "billetera"), ("cuentacarrefour", "Carrefour Banco (cuenta digital)", "billetera"),
     ("cuentadni", "Cuenta DNI", "billetera"), ("mp", "Mercado Pago", "billetera"), ("modo", "MODO", "billetera"),
     ("naranjax", "Naranja X", "billetera"), ("personalpay", "Personal Pay", "billetera"),
@@ -73,12 +82,14 @@ P = []
 
 
 def add(medio, stores, dias, pct, fuente, *, tope=None, per=None, minimo=0, canal="tienda", pago=(VC,), reintegro=None,
-        nota=None, cuotas=None, requiere=(), desde="2026-11-01", hasta="2026-11-30"):
+        nota=None, cuotas=None, requiere=(), desde="2026-11-01", hasta="2026-11-30", bancos=None):
     url, tipo, fecha = F[fuente]
+    if bancos is None:   # promos de MODO: valen con las tarjetas de los bancos adheridos; Cuenta DNI es la billetera de Banco Provincia
+        bancos = MODO_BANCOS if medio == "modo" else ["provincia"] if medio == "cuentadni" else []
     P.append({"id": f"n{len(P) + 1:03d}", "medio": medio, "stores": list(stores), "dias": list(dias), "pct": pct, "tope": tope,
               "periodo_tope": per, "minimo": minimo, "canal": canal, "pago": list(pago), "reintegro": reintegro, "nota": nota,
               "cuotas": cuotas, "requiere": list(requiere), "desde": desde, "hasta": hasta,
-              "fuente": url, "fuente_tipo": tipo, "verificado": fecha, "ejemplo": False})
+              "fuente": url, "fuente_tipo": tipo, "verificado": fecha, "ejemplo": False, "bancos": list(bancos)})
 
 
 # ---------- Carrefour ----------
@@ -130,6 +141,10 @@ add("patagonia", ["coto"], [JUE], 20, "cv_coto", tope=25000, per="compra", canal
 add("mp", ["coto"], [VIE], 25, "cv_coto", pago=(QR, QRT), reintegro="en la caja")
 add("mp", ["coto"], [SAB, DOM], 20, "cv_coto", pago=(QR, QRT), reintegro="en la caja")
 add("ciudad", ["coto"], [SAB, DOM], 20, "cv_coto", canal="ambos", pago=(DB, OT), reintegro="reintegro", nota="Con débito Visa o Maestro.")
+add("modo", ["coto"], [MAR], 25, "losandes", pago=(MO,), reintegro="reintegro",
+    nota="Reintegro sin tope en las sucursales, pagando con el QR de MODO o de la app del banco. Tiene productos excluidos.")
+add("santander", ["coto"], [JUE], 30, "vadillo", pago=(NFC,), reintegro="reintegro",
+    nota="Con Visa de Santander pagando sin contacto desde el celular (NFC, Apple Pay o Google Pay). Sin tope.")
 add("bna", ["coto"], [MAR], 25, "cs_bna", pago=(MO,), reintegro="reintegro", nota="Con Visa crédito o débito del Nación, en BNA+ MODO.")
 add("galicia", ["coto", "changomas"], TODOS, 0, "cs_galicia", canal="ambos", pago=(CR, OT), cuotas=18,
     nota="Hasta 18 cuotas con Mastercard Galicia; hasta 12 con Visa o American Express.")
@@ -204,6 +219,9 @@ add("bna", ["diarco"], [VIE, SAB, DOM], 15, "cs_bna", pago=(MO,), reintegro="rei
 add("bna", ["diarcobarrio"], [VIE, SAB, DOM], 20, "cs_bna", minimo=35000, pago=(MO,), reintegro="reintegro", desde="2026-11-07", hasta="2026-11-29",
     nota="Diarco Barrio y Diarco Pueblo.")
 add("bna", ["makro"], [JUE], 20, "cs_bna", tope=20000, per="mes", pago=(MO,), reintegro="reintegro")
+add("modo", ["makro"], [JUE], 20, "makro", tope=20000, per="mes", pago=(MO,), reintegro="reintegro",
+    bancos=["santander", "bbva", "macro", "galicia", "icbc", "supervielle", "credicoop", "bna"],
+    nota="Tope por banco. Santander solo con Visa. Bancos adheridos según Makro.")
 add("mp", ["makro"], [VIE, SAB], 10, "cs_mp", pago=(QR, QRT), reintegro="en la caja")
 add("mp", ["maxiconsumo"], TODOS, 5, "maxi", pago=(QR,), reintegro="en la caja", nota="QR de Mercado Pago o transferencia, con dinero en cuenta. Solo compras en el salón; no se acumula con otras promos.")
 add("bna", ["maxiconsumo"], [MIE], 30, "maxi", tope=12000, per="dia", pago=(MO,), reintegro="reintegro",
@@ -219,7 +237,7 @@ add("bna", ["carrefour", "coto", "jumbo", "makro", "changomas", "dia", "josimar"
 def main():
     p = ROOT / "data" / "promos_pago.json"
     old = json.loads(p.read_text(encoding="utf-8"))
-    used = {pr["medio"] for pr in P} | {r for pr in P for r in pr["requiere"]}
+    used = {pr["medio"] for pr in P} | {r for pr in P for r in pr["requiere"]} | {b for pr in P for b in pr["bancos"]}
     out = {"_comentario": old["_comentario"] + " requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
            "relevado": "2026-11-08", "tipos": TIPOS, "formas_pago": PAGO,
            "medios": [{"id": i, "name": n, "tipo": t} for i, n, t in MEDIOS if i in used], "promos": P}

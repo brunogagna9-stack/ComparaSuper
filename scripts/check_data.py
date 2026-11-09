@@ -31,6 +31,7 @@ for pr in promos["promos"]:
     if not all(0 <= x <= 6 for x in pr["dias"]): errors.append(f"promo {pr['id']}: día inválido")
     if not pr.get("pago") or not set(pr["pago"]) <= set(promos["formas_pago"]):
         errors.append(f"promo {pr['id']}: falta aclarar cómo se paga (o la forma de pago no existe)")
+    if not set(pr.get("bancos") or []) <= medios: errors.append(f"promo {pr['id']}: 'bancos' con un medio desconocido")
     if not set(pr.get("requiere") or []) <= medios: errors.append(f"promo {pr['id']}: 'requiere' con un medio desconocido")
     if not pr.get("ejemplo") and pr.get("fuente_tipo") not in ("oficial", "relevamiento", "prensa"):
         errors.append(f"promo {pr['id']}: fuente_tipo debe ser oficial, relevamiento o prensa")
