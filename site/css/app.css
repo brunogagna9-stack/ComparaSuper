@@ -448,3 +448,88 @@ section.box+section.box{margin-top:18px}
 
 .prod .tags{right:20px}
 .prod .tags .tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;display:block}
+
+/* ===== Celular: ajustes para que nada se salga de la pantalla (no afecta la versión de computadora) ===== */
+@media (max-width:640px){
+  html,body{overflow-x:hidden}
+  .wrap{padding-left:14px;padding-right:14px}
+  .layout,.lgrid{grid-template-columns:minmax(0,1fr)}
+  .layout>*,.lgrid>*{min-width:0}
+  .toolbar{flex-wrap:wrap}
+  .toolbar>div{min-width:0;max-width:100%}
+  .toolbar>div:last-child:not(:first-child){width:100%}
+  .toolbar .sel{min-width:0;flex:1;max-width:100%}
+  .blk-h{flex-direction:column;align-items:flex-start;gap:4px}
+  .blk-h h2{font-size:19px;line-height:1.25}
+  .blk-h a{white-space:normal}
+  .hero{padding:22px 0 24px}
+  .hstats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .hstat{padding:8px 12px}
+  .today{grid-template-columns:1fr}
+  .pcard{padding:12px}
+  .pcard .pct{font-size:22px;min-width:64px}
+  /* tarjetas de producto: dos columnas que entran en la pantalla */
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .prod,.prod>*{min-width:0}
+  .prod h3{font-size:14px;min-height:0;overflow-wrap:anywhere}
+  .prod .ph.hasimg{height:100px}
+  .prod .tags{top:14px;left:14px;right:14px}
+  .prod .tag{font-size:11px;padding:2px 7px}
+  .prod .from{font-size:12px}
+  .prod .price{font-size:18px}
+  .prod .unit{font-size:12px}
+  .prod .meta{font-size:12px}
+  .store{white-space:normal;flex-wrap:wrap;gap:5px;min-width:0;font-size:13px}
+  .logo-img,.logo-img.m{max-width:58px;height:26px}
+  .filters .logo-img{width:64px;height:30px}
+  .dh .logo-img,.sumc .logo-img,.promo .mname .logo-img{max-width:84px;height:36px}
+  /* canasta del inicio */
+  .rrow{grid-template-columns:24px minmax(0,1fr) auto;gap:8px;font-size:13px}
+  .rrow .tot{font-size:15px}
+  .rrow .tot small{font-size:11px;max-width:120px;margin-left:auto}
+  /* panel de producto */
+  .drawer,.drawer *{max-width:100%}
+  .drawer{overflow-x:hidden}
+  .dh{gap:10px}
+  .dh .ph{width:56px;height:56px}
+  .dh h2{font-size:16px;overflow-wrap:anywhere}
+  .db .btn,.db .bbtn{white-space:normal}
+  /* tablas anchas: se desplazan dentro de su caja */
+  .matrix,.tscroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.cmp{display:block;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+  table.cmp td,table.cmp th{min-width:72px}
+  table.cmp td:first-child,table.cmp th:first-child{min-width:120px}
+  /* tabs de arriba: se deslizan con el dedo */
+  nav.tabs,.tabs{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .tabs::-webkit-scrollbar{display:none}
+}
+@media (max-width:640px){
+  /* tablas de ¿Dónde conviene? como tarjetas */
+  table.cmp.opt,table.cmp.split{display:block;overflow:visible}
+  table.cmp.opt thead,table.cmp.split thead{display:none}
+  table.cmp.opt tbody,table.cmp.split tbody,table.cmp.split tfoot{display:block}
+  table.cmp.opt td,table.cmp.split td,table.cmp.opt th,table.cmp.split th{min-width:0!important;border:0;padding:0;text-align:left}
+  table.cmp.opt tr{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:4px 10px;padding:12px 4px;border-bottom:1px solid var(--line);align-items:start}
+  table.cmp.opt tr.top{background:var(--gll);border-radius:12px;padding:12px 8px}
+  table.cmp.opt td:nth-child(1){grid-column:1;grid-row:1;font-weight:700}
+  table.cmp.opt td:nth-child(2){grid-column:2;grid-row:1}
+  table.cmp.opt td:nth-child(7){grid-column:3;grid-row:1;text-align:right}
+  table.cmp.opt td:nth-child(3),table.cmp.opt td:nth-child(4),table.cmp.opt td:nth-child(6),table.cmp.opt td:nth-child(8){grid-column:auto/span 1;font-size:13px}
+  table.cmp.opt td:nth-child(3){grid-column:2}
+  table.cmp.opt td:nth-child(4){grid-column:3;text-align:right}
+  table.cmp.opt td:nth-child(5){grid-column:2/-1;font-size:13px}
+  table.cmp.opt td:nth-child(6){grid-column:2}
+  table.cmp.opt td:nth-child(8){grid-column:3;text-align:right}
+  table.cmp.opt td:nth-child(9){grid-column:2/-1}
+  table.cmp.opt td[data-l]:before,table.cmp.split td[data-l]:not([data-l=""]):before{content:attr(data-l);display:block;font-size:11px;color:var(--mut);font-weight:600}
+  table.cmp.opt td:empty,table.cmp.split td:empty{display:none}
+  table.cmp.opt .miss{font-size:12px}
+  table.cmp.opt td.nil{display:none}
+  table.cmp.split tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;padding:10px 2px;border-bottom:1px solid var(--line);align-items:center}
+  table.cmp.split tbody td:nth-child(1){grid-column:1/-1;font-weight:600}
+  table.cmp.split tbody td:nth-child(3){text-align:right}
+  table.cmp.split tbody td:nth-child(4){grid-column:1/-1;display:flex;gap:6px;font-size:12px}
+  table.cmp.split tbody td:nth-child(4):before{display:inline!important}
+  table.cmp.split tfoot td{display:block}
+  table.cmp.split tfoot td:first-child{grid-column:1/-1}
+}
