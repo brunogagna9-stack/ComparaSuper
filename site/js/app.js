@@ -126,7 +126,7 @@ const pagoIcon = pr => (P.formas_pago[(pr.pago || [])[0]] || {}).i || "💳";
 /* ---------- insignias y logos ---------- */
 function badge(kind, id, name, color, sigla) {
   const src = ((CFG[kind === "s" ? "logos" : "logos_medios"]) || {})[id];
-  if (src) return `<img class="logo-img${kind === "m" ? " m" : ""}" src="${esc(src)}" alt="" loading="lazy">`;
+  if (src) return `<img class="logo-img${kind === "m" ? " m" : ""}" src="${esc(src)}" alt="" loading="lazy" onload="if(this.naturalWidth>3.5*this.naturalHeight)this.classList.add('wide')">`;
   const sg = sigla || name.replace(/^(Banco|Tarjeta)\s+/i, "").split(/\s+/).filter(w => /^[A-Za-zÁÉÍÓÚáéíóúÑñ]/.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase();
   return `<span class="bdg${kind === "m" ? " m" : ""}" style="--c:${color || "var(--ink2)"}" aria-hidden="true">${esc(sg)}</span>`;
 }

@@ -546,3 +546,13 @@ section.box+section.box{margin-top:18px}
 .ffoot .btn{flex:1;justify-content:center;padding:12px}
 .ffoot #freset{flex:0 0 auto}
 body.noscroll{overflow:hidden}
+
+/* logos muy anchos (Banco Nación, Patagonia, ChangoMás, Galicia): más espacio a lo ancho para que se lean */
+.logo-img.wide{max-width:150px}
+.filters .logo-img.wide{width:auto;max-width:150px}
+.promo .mname .logo-img.wide,.dh .logo-img.wide,.sumc .logo-img.wide{max-width:200px}
+@media (max-width:640px){
+  .logo-img.wide{max-width:120px}
+  .filters .logo-img.wide{max-width:130px}
+  .promo .mname .logo-img.wide,.dh .logo-img.wide,.sumc .logo-img.wide{max-width:150px}
+}
