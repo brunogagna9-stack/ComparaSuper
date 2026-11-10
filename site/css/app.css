@@ -850,3 +850,4 @@ footer.site{padding-bottom:90px}
 }
 .bslide{align-content:center}
 @media (max-width:640px){ .bslide{padding-top:16px} .bimg .bi{max-width:min(240px,calc(100% - 90px))} }
+@media (min-width:641px){.hero2 h1{max-width:none}.hero2 .l2{display:block}}

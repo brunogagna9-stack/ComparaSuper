@@ -353,7 +353,7 @@ function vInicio() {
   const tile = st => { const src = (CFG.logos || {})[st.id]; return `<a class="stile" href="#buscar" data-tienda="${st.id}" title="Ver productos de ${esc(st.name)}">${src ? `<img src="${esc(src)}" alt="${esc(st.name)}" loading="lazy">` : `<span class="stn" style="color:${esc(st.color || "var(--ink)")}">${esc(st.name)}</span>`}</a>`; };
   $("#view").innerHTML = `
   <section class="hero2"><div class="wrap">
-    <h1>Encontrá los mejores precios en un solo lugar</h1>
+    <h1>Encontrá los mejores precios <span class="l2">en un solo lugar</span></h1>
     <p>Buscá, compará y ahorrá</p>
   </div></section>
   <div class="wrap">
