@@ -25,8 +25,10 @@
     <button class="hbtn theme" id="themebtn" type="button">🌙<span class="hl">Modo Oscuro</span></button>
     <button class="hbtn" id="mbtn" type="button" aria-haspopup="dialog" title="Mis medios de pago">💳<span class="hl">Mis medios</span><span class="dot" id="mdot" hidden></span></button>
     <button class="hbtn" id="abtn" type="button" aria-haspopup="dialog" title="Avisos de baja de precio" hidden>🔔<span class="badge" id="acount">0</span></button>
-    <a class="hbtn cart" href="#carrito" title="Mi carrito">🛒<span class="hl">Mi carrito</span><span class="badge" id="lcount" data-n="0">0</span></a>
+    <a class="hbtn cart" href="#carrito" title="Mi carrito"><svg class="cart-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 3.5h2.6l2.3 11.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.2l1.6-6.9H6.2"/><circle cx="9.6" cy="19.8" r="1.5"/><circle cx="17.4" cy="19.8" r="1.5"/></svg><span class="hl">Mi carrito</span><span class="badge" id="lcount" data-n="0">0</span></a>
   </div>
+  <div class="hrow2">
+  <button class="uloc" id="uloc" type="button" data-ubic title="Elegir mi ubicación para ver comercios cercanos"><span aria-hidden="true">📍</span><span id="ulab">Elegí tu ubicación</span></button>
   <nav class="tabs" aria-label="Secciones">
     <a href="#inicio" data-v="inicio">Inicio</a>
     <a href="#buscar" data-v="buscar">Productos</a>
@@ -34,8 +36,8 @@
     <a href="#pagos" data-v="pagos">Descuentos por día</a>
     <a href="#conviene" data-v="conviene">¿Dónde conviene mi compra?</a>
     <a href="#como" data-v="como">Cómo funciona</a>
-    <a href="#sugerencias" data-v="sugerencias">💬 Dejanos tu sugerencia</a>
   </nav>
+  </div>
 </header>
 
 <main id="view" tabindex="-1"><div class="loading">Cargando precios…</div></main>
@@ -61,6 +63,16 @@
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden></aside>
 <div class="modal" id="modal" role="dialog" aria-modal="true" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<div class="fabs">
+  <a class="fab sug" href="#sugerencias" title="Dejanos tu sugerencia"><span class="fi" aria-hidden="true">💬</span><span class="ft">Dejanos tu sugerencia</span></a>
+  <button class="fab bot" id="botbtn" type="button" aria-controls="chat" aria-expanded="false" title="Asistente virtual"><span class="fi" aria-hidden="true">🤖</span><span class="ft">Asistente virtual</span></button>
+</div>
+<section class="chat" id="chat" role="dialog" aria-label="Asistente virtual" hidden>
+  <div class="chh"><span class="fi">🤖</span><div><b>Asistente de ComparáSúper</b><small>Te ayudo con precios, descuentos y cómo usar la página</small></div><button class="x" id="chatx" type="button" aria-label="Cerrar el asistente">✕</button></div>
+  <div class="chm" id="chm" aria-live="polite"></div>
+  <form class="chf" id="chf"><input id="chq" type="text" placeholder="Escribí tu pregunta…" autocomplete="off" aria-label="Tu pregunta"><button class="btn sm" type="submit">Enviar</button></form>
+</section>
 
 <script src="js/app.js"></script>
 </body>

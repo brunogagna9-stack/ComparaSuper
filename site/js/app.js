@@ -304,8 +304,9 @@ async function modalUbic() {
     <label class="flbl" for="ukm">Hasta qué distancia</label>
     <select class="sel" id="ukm">${[1, 2, 3, 5, 10, 20].map(k => `<option value="${k}" ${(UBIC ? UBIC.km : 3) === k ? "selected" : ""}>${k} km</option>`).join("")}</select>
     <p class="sub" id="umsg" style="min-height:20px;margin:8px 0 0"></p>
-    <div class="mfoot"><button class="btn sec sm" data-close>Cancelar</button><button class="btn sm" id="usave">Guardar</button></div>`);
-  const save = u => { UBIC = u; LS.set("cs_ubic", UBIC); calcCerca(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
+    ${UBIC && CERCA ? `<div class="unear" style="margin-top:12px">${Object.keys(CERCA).sort((a, b) => CERCA[a].d - CERCA[b].d).slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir)}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No hay sucursales en ese radio.</span>'}</div>` : ""}
+    <div class="mfoot">${UBIC ? '<button class="btn sec sm" data-noubic>Quitar mi ubicación</button>' : '<button class="btn sec sm" data-close>Cancelar</button>'}<button class="btn sm" id="usave">Guardar</button></div>`);
+  const save = u => { UBIC = u; LS.set("cs_ubic", UBIC); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
   $("#ugps").onclick = () => {
     if (!navigator.geolocation) { $("#umsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
     $("#umsg").textContent = "Buscando tu ubicación…";
@@ -343,42 +344,38 @@ function canasta() {
 
 function vInicio() {
   setTab("inicio");
-  const hoy = P.promos.filter(pr => pr.dias.includes(HOY) && pr.pct > 0 && (!needs(pr).length || mineOk(pr)) && promoCerca(pr)).sort((a, b) => (mineOk(b) - mineOk(a)) || b.pct - a.pct);
-  const promos = hoy.slice(0, 6), resto = hoy.slice(6);
-  const bajaron = D.products.flatMap(p => p.offers.filter(o => o.chg && o.chg.pct <= -3 && !o.anom).map(o => ({ p, o }))).sort((a, b) => a.o.chg.pct - b.o.chg.pct).slice(0, 12);
-  const subieron = D.products.flatMap(p => p.offers.filter(o => o.chg && o.chg.pct >= 5 && !o.anom).map(o => ({ p, o }))).sort((a, b) => b.o.chg.pct - a.o.chg.pct).slice(0, 6);
+  const day = S.iday ?? HOY;
+  const delDia = d => P.promos.filter(pr => pr.dias.includes(d) && pr.pct > 0 && (!needs(pr).length || mineOk(pr)) && promoCerca(pr));
+  const promos = delDia(day).sort((a, b) => (mineOk(b) - mineOk(a)) || b.pct - a.pct);
   const pcard = pr => `<div class="pcard${MEDIOS && mineOk(pr) ? " mine" : ""}"><div class="pct">${pr.pct}%<small>${topeTxt(pr)}</small></div>
         <div class="pd">${medioBadge(medio(pr))} <b>${esc(medioName(pr))}</b> <span class="tag gr sm">${esc(P.tipos[medio(pr).tipo] || "")}</span><br>en ${pr.stores.map(s => esc(ST[s] ? ST[s].name : s)).join(", ")}
         <div class="how">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</div></div></div>`;
+  const tile = st => { const src = (CFG.logos || {})[st.id]; return `<a class="stile" href="#buscar" data-tienda="${st.id}" title="Ver productos de ${esc(st.name)}">${src ? `<img src="${esc(src)}" alt="${esc(st.name)}" loading="lazy">` : `<span class="stn" style="color:${esc(st.color || "var(--ink)")}">${esc(st.name)}</span>`}</a>`; };
   $("#view").innerHTML = `
+  <section class="hero2"><div class="wrap">
+    <h1>Encontrá los mejores precios en un solo lugar</h1>
+    <p>Buscá, compará y ahorrá</p>
+  </div></section>
   <div class="wrap">
-    <section class="blk first"><div class="blk-h"><h2>🔥 Ofertas del día · hoy ${DIAS[HOY].toLowerCase()} conviene pagar con…</h2><a href="#pagos" data-semana>Ver toda la semana →</a></div>
-      ${ubicBar("inicio")}
-      ${MEDIOS ? "" : `<p class="sub" style="margin:-6px 0 10px">Mostramos todos los descuentos. <a href="#" data-medios>Elegí tus medios de pago</a> para ver solo los que podés usar.</p>`}
-      <div class="today">${promos.map(pcard).join("") || `<div class="empty">Hoy no hay descuentos cargados.</div>`}</div>
-      ${resto.length ? `<div class="today" id="hoyresto" hidden>${resto.map(pcard).join("")}</div>
-        <div class="more"><button class="btn sec" id="hoymas" aria-expanded="false">Ver todos los descuentos del día (${resto.length} más)</button></div>` : ""}
+    <section class="blk"><div class="blk-h"><h2>🔥 Ofertas del día · ${day === HOY ? `hoy ${DIAS[day].toLowerCase()}` : DIAS[day].toLowerCase()}</h2><a href="#pagos" data-semana>Ver toda la semana →</a></div>
+      <div class="week">${DIAS.map((d, i) => `<button class="day${i === day ? " on" : ""}" data-iday="${i}" aria-pressed="${i === day}">${DCORTO[i]}${i === HOY ? '<span class="hoy">HOY</span>' : ""}<small>${delDia(i).length} benef.</small></button>`).join("")}</div>
+      ${MEDIOS ? "" : `<p class="sub" style="margin:2px 0 10px">Mostramos todos los descuentos${CERCA ? " de los comercios cerca tuyo" : ""}. <a href="#" data-medios>Elegí tus medios de pago</a> para ver solo los que podés usar.</p>`}
+      <div class="today">${promos.map(pcard).join("") || `<div class="empty">No hay descuentos cargados para el ${DIAS[day].toLowerCase()}.</div>`}</div>
     </section>
 
-    ${bajaron.length ? `<section class="blk"><div class="blk-h"><h2>▼ Bajaron de precio</h2><a href="#buscar" data-sort="baja">Ver todos →</a></div>
-      <div class="hscroll">${bajaron.map(({ p, o }) => `<article class="prod" data-open="${p.id}" tabindex="0">${prodImg(p, "ph")}<h3>${esc(p.name)}</h3>
-        <div>${storeChip(o.s, o.p ? null : "online")}<div class="price">${money(refPrice(o))}</div><div class="unit"><s>${money(o.chg.prev)}</s> <span class="chg dn">▼ ${Math.abs(o.chg.pct)}%</span></div></div>
-        <div class="meta"><span class="sub">desde ayer</span>${addCtl(p.id)}</div></article>`).join("")}</div></section>` : ""}
-
-    ${subieron.length ? `<section class="blk"><div class="blk-h"><h2>⚠️ Aviso: subieron de precio</h2></div>
-      <p class="sub" style="margin:-6px 0 10px">Si los ibas a comprar, fijate si en otro comercio siguen más baratos.</p>
-      <div class="grid">${subieron.map(({ p, o }) => { const b = best(p); return `<article class="prod" data-open="${p.id}" tabindex="0"><h3>${esc(p.name)}</h3>
-        <div>${storeChip(o.s)} <span class="chg up">▲ ${o.chg.pct}%</span><div class="unit">${money(o.chg.prev)} → <b>${money(refPrice(o))}</b></div>
-        ${b.o.s !== o.s ? `<div class="unit">Más barato ahora: ${where(b)} ${money(b.v)}</div>` : `<div class="unit">Sigue siendo el más barato</div>`}</div></article>`; }).join("")}</div></section>` : ""}
+    <section class="blk"><div class="blk-h"><h2>Estos son los comercios comparados</h2></div>
+      <div class="stiles">${D.stores.map(tile).join("")}</div></section>
 
     <section class="blk news" id="novedades-blk"><div><h2>📬 Recibí las mejores ofertas de la semana</h2>
       <p>Te mandamos por correo los descuentos bancarios de cada semana y los productos que más bajaron. Gratis, sin spam y te das de baja cuando quieras.</p></div>
       <button class="btn" data-news>Quiero recibir novedades</button></section>
   </div>`;
-  const mas = $("#hoymas");
-  if (mas) mas.onclick = () => { const r = $("#hoyresto"), open = r.hidden; r.hidden = !open; mas.setAttribute("aria-expanded", open); mas.textContent = open ? "Ver menos" : `Ver todos los descuentos del día (${resto.length} más)`; };
-  const sem = $("[data-semana]"); if (sem) sem.onclick = () => { S.pday = HOY; };
+  $$("[data-iday]").forEach(b => b.onclick = () => { S.iday = +b.dataset.iday; vInicio(); });
+  const sem = $("[data-semana]"); if (sem) sem.onclick = () => { S.pday = day; };
+  $$("[data-tienda]").forEach(a => a.onclick = () => { S.stores = new Set([a.dataset.tienda]); S.cat = ""; S.q = ""; $("#q").value = ""; S.bpage = 1; });
 }
+/* marcador de ubicación del encabezado */
+function updUbic() { const l = $("#ulab"); if (l) l.textContent = UBIC ? (UBIC.gps ? `Tu ubicación · ${UBIC.km} km` : `${UBIC.label} · ${UBIC.km} km`) : "Elegí tu ubicación"; $("#uloc").classList.toggle("on", !!UBIC); }
 
 /* ---------- CÓMO FUNCIONA ---------- */
 function vComo() {
@@ -991,7 +988,7 @@ async function chart(p) {
 }
 
 /* ---------- ventanas ---------- */
-function openModal(html) { const m = $("#modal"); m.innerHTML = html; m.hidden = false; $("#scrim").hidden = false; const f = m.querySelector("input, button"); f && f.focus(); }
+function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; const f = m.querySelector("input, button"); f && f.focus(); }
 function closeModal() { $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; }
 function modalMedios() {
   const sel = new Set(MEDIOS || []);
@@ -1059,7 +1056,7 @@ function route() {
 document.addEventListener("click", e => {
   const vm = $("#vmenu"); if (vm && vm.open && !vm.contains(e.target)) vm.open = false;
   if (e.target.closest("[data-ubic]")) { e.preventDefault(); modalUbic(); return; }
-  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set("cs_ubic", null); S.cerca = false; calcCerca(); route(); toast("Ubicación quitada"); return; }
+  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set("cs_ubic", null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
   const inc = e.target.closest("[data-inc]"); if (inc) { e.stopPropagation(); const id = inc.dataset.inc; setQty(id, (LISTA[id] || 0) + 1, inc.dataset.sid); return; }
   const dec = e.target.closest("[data-dec]"); if (dec) { e.stopPropagation(); const id = dec.dataset.dec; setQty(id, (LISTA[id] || 0) - 1); return; }
   const add = e.target.closest("[data-add]"); if (add) { e.stopPropagation(); addToList(add.dataset.add); return; }
@@ -1086,10 +1083,91 @@ $("#q").addEventListener("input", () => { clearTimeout(route.t); route.t = setTi
 window.addEventListener("hashchange", route);
 applyTheme(document.documentElement.dataset.theme);
 
+
+/* ---------- ASISTENTE VIRTUAL ----------
+   Funciona dentro de la página, sin servicios externos: entiende preguntas sobre precios, descuentos,
+   comercios y cómo usar cada sección, y responde con los datos cargados. */
+const BOT = { msgs: [] };
+const DIAS_N = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
+const STOP = new Set("donde esta mas barato barata baratos baratas precio precios cuanto cuesta cuestan sale salen vale valen conviene comprar compro el la los las un una unos unas de del en que para por con y o me mi hay a al es son busco buscar quiero necesito super supermercado hoy ahora".split(" "));
+const BOT_TEMAS = [
+  [/carrit|lista/, () => `<b>🛒 Mi carrito</b>: tocá el <b>+</b> de cualquier producto para sumarlo; si ya está, aparecen <b>− cantidad +</b>. En la ficha del producto, con <b>«Ver más supermercados»</b> podés elegir de qué súper agregarlo. Desde el carrito lo compartís por WhatsApp o correo. <a href="#carrito">Ir a mi carrito</a>`],
+  [/conviene|calcul|compar.*compra|mezcl/, () => `<b>📊 ¿Dónde conviene mi compra?</b>: cargá productos (o traé tu carrito) y te muestra cuánto sale todo en un comercio, mezclando dos, y el mejor día con tus medios de pago. <a href="#conviene">Abrir</a>`],
+  [/medio|tarjeta mia|mis tarjetas|mis bancos/, () => `<b>💳 Mis medios</b>: arriba a la derecha marcás tus bancos, billeteras y tarjetas, y te mostramos solo los descuentos que podés usar. <button class="linkbtn" data-medios>Elegir mis medios</button>`],
+  [/ubicaci|cerca|barrio|localidad|gps/, () => `<b>📍 Ubicación</b>: tocá «Elegí tu ubicación» debajo del logo. Podés usar el GPS o escribir tu barrio, y te mostramos los comercios cercanos y sus promos. <button class="linkbtn" data-ubic>Marcar mi ubicación</button>`],
+  [/aviso|alerta|baje|bajo de precio|avisame/, () => `<b>🔔 Avisos</b>: en la ficha de un producto tocá «Avisarme si baja». Cuando baje, aparece una campanita arriba con el número de productos que bajaron.`],
+  [/sugerenc|reclam|idea|mejora/, () => `<b>💬 Sugerencias</b>: tocá el globo de abajo a la derecha o <a href="#sugerencias">entrá acá</a>. Se publican después de revisarlas y todos pueden votarlas.`],
+  [/oscuro|claro|tema|color de la pagina/, () => `Arriba tenés el botón <b>Modo Oscuro / Modo Claro</b> para cambiar los colores.`],
+  [/vista|columna|lista de productos|iconos/, () => `En <a href="#buscar">Productos</a> el botón <b>«Ver»</b> cambia entre íconos grandes (3 columnas), íconos chicos (5 columnas) o lista de 50.`],
+  [/de donde|datos|fuente|actualiz|confiable|sepa|oficial/, () => `Los precios de las sucursales vienen de la <b>base oficial SEPA</b> que informan las cadenas todos los días; los online, de la tienda web de cada cadena. Los descuentos los relevamos de páginas oficiales y notas, y cada uno dice su fuente. Se actualiza todos los días. Datos del ${esc(D.updated.split("-").reverse().join("/"))}.`],
+  [/envio|online|delivery|a domicilio/, () => `Mostramos el precio <b>online</b> de cada cadena aparte del de la sucursal. El envío se suma en «¿Dónde conviene?». Si una tienda online tiene todos tus productos, te armamos el carrito allá con un botón.`],
+  [/oferta|2x1|3x2|2da|segunda unidad/, () => `En <a href="#ofertas">Ofertas</a> están todas las ofertas vigentes de los comercios, con un banner de las destacadas. Las que van por cantidad (2x1, 2da al 70%) te avisan cuántas unidades llevar cuando sumás al carrito.`],
+  [/jubilad|anses|pension/, () => { const ps = P.promos.filter(pr => (pr.requiere || []).includes("jubilados") || pr.medio === "jubilados"); return `Para jubilados hay ${ps.length} descuentos cargados. Marcá «Jubilados y pensionados» en <button class="linkbtn" data-medios>Mis medios</button> para verlos en los precios.`; }],
+];
+function botPromos(q) {
+  const n = nrm(q);
+  let day = DIAS_N.findIndex(d => n.includes(d)); if (/manana/.test(n)) day = (HOY + 1) % 7; if (day < 0 && /hoy/.test(n)) day = HOY;
+  const w = t => new RegExp("(^|[^a-z0-9])" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(n);
+  const meds = P.medios.filter(m => m.id !== "todos" && m.id !== "credito" && (w(nrm(m.name).replace(/^(banco|tarjeta) /, "").replace(/ \(.*\)$/, "")) || (m.id.length > 3 && w(m.id))));
+  const sts = D.stores.filter(st => st.id === "dia" ? /(en|del|de|al) dia([^a-z]|$)|supermercados? dia|dia%/.test(n) : (w(nrm(st.name)) || w(st.id)));
+  if (day < 0 && !meds.length && !sts.length) day = HOY;
+  let ps = P.promos.filter(pr => pr.pct > 0 && (day < 0 || pr.dias.includes(day)) && (!meds.length || meds.some(m => pr.medio === m.id || (pr.bancos || []).includes(m.id))) && (!sts.length || sts.some(st => pr.stores.includes(st.id))));
+  ps = ps.sort((a, b) => b.pct - a.pct);
+  const tit = [day >= 0 ? (day === HOY ? "hoy " + DIAS[day].toLowerCase() : "el " + DIAS[day].toLowerCase()) : "esta semana", meds.length ? "con " + meds.map(m => m.name).join(" o ") : "", sts.length ? "en " + sts.map(x => x.name).join(" o ") : ""].filter(Boolean).join(" ");
+  if (!ps.length) return `No encontré descuentos ${esc(tit)}. Mirá la semana completa en <a href="#pagos">Descuentos por día</a>.`;
+  return `Descuentos ${esc(tit)} (${ps.length}):<ul>${ps.slice(0, 6).map(pr => `<li><b>${pr.pct}%</b> con ${esc(medioName(pr))} en ${esc(pr.stores.map(x => ST[x] ? ST[x].name : x).join(", "))}${day < 0 ? ` · ${pr.dias.length === 7 ? "todos los días" : pr.dias.map(d => DCORTO[d]).join(", ")}` : ""} · ${esc(topeTxt(pr))}<br><span class="sub">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</span></li>`).join("")}</ul>${ps.length > 6 ? `<a href="#pagos">Ver todos en Descuentos por día</a>` : ""}`;
+}
+function botProductos(q) {
+  const words = nrm(q).replace(/[¿?¡!.,]/g, " ").split(/\s+/).filter(w => w.length > 1 && !STOP.has(w));
+  if (!words.length) return null;
+  const hits = D.products.filter(p => { const n = nrm(p.name + " " + p.brand); return words.every(w => n.includes(w)); })
+    .sort((a, b) => (matchScore(a, words) - matchScore(b, words)) || (b.offers.length - a.offers.length)).slice(0, 3);
+  if (!hits.length) return null;
+  return `Esto encontré:${hits.map(p => { const b = best(p); return `<div class="bprod">${prodImg(p, "li")}<div><b>${esc(p.name)}</b><br>Más barato: <b>${money(b.v)}</b> en ${esc(chanName(b.o.s, b.c))} <span class="sub">(${p.offers.length} comercios)</span></div><div class="bpa"><button class="linkbtn" data-open="${p.id}">Ver</button>${addCtl(p.id)}</div></div>`; }).join("")}
+    <a href="#buscar" data-botq="${esc(words.join(" "))}">Ver todos los resultados</a>`;
+}
+function botFormas(q) {
+  const n = nrm(q), f = Object.values(P.formas_pago).find(f => { const t = nrm(f.t); return (/modo/.test(n) && /modo/.test(t)) || (/nfc|contactless|celular/.test(n) && /nfc/.test(t)) || (/qr/.test(n) && /qr de la billetera/.test(t)); });
+  return f ? `<b>${f.i} ${esc(f.t)}</b>: ${esc(f.d)}` : null;
+}
+function botResponder(q) {
+  const n = nrm(q).trim();
+  if (!n) return "";
+  if (/^(hola|buenas|buen dia|buenas tardes|buenas noches|hey)\b/.test(n) && n.length < 20) return "¡Hola! Preguntame, por ejemplo: «¿dónde está más barata la yerba?», «descuentos del jueves», «promos con Galicia» o «¿cómo armo mi carrito?».";
+  if (/gracias/.test(n) && n.length < 25) return "¡De nada! Si necesitás algo más, preguntame.";
+  if (/(como|que es).*(pago|pagar|modo|qr|nfc|contactless)|pagar con (qr|nfc|el celular)/.test(n)) { const r = botFormas(q); if (r) return r; }
+  const promoQ = /descuent|promo|reintegro|beneficio|banco|billetera|tarjeta|cuenta dni|mercado pago|modo|que dia|dia conviene/.test(n) && !/carrit|mis medios/.test(n);
+  if (promoQ) return botPromos(q);
+  for (const [re, f] of BOT_TEMAS) if (re.test(n)) return f();
+  const st = D.stores.find(x => n === nrm(x.name) || n === x.id);
+  if (st) return `${esc(st.name)}: ${D.products.filter(p => offerAt(p, st.id)).length} productos comparados.${st.online ? ` Tiene tienda online (${esc(st.online.nombre || "")}).` : ""}<br>${botPromos(st.name)}`;
+  return botProductos(q) || `No estoy seguro de haber entendido 🤔. Puedo ayudarte con:<ul><li>Precios: «¿dónde está más barato el aceite?»</li><li>Descuentos: «promos del sábado», «descuentos con BBVA», «promos en Coto»</li><li>Cómo usar la página: carrito, ¿dónde conviene?, mis medios, ubicación, avisos</li></ul>`;
+}
+const BOT_CHIPS = ["¿Qué descuentos hay hoy?", "¿Dónde está más barata la yerba?", "¿Cómo armo mi carrito?", "¿Cómo pago con MODO?", "Comercios cerca de mí"];
+function botRender() {
+  $("#chm").innerHTML = BOT.msgs.map(m => `<div class="cm ${m.who}">${m.html}</div>`).join("")
+    + (BOT.msgs.length <= 1 ? `<div class="cchips">${BOT_CHIPS.map(c => `<button type="button" class="chip" data-botask="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : "");
+  $("#chm").scrollTop = 1e6;
+}
+function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); BOT.msgs.push({ who: "b", html: botResponder(q) }); botRender(); }
+function botOpen(open) {
+  $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
+  if (open && !BOT.msgs.length) { BOT.msgs.push({ who: "b", html: "¡Hola! Soy el asistente de ComparáSúper. Te ayudo a encontrar precios, descuentos por día y banco, y a usar la página. ¿Qué necesitás?" }); botRender(); }
+  if (open) $("#chq").focus();
+}
+$("#botbtn").onclick = () => botOpen($("#chat").hidden);
+$("#chatx").onclick = () => botOpen(false);
+$("#chf").onsubmit = e => { e.preventDefault(); const q = $("#chq").value.trim(); if (!q || !D) return; $("#chq").value = ""; botAsk(q); };
+$("#chm").addEventListener("click", e => {
+  const c = e.target.closest("[data-botask]"); if (c) { botAsk(c.dataset.botask); return; }
+  const bq = e.target.closest("[data-botq]"); if (bq) { S.q = bq.dataset.botq; $("#q").value = S.q; S.cat = ""; S.bpage = 1; if (innerWidth < 700) botOpen(false); }
+  if (e.target.closest("a[href^='#']") && innerWidth < 700) botOpen(false);
+});
+
 load().then(() => {
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;
   $("#mdot").hidden = !MEDIOS;
-  saveLista(); refreshAvisos(); route();
+  saveLista(); refreshAvisos(); updUbic(); route();
 }).catch(err => { $("#view").innerHTML = `<div class="wrap"><div class="empty" style="margin:40px 0">No se pudieron cargar los precios. Probá recargar la página.<br><span class="sub">${esc(err.message)}</span></div></div>`; });
