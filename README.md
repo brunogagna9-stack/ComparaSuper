@@ -109,6 +109,22 @@ Mientras `csv_publico` esté vacío, la página muestra tres sugerencias de ejem
 
 Las promos de MODO llevan la lista de bancos que participan en el campo `bancos` (`MODO_BANCOS` en `scripts/promos_noviembre_2026.py`), y las de Cuenta DNI llevan Banco Provincia. Si alguien elige solo "BBVA" en Mis medios, igual ve las promos de MODO, porque las puede usar cargando su tarjeta de BBVA en MODO.
 
+## Medición y publicidad
+
+**Contador de visitas (GoatCounter, gratis).** Hay que crear una cuenta en goatcounter.com y poner el código elegido en `site/config.json`, en el campo `"goatcounter"`. Desde ese momento cuenta:
+- las visitas a cada sección;
+- los clics hacia cada tienda: `salida-producto-<comercio>` («Ver en la tienda»), `salida-buscar-<comercio>` («Buscar en la tienda») y `salida-carrito-<comercio>` («Armar el carrito»). Es el número para mostrarle a un supermercado cuánto tráfico le mandamos;
+- las veces que se vio un anuncio (`publicidad-vista-<id>`) y los clics que recibió (`publicidad-clic-<id>`).
+
+**Espacios de publicidad.** Están en el inicio, en ofertas, en descuentos por día y en la ficha de cada producto, y solo aparecen si hay un anuncio cargado. Para cargar uno, se copia `_publicidad_ejemplo` de `site/config.json` dentro de la lista `"publicidad"` y se completa así:
+- `id`: un nombre corto para el anuncio;
+- `lugares`: uno o varios de `inicio`, `ofertas`, `descuentos` y `ficha`;
+- `titulo` y `texto`, o `imagen` (el archivo se sube a `site/img/publicidad/`);
+- `link`: la página del anunciante;
+- `desde` y `hasta`: las fechas en que se muestra.
+
+Si un lugar tiene varios anuncios, se elige uno al azar. Todos llevan la etiqueta «Publicidad», que no se puede sacar.
+
 ## Logos de comercios y bancos
 
 La web no incluye logos de marcas. Para usarlos:

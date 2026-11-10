@@ -916,3 +916,10 @@ footer.site{padding-bottom:90px}
   .alt .tag{display:none}
   .qsug{max-height:58vh}
 }
+/* publicidad: siempre identificada */
+.ad{margin:18px 0;border:1px dashed var(--line);border-radius:14px;padding:8px 10px 10px;background:var(--card)}
+.adlbl{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.ad a{display:flex;align-items:center;gap:14px;text-decoration:none;color:var(--ink)}
+.ad img{max-width:100%;max-height:140px;border-radius:10px;object-fit:contain}
+.ad .adt{display:flex;flex-direction:column;gap:2px}.ad .adt span{color:var(--mut);font-size:14px}
+@media (max-width:640px){.ad a{flex-direction:column;align-items:flex-start}.ad img{max-height:110px}}

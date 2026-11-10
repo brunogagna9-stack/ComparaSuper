@@ -65,5 +65,23 @@
     "csv_publico": ""
   },
   "_comentario_sugerencias": "Sugerencias públicas con aprobación: ver README, sección 'Sugerencias'. Mientras esté vacío, la página muestra ejemplos y no envía nada.",
-  "goatcounter": ""
+  "goatcounter": "",
+  "publicidad": [],
+  "_publicidad_ejemplo": {
+    "id": "modo-nov",
+    "anunciante": "Nombre del anunciante",
+    "lugares": [
+      "inicio",
+      "ofertas",
+      "descuentos",
+      "ficha"
+    ],
+    "titulo": "Texto principal del anuncio",
+    "texto": "Texto secundario (opcional)",
+    "imagen": "img/publicidad/archivo.png",
+    "link": "https://pagina-del-anunciante",
+    "desde": "2026-12-01",
+    "hasta": "2026-12-31",
+    "activo": true
+  }
 }

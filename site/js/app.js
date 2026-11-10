@@ -388,6 +388,7 @@ function vInicio() {
       <div class="today">${promos.map(pcard).join("") || `<div class="empty">No hay descuentos cargados para el ${DIAS[day].toLowerCase()}.</div>`}</div>
     </section>
 
+    ${anuncio("inicio")}
     <section class="blk"><div class="blk-h"><h2>Estos son los comercios comparados</h2></div>
       <div class="stiles">${D.stores.map(tile).join("")}</div></section>
 
@@ -404,10 +405,35 @@ function updUbic() { const l = $("#ulab"); if (l) l.textContent = UBIC ? (UBIC.g
 
 /* ---------- CONTADOR DE VISITAS (GoatCounter: gratis, anónimo, sin cookies; se activa poniendo el código en config.json) ---------- */
 let GC_P = null;
-function contar(v) {
-  const code = (CFG.goatcounter || "").trim(); if (!code) return;
+function gc() {
+  const code = (CFG.goatcounter || "").trim(); if (!code) return null;
   if (!GC_P) GC_P = new Promise(ok => { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${code}.goatcounter.com/count`; sc.dataset.goatcounterSettings = '{"no_onload": true}'; sc.onload = ok; document.head.appendChild(sc); });
-  GC_P.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} });
+  return GC_P;
+}
+function contar(v) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} }); }
+/* eventos: clics hacia las tiendas (prueba del tráfico que mandamos a cada súper) y a la publicidad */
+function evento(path, title) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path, title, event: true }); } catch {} }); }
+document.addEventListener("click", e => {
+  const a = e.target.closest("a[data-salida]");
+  if (a) { const [tipo, sid] = a.dataset.salida.split("|"); evento(`salida-${tipo}-${sid || "tienda"}`, `Clic a ${ST[sid] ? ST[sid].name : sid} (${tipo === "carrito" ? "armar carrito" : tipo === "producto" ? "ver producto" : "buscar en tienda"})`); }
+  const ad = e.target.closest("a[data-ad]"); if (ad) evento(`publicidad-clic-${ad.dataset.ad}`, `Clic en publicidad ${ad.dataset.ad}`);
+}, true);
+
+/* ---------- PUBLICIDAD ----------
+   Espacios que solo aparecen si hay un anuncio cargado en config.json → "publicidad". Siempre van marcados como
+   "Publicidad" y nunca cambian el orden de precios ni qué comercio es el más barato. */
+const AD_VISTO = new Set();
+function anuncio(lugar) {
+  const hoy = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+  const ads = (CFG.publicidad || []).filter(a => a && a.activo !== false && (a.lugares || []).includes(lugar) && a.link && (a.imagen || a.titulo)
+    && (!a.desde || a.desde <= hoy) && (!a.hasta || hoy <= a.hasta));
+  if (!ads.length) return "";
+  const a = ads[Math.floor(Math.random() * ads.length)];
+  if (!AD_VISTO.has(a.id + lugar)) { AD_VISTO.add(a.id + lugar); evento(`publicidad-vista-${a.id}`, `Se vio la publicidad ${a.id} (${lugar})`); }
+  return `<aside class="ad ad-${lugar}" aria-label="Publicidad"><span class="adlbl">Publicidad${a.anunciante ? " · " + esc(a.anunciante) : ""}</span>
+    <a href="${esc(a.link)}" target="_blank" rel="sponsored noopener" data-ad="${esc(a.id)}">
+      ${a.imagen ? `<img src="${esc(a.imagen)}" alt="${esc(a.titulo || a.anunciante || "Publicidad")}" loading="lazy">` : ""}
+      ${a.titulo ? `<span class="adt"><b>${esc(a.titulo)}</b>${a.texto ? `<span>${esc(a.texto)}</span>` : ""}</span>` : ""}</a></aside>`;
 }
 /* ---------- TÉRMINOS Y PRIVACIDAD ---------- */
 function vLegal() {
@@ -430,7 +456,8 @@ function vLegal() {
       <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos. No se envía ni se guarda en ningún servidor.</li>
       <li><b>Cámara:</b> al escanear un código de barras, la imagen se procesa en tu celular y no se sube a ningún lado.</li>
       <li><b>Sugerencias y novedades:</b> si dejás una sugerencia (con tu nombre, si querés) o tu correo para recibir novedades, se guardan en una planilla privada de Google del responsable del sitio. Las sugerencias solo se publican después de ser revisadas. Tu correo se usa únicamente para mandarte las novedades; podés pedir la baja en cualquier momento respondiendo cualquier correo.</li>
-      <li><b>Estadísticas de visitas:</b> si están activadas, contamos visitas de forma anónima (qué secciones se usan y desde qué tipo de dispositivo), sin cookies y sin datos personales.</li>
+      <li><b>Publicidad:</b> si hay anuncios, siempre están marcados como «Publicidad» y nunca cambian los precios, el orden ni qué comercio aparece como más barato.</li>
+      <li><b>Estadísticas de visitas:</b> si están activadas, contamos visitas de forma anónima (qué secciones se usan, desde qué tipo de dispositivo y cuántas veces se toca un enlace hacia cada tienda), sin cookies y sin datos personales.</li>
       <li><b>Enlaces a otras páginas:</b> al tocar «Ver en la tienda» o «Armar el carrito» pasás al sitio del comercio, que tiene sus propias condiciones y políticas de privacidad.</li>
       <li>El <b>asistente virtual</b> funciona dentro de tu navegador: lo que le escribís no se envía a ningún lado.</li>
     </ul>
@@ -641,7 +668,7 @@ function vOfertas() {
   const tipos = [...new Set(all.map(x => tipo(x.pr.txt)))].sort();
   const list = all.filter(x => (!S.otipo || tipo(x.pr.txt) === S.otipo) && (!S.ostore || x.o.s === S.ostore))
     .sort((a, b) => (a.pr.pu / base(a.o, a.c)) - (b.pr.pu / base(b.o, b.c)));
-  $("#view").innerHTML = `<div class="wrap">${banner()}<section class="blk">
+  $("#view").innerHTML = `<div class="wrap">${banner()}${anuncio("ofertas")}<section class="blk">
     <div class="toolbar"><div><h1>🏷️ Ofertas vigentes</h1><span class="sub">${list.length} ofertas · ordenadas por mayor descuento real por unidad</span></div>${storeSelect("ostore", S.ostore)}</div>
     <div class="chips" style="margin-bottom:18px"><button class="chip${S.otipo ? "" : " on"}" data-ot="">Todas</button>${tipos.map(t => `<button class="chip${S.otipo === t ? " on" : ""}" data-ot="${esc(t)}">${esc(t)}</button>`).join("")}</div>
     <div class="grid">${list.slice(((S.opage || 1) - 1) * PAGE, (S.opage || 1) * PAGE).map(({ p, o, c, pr }) => {
@@ -697,6 +724,7 @@ function vPagos() {
     ${ej ? `<div class="note" style="margin-bottom:14px">Estos descuentos son <b>de ejemplo</b>. En la versión real cada uno lleva el enlace a la página oficial y la fecha en que lo verificamos.</div>`
       : `<div class="note ok" style="margin-bottom:14px">✅ Descuentos reales de ${esc(mesTxt(P.relevado))}, relevados el ${esc((P.relevado || "").split("-").reverse().join("/"))} de páginas oficiales, relevamientos y notas periodísticas (cada uno dice su fuente). Cambian seguido: confirmalos antes de pagar.</div>`}
     ${ubicBar("pagos")}
+    ${anuncio("descuentos")}
     <details class="box legend-pay"><summary><b>¿QR, tarjeta física, MODO o celular? Cómo no confundirse</b> <span class="sub">— tocá para ver</span></summary>
       <p class="sub">Muchas promos aplican solo con una forma de pago. Pagar con la misma tarjeta pero de otra manera (por ejemplo, con QR en vez del plástico) puede dejarte sin el descuento.</p>
       <div class="hpgrid">${Object.values(P.formas_pago).map(f => `<div class="hp"><span class="i">${f.i}</span><div><b>${esc(f.t)}</b><div class="sub">${esc(f.d)}</div></div></div>`).join("")}</div></details>
@@ -819,7 +847,7 @@ function cartUrl(b) {
   if (!host || b.miss.length || !b.lines.every(l => l.o.sku)) return null;
   return `https://${host}/checkout/cart/add?` + b.lines.map(l => `sku=${encodeURIComponent(l.o.sku)}&qty=${l.qty}&seller=${encodeURIComponent(l.o.seller || "1")}`).join("&") + "&sc=1";
 }
-const cartBtn = (b, sm) => { const u = cartUrl(b); return u ? `<a class="btn ${sm ? "sm " : ""}cartbtn" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la tienda con estos productos ya cargados en el carrito">🛒 Armar el carrito en ${esc(ST[b.sid].name)}</a>` : ""; };
+const cartBtn = (b, sm) => { const u = cartUrl(b); return u ? `<a class="btn ${sm ? "sm " : ""}cartbtn" data-salida="carrito|${esc(b.sid)}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la tienda con estos productos ya cargados en el carrito">🛒 Armar el carrito en ${esc(ST[b.sid].name)}</a>` : ""; };
 
 function vConviene() {
   setTab("conviene");
@@ -1022,9 +1050,9 @@ async function openProduct(id) {
   const pq = promoQty(p), q = LISTA[id] || 0, hint = q ? qtyHint(p, q, PREF[id]) : "";
   const link = o => {
     const u0 = o.url || (o.lk && ST[o.s].online && ST[o.s].online.vtex ? `https://${ST[o.s].online.vtex}/${o.lk}/p` : null);
-    if (u0) return `<a class="go" href="${esc(u0)}" target="_blank" rel="noopener">Ver en la tienda ↗</a>`;
+    if (u0) return `<a class="go" data-salida="producto|${o.s}" href="${esc(u0)}" target="_blank" rel="noopener">Ver en la tienda ↗</a>`;
     const u = goUrl(o.s, p);
-    return u ? `<a class="go sec" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la búsqueda de la tienda; puede mostrar productos parecidos">Buscar en la tienda ↗</a>` : "";
+    return u ? `<a class="go sec" data-salida="buscar|${o.s}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la búsqueda de la tienda; puede mostrar productos parecidos">Buscar en la tienda ↗</a>` : "";
   };
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
@@ -1054,6 +1082,7 @@ async function openProduct(id) {
           <button class="btn sec" id="pshare">📤 Compartir</button></div>
       </div>
       ${(() => { const alt = alternativas(p); return alt.length ? `<div class="alts"><h3>💡 Parecidos y más baratos ${p.bu === "kg" ? "por kilo" : p.bu === "l" ? "por litro" : "por unidad"}</h3>${alt.map(({ q, b, ah }) => `<div class="alt" data-open="${q.id}" role="button" tabindex="0">${prodImg(q, "li")}<div class="an"><b>${esc(q.name)}</b><span class="sub">${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · ${unitTxt(q, b.v)}</span></div><span class="tag g sm">−${ah}%</span>${addCtl(q.id)}</div>`).join("")}</div>` : ""; })()}
+      ${anuncio("ficha")}
       <button class="btn sec vermas" id="vermas" aria-expanded="${openProduct.mas}">${openProduct.mas ? "Ocultar supermercados ▲" : `Ver más supermercados (${p.offers.length}) ▼`}</button>
       <div class="slist" id="slist" ${openProduct.mas ? "" : "hidden"}>
         <p class="sub" style="margin:0 0 8px">Precio de cada comercio, de menor a mayor. Podés agregar el producto al carrito desde el súper que prefieras.</p>
