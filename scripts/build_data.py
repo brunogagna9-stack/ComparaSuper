@@ -95,7 +95,7 @@ UNITS = {"g", "gr", "grs", "grm", "kg", "kgm", "ml", "cc", "cm3", "l", "lt", "lt
 
 def nice_name(raw):
     """Saca códigos internos del final y pasa a 'Tipo Oración' los nombres escritos todo en mayúsculas."""
-    n = CODE_SUFFIX.sub("", (raw or "").strip())
+    n = CODE_SUFFIX.sub("", (raw or "").strip()).lstrip(".,;:-_*#' ")
     n = re.sub(r"\s+", " ", n).strip()
     letters = [c for c in n if c.isalpha()]
     if letters and sum(c.isupper() for c in letters) / len(letters) > 0.7:
@@ -358,7 +358,17 @@ def main():
             "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota")} | {"online": public_online(s.get("online"))}
                        for s in stores if s["id"] in {o["s"] for p in products for o in p["offers"]}],
             "cats": [{"id": c[0], "name": c[1], "emoji": c[2]} for c in CATS] + [{"id": OTROS[0], "name": OTROS[1], "emoji": OTROS[2]}]}
+    # Para que la web cargue rápido: meta.json (chico, se muestra el inicio enseguida), products.json sin los
+    # enlaces de las tiendas, y links.json con los enlaces y códigos de carrito, que se bajan después.
+    links = {}
+    for p in products:
+        for o in p["offers"]:
+            lk = {k: o.pop(k) for k in ("lk", "url", "sku", "seller") if k in o}
+            if lk:
+                links.setdefault(p["id"], {})[o["s"]] = lk
+    (OUT / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "products.json").write_text(json.dumps(dict(meta, products=products), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    (OUT / "links.json").write_text(json.dumps(links, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     used = {p["id"] for p in products}
     (OUT / "history.json").write_text(json.dumps({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}},
                                                  separators=(",", ":")), encoding="utf-8")

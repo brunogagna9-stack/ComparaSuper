@@ -12,6 +12,8 @@ data/imagenes.json para no volver a buscarlas todos los días.
 Uso: python scripts/online_fetch.py   (después de sepa_fetch.py)
 """
 import json
+import unicodedata
+import re
 import re, time, urllib.request, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -89,6 +91,101 @@ def fotos_extra(hosts, faltan, info, imgs):
                 print(f"  fotos con código sin ceros en {h}: {guardar_foto(found, info, imgs)}")
 
 
+# ---------- Coto Digital (no es VTEX: catálogo público en formato JSON, de a 500 productos) ----------
+COTO_URL = "https://www.coto.com.ar/sitios/cdigi/browse?Nrpp={n}&No={desde}&format=json"
+COTO_LOTE = 500
+
+
+def _records(o):
+    if isinstance(o, dict):
+        if o.get("records") and isinstance(o["records"], list) and isinstance(o["records"][0], dict) and "attributes" in o["records"][0]:
+            yield from o["records"]
+            return
+        for v in o.values():
+            yield from _records(v)
+    elif isinstance(o, list):
+        for v in o:
+            yield from _records(v)
+
+
+def _total(o):
+    if isinstance(o, dict):
+        if "totalNumRecs" in o:
+            return int(o["totalNumRecs"])
+        for v in o.values():
+            t = _total(v)
+            if t:
+                return t
+    elif isinstance(o, list):
+        for v in o:
+            t = _total(v)
+            if t:
+                return t
+    return 0
+
+
+def _slug(t):
+    t = unicodedata.normalize("NFD", t.lower())
+    t = "".join(c for c in t if unicodedata.category(c) != "Mn")
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+
+
+def parse_coto(data):
+    """{ean: {price, url, img, promo}} de una página del catálogo de Coto Digital."""
+    out = {}
+    for r in _records(data):
+        a = dict(r.get("attributes") or {})
+        for sub in r.get("records") or []:
+            a.update(sub.get("attributes") or {})
+        g = lambda k: (a.get(k) or [""])[0]
+        ean = re.sub(r"\D", "", g("product.eanPrincipal"))
+        try:
+            price = float(g("sku.activePrice") or 0)
+        except ValueError:
+            price = 0
+        if not ean or price <= 0:
+            continue
+        m = re.search(r"sku(\d+)", g("sku.url") or g("product.url"))
+        url = f"https://www.coto.com.ar/productos/{_slug(g('product.displayName'))}/_/R-{m.group(1)}-{m.group(1)}-200" if m else None
+        d = {"price": round(price, 2), "url": url, "img": g("product.mediumImage.url") or None, "sku": None, "seller": None}
+        try:
+            descs = json.loads(g("product.dtoDescuentos") or "[]")
+        except ValueError:
+            descs = []
+        for x in descs:
+            txt = (x.get("textoDescuento") or "").replace("Dto", " de descuento").strip()
+            try:
+                pu = float(x.get("precioDesc") or 0)
+            except ValueError:
+                pu = 0
+            n = int(re.sub(r"\D", "", x.get("textoLlevando") or "") or 1)
+            if txt and 0 < pu < price and n == 1:   # las de cantidad (2x1, 2da al 70%) ya vienen en los precios de sucursal
+                d["promo"] = {"txt": txt, "pu": round(pu, 2)}
+                break
+        out[ean_key(ean)] = d
+    return out
+
+
+def fetch_coto():
+    found, errores, desde, total = {}, 0, 0, None
+    while total is None or desde < total:
+        try:
+            with urllib.request.urlopen(urllib.request.Request(COTO_URL.format(n=COTO_LOTE, desde=desde), headers=UA), timeout=90) as r:
+                data = json.load(r)
+            total = total or _total(data) or 0
+            found.update(parse_coto(data))
+        except Exception as e:
+            errores += 1
+            print(f"  Coto Digital: error en la página {desde // COTO_LOTE + 1}: {e}")
+            if errores >= 5:
+                break
+        desde += COTO_LOTE
+        time.sleep(1)
+        if desde > 80000:
+            break
+    return found, errores
+
+
 def main():
     stores = json.loads((ROOT / "data" / "stores.json").read_text(encoding="utf-8"))["stores"]
     vtex = {s["id"]: s["online"]["vtex"] for s in stores if (s.get("online") or {}).get("vtex")}
@@ -101,8 +198,10 @@ def main():
         count[it["ean"]] = count.get(it["ean"], 0) + 1
     eans = [e for e in sorted(count, key=lambda e: -count[e]) if count[e] >= 2]   # solo los que se pueden comparar
     print(f"Buscando {len(eans)} productos en {len(vtex)} tiendas online")
-    with ThreadPoolExecutor(max_workers=len(vtex) or 1) as ex:
+    with ThreadPoolExecutor(max_workers=(len(vtex) or 1) + 1) as ex:
+        coto_f = ex.submit(fetch_coto)
         results = dict(zip(vtex, ex.map(lambda h: fetch_store(h, eans), vtex.values())))
+        results["coto"] = coto_f.result()
     idx = {(it["store"], ean_key(it["ean"])): it for it in snap["items"]}
     info = {ean_key(it["ean"]): it for it in snap["items"]}
     ip = ROOT / "data" / "imagenes.json"
@@ -123,6 +222,9 @@ def main():
                 snap["items"].append(it); idx[(sid, ean)] = it
             it["price_online"] = d["price"]
             it["url"] = d["url"]
+            if d.get("promo"):   # oferta online de Coto Digital
+                off = round((1 - d["promo"]["pu"] / d["price"]) * 100)
+                it["promo_online"] = {"txt": f"{off}% off online", "pu": d["promo"]["pu"], "n": 1, "list": d["price"]}
             it["sku"] = d["sku"]
             it["seller"] = d["seller"]
             if d.get("list"):

@@ -76,7 +76,7 @@
       "buscar": "https://www.coto.com.ar/categoria?_dyncharset=utf-8&Ntt={q}",
       "online": {
         "nombre": "Coto Digital",
-        "adaptador": "pendiente",
+        "adaptador": "coto",
         "envio": 5000,
         "gratis_desde": 90000,
         "retiro": true
@@ -358,6 +358,20 @@
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Ya",
       "sepa_base": "mayoristas"
+    },
+    {
+      "id": "coope",
+      "name": "La Coope",
+      "tipo": "super",
+      "color": "#c8102e",
+      "sigla": "LC",
+      "sepa_banderas": [
+        "Cooperativa Obrera Limitada de Consumo y Vivienda"
+      ],
+      "web": "https://www.cooperativaobrera.coop",
+      "buscar": null,
+      "online": null,
+      "nota": "Cooperativa Obrera. En AMBA tiene sucursales en Caballito, San Telmo y La Plata."
     }
   ]
 }

@@ -34,21 +34,45 @@ function applyTheme(t) {
 applyTheme(LS.get("cs_tema", "light"));
 
 /* ---------- datos ---------- */
-let D, P, BY, ST, HIST, CFG = {};
-async function load() {
-  const [d, p, c] = await Promise.all([
-    fetch("data/products.json").then(r => r.json()), fetch("data/promos.json").then(r => r.json()),
-    fetch("config.json").then(r => r.json()).catch(() => ({}))]);
-  D = d; P = p; CFG = c || {};
-  D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
+let D, P, BY = {}, ST = {}, HIST, CFG = {};
+/* Carga en dos pasos para que la página aparezca enseguida:
+   1) meta.json + descuentos (pocos KB) → se muestra el inicio;
+   2) products.json (los ~25.000 productos) en segundo plano; links.json (enlaces a las tiendas) cuando hace falta. */
+let READY = false, PROD_P = null, LINKS_P = null, LINKS_DONE = false;
+function prepProducts(d) {
   for (const x of d.products) {   // datos comprimidos por build_data.py
     if (x.img && !/^https?:/.test(x.img) && d.imghosts) { const [h, id, f] = x.img.split("/"); x.img = `https://${d.imghosts[+h]}/arquivos/ids/${id}-300-300/${f}`; }
     for (const o of x.offers) if (o.pon && o.po) o.promoo = { txt: `${Math.round((1 - o.pon / o.po) * 100)}% menos comprando online`, pu: o.pon, n: 1 };
   }
+  D.products = d.products;
   BY = Object.fromEntries(d.products.map(x => [x.id, x]));
-  ST = Object.fromEntries(d.stores.map(s => [s.id, s]));
-  P.medioBy = Object.fromEntries(P.medios.map(m => [m.id, m]));
   for (const id of Object.keys(LISTA)) if (!BY[id]) delete LISTA[id];
+  READY = true;
+}
+function loadProducts() {
+  if (!PROD_P) PROD_P = fetch("data/products.json").then(r => r.json()).then(prepProducts);
+  return PROD_P;
+}
+function ensureLinks() {
+  if (!LINKS_P) LINKS_P = loadProducts().then(() => fetch("data/links.json")).then(r => (r.ok ? r.json() : {})).catch(() => ({})).then(L => {
+    for (const [id, m] of Object.entries(L)) { const p = BY[id]; if (!p) continue; for (const o of p.offers) if (m[o.s]) Object.assign(o, m[o.s]); }
+    LINKS_DONE = true;
+  });
+  return LINKS_P;
+}
+async function load() {
+  const [m, p, c] = await Promise.all([
+    fetch("data/meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch("data/promos.json").then(r => r.json()),
+    fetch("config.json").then(r => r.json()).catch(() => ({}))]);
+  P = p; CFG = c || {};
+  if (m) { D = { ...m, products: [] }; loadProducts(); }
+  else { const full = await fetch("data/products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
+  D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
+  ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
+  P.medioBy = Object.fromEntries(P.medios.map(m => [m.id, m]));
+  const hoyIso = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);   // fecha de Argentina
+  P.vencidas = P.promos.filter(pr => pr.hasta && pr.hasta < hoyIso).length;
+  P.promos = P.promos.filter(pr => !pr.hasta || (pr.desde || "") <= hoyIso && hoyIso <= pr.hasta);
   if (MEDIOS) MEDIOS = MEDIOS.filter(id => P.medioBy[id]);
   if (UBIC) { await loadSuc(); calcCerca(); }
 }
@@ -255,7 +279,7 @@ function card(p) {
       ${addCtl(p.id)}</div>
   </article>`;
 }
-function setTab(v) { $$(".tabs a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); }
+function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal"].includes(v)); }
 const storeSelect = (id, val, label = "Todos los comercios") => `<select class="sel" id="${id}" aria-label="Comercio"><option value="">${label}</option>${grupos().map(([n, ss]) => `<optgroup label="${n}">${ss.map(s => `<option value="${s.id}" ${val === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
@@ -359,6 +383,7 @@ function vInicio() {
   <div class="wrap">
     <section class="blk"><div class="blk-h"><h2>🔥 Ofertas del día · ${day === HOY ? `hoy ${DIAS[day].toLowerCase()}` : DIAS[day].toLowerCase()}</h2><a href="#pagos" data-semana>Ver toda la semana →</a></div>
       <div class="week">${DIAS.map((d, i) => `<button class="day${i === day ? " on" : ""}" data-iday="${i}" aria-pressed="${i === day}">${DCORTO[i]}${i === HOY ? '<span class="hoy">HOY</span>' : ""}<small>${delDia(i).length} benef.</small></button>`).join("")}</div>
+      ${P.promos.length < 10 ? `<div class="note warn">🔄 Estamos actualizando los descuentos de este mes. En los próximos días vas a ver todos los nuevos.</div>` : ""}
       ${MEDIOS ? "" : `<p class="sub" style="margin:2px 0 10px">Mostramos todos los descuentos${CERCA ? " de los comercios cerca tuyo" : ""}. <a href="#" data-medios>Elegí tus medios de pago</a> para ver solo los que podés usar.</p>`}
       <div class="today">${promos.map(pcard).join("") || `<div class="empty">No hay descuentos cargados para el ${DIAS[day].toLowerCase()}.</div>`}</div>
     </section>
@@ -376,6 +401,42 @@ function vInicio() {
 }
 /* marcador de ubicación del encabezado */
 function updUbic() { const l = $("#ulab"); if (l) l.textContent = UBIC ? (UBIC.gps ? `Tu ubicación · ${UBIC.km} km` : `${UBIC.label} · ${UBIC.km} km`) : "Elegí tu ubicación"; $("#uloc").classList.toggle("on", !!UBIC); }
+
+/* ---------- CONTADOR DE VISITAS (GoatCounter: gratis, anónimo, sin cookies; se activa poniendo el código en config.json) ---------- */
+let GC_P = null;
+function contar(v) {
+  const code = (CFG.goatcounter || "").trim(); if (!code) return;
+  if (!GC_P) GC_P = new Promise(ok => { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${code}.goatcounter.com/count`; sc.dataset.goatcounterSettings = '{"no_onload": true}'; sc.onload = ok; document.head.appendChild(sc); });
+  GC_P.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} });
+}
+/* ---------- TÉRMINOS Y PRIVACIDAD ---------- */
+function vLegal() {
+  setTab("legal");
+  $("#view").innerHTML = `<div class="wrap legal"><section class="blk first">
+    <h1>📄 Términos de uso y privacidad</h1><p class="sub">Última actualización: noviembre de 2026.</p>
+    <h2>Qué es ComparáSúper</h2>
+    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de CABA y GBA. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen.</p>
+    <h2>Precios y descuentos</h2>
+    <ul>
+      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b> de la Secretaría de Comercio, que informan las cadenas. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto.</li>
+      <li>Los precios online salen de las tiendas web de cada cadena, sin costo de envío.</li>
+      <li>Los descuentos con bancos, billeteras y tarjetas los relevamos de las páginas oficiales y de notas periodísticas; cada uno indica su fuente y la fecha en que se verificó. Tienen topes, días y condiciones que pueden cambiar sin aviso.</li>
+      <li>Hacemos lo posible para que todo esté correcto, pero <b>la información es orientativa</b>: confirmá siempre el precio y el descuento en el comercio antes de pagar. No nos hacemos responsables por diferencias, errores de las fuentes ni cambios de último momento.</li>
+      <li>Las marcas, logos y fotos de productos pertenecen a sus dueños y se usan solo para identificar los productos y comercios comparados.</li>
+    </ul>
+    <h2>Privacidad: qué datos usamos</h2>
+    <ul>
+      <li><b>No necesitás crear una cuenta.</b> Tu carrito, tus medios de pago, tus avisos, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran.</li>
+      <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos. No se envía ni se guarda en ningún servidor.</li>
+      <li><b>Cámara:</b> al escanear un código de barras, la imagen se procesa en tu celular y no se sube a ningún lado.</li>
+      <li><b>Sugerencias y novedades:</b> si dejás una sugerencia (con tu nombre, si querés) o tu correo para recibir novedades, se guardan en una planilla privada de Google del responsable del sitio. Las sugerencias solo se publican después de ser revisadas. Tu correo se usa únicamente para mandarte las novedades; podés pedir la baja en cualquier momento respondiendo cualquier correo.</li>
+      <li><b>Estadísticas de visitas:</b> si están activadas, contamos visitas de forma anónima (qué secciones se usan y desde qué tipo de dispositivo), sin cookies y sin datos personales.</li>
+      <li><b>Enlaces a otras páginas:</b> al tocar «Ver en la tienda» o «Armar el carrito» pasás al sitio del comercio, que tiene sus propias condiciones y políticas de privacidad.</li>
+      <li>El <b>asistente virtual</b> funciona dentro de tu navegador: lo que le escribís no se envía a ningún lado.</li>
+    </ul>
+    <p>Podés pedir que se borre tu correo o una sugerencia tuya escribiendo por la sección <a href="#sugerencias">Dejanos tu sugerencia</a>. Estos datos se tratan conforme a la Ley 25.326 de Protección de Datos Personales.</p>
+  </section></div>`;
+}
 
 /* ---------- CÓMO FUNCIONA ---------- */
 function vComo() {
@@ -402,12 +463,41 @@ function matchScore(p, words) {
   if (new RegExp("(^|[^a-z0-9])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(n)) return 1;
   return 2;
 }
+/* búsqueda tolerante: "yerva" encuentra yerba, "galletistas" encuentra galletitas, "aseite" encuentra aceite */
+const fon = w => nrm(w).replace(/[^a-z0-9ñ]/g, "").replace(/ñ/g, "n").replace(/ch/g, "§").replace(/h/g, "").replace(/§/g, "ch").replace(/v/g, "b").replace(/w/g, "u")
+  .replace(/z/g, "s").replace(/c([ei])/g, "s$1").replace(/qu/g, "k").replace(/c/g, "k").replace(/ll/g, "y").replace(/g([ei])/g, "j$1").replace(/x/g, "ks").replace(/(.)\1+/g, "$1");
+let VOC = null;   // palabras de los nombres → cuántos productos las tienen
+function vocab() {
+  if (VOC) return VOC; VOC = new Map();
+  for (const p of D.products) { p._t = nrm(p.name + " " + p.brand); p._f = p._t.split(/[^a-z0-9ñ]+/).map(fon).join(" "); for (const w of new Set(p._t.split(/[^a-z0-9ñ]+/))) if (w.length > 2 && !/\d/.test(w)) VOC.set(w, (VOC.get(w) || 0) + 1); }
+  return VOC;
+}
+function lev(a, b, max) {   // distancia de edición, cortando si pasa de "max"
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) { const cur = [i]; let mn = i; for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); mn = Math.min(mn, cur[j]); } if (mn > max) return max + 1; prev = cur; }
+  return prev[b.length];
+}
+/* palabra mal escrita → la más parecida que existe en los productos */
+function corregir(w) {
+  const V = vocab(); if (w.length < 4 || V.has(w) || /\d/.test(w)) return w;
+  const max = w.length >= 7 ? 2 : 1; let best = null;
+  for (const [x, n] of V) { if (x[0] !== w[0] && fon(x)[0] !== fon(w)[0]) continue; const d = lev(w, x, max); if (d <= max && (!best || d < best.d || (d === best.d && n > best.n))) best = { x, d, n }; }
+  return best ? best.x : w;
+}
+const matchW = (p, w) => p._t.includes(w) || p._f.includes(fon(w));
 function results() {
-  const words = nrm(S.q).split(/\s+/).filter(Boolean);
+  vocab();
+  let words = nrm(S.q).split(/\s+/).filter(Boolean);
+  const base = p => (!S.cat || p.cat === S.cat);
+  S.qfix = "";
+  if (words.length && !D.products.some(p => base(p) && words.every(w => matchW(p, w)))) {   // sin resultados: probar corrigiendo
+    const fixed = words.map(corregir);
+    if (fixed.join(" ") !== words.join(" ")) { words = fixed; S.qfix = fixed.join(" "); }
+  }
   const list = D.products.filter(p => {
     if (S.cat && p.cat !== S.cat) return false;
-    const n = nrm(p.name + " " + p.brand);
-    if (!words.every(w => n.includes(w))) return false;
+    if (!words.every(w => matchW(p, w))) return false;
     const sf = stFilter(); if (sf && !p.offers.some(o => sf.has(o.s))) return false;
     if (S.onlyPromo && !hasPromo(p)) return false;
     return true;
@@ -472,7 +562,7 @@ function vBuscar() {
     </div></div>`;
   const draw = () => {
     const r = results();
-    $("#rcount").textContent = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}`;
+    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">Mostramos resultados para <b>«${esc(S.qfix)}»</b> (buscaste «${esc(S.q)}»)</span>` : ""}`;
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
     const pg = S.bpage || 1, slice = r.slice((pg - 1) * per, pg * per);
     $("#res").innerHTML = (slice.length ? (S.vista === "l" ? `<div class="lst">${slice.map(lrow).join("")}</div>` : `<div class="grid v-${S.vista}">${slice.map(card).join("")}</div>`)
@@ -831,8 +921,15 @@ function parseCSV(t) {
   if (f || row.length) { row.push(f); rows.push(row); }
   return rows;
 }
+/* backend gratis: una planilla de Google con un Apps Script publicado (ver apps-script/Codigo.gs) */
+const API = () => (CFG.apps_script_url || "").trim();
+async function apiPost(data) { await fetch(API(), { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify(data) }); }
 async function loadSug() {
   const cfg = CFG.sugerencias || {};
+  if (API()) {
+    try { const r = await fetch(API() + "?accion=sugerencias", { cache: "no-store" }).then(r => r.json()); return { demo: false, list: (r.sugerencias || []).map(x => ({ id: String(x.id), fecha: x.fecha || "", nombre: x.nombre || "", texto: x.texto || "", pos: +x.positivos || 0, neg: +x.negativos || 0 })) }; }
+    catch { return { demo: false, error: true, list: [] }; }
+  }
   if (!cfg.csv_publico) return { demo: true, list: SUG_EJEMPLO.map(s => ({ ...s })) };
   try {
     const rows = parseCSV(await fetch(cfg.csv_publico, { cache: "no-store" }).then(r => r.text()));
@@ -868,7 +965,9 @@ async function vSugerencias() {
       const [id, v] = b.dataset.vote.split("|");
       if (VOTOS[id]) { toast("Ya votaste esta sugerencia"); return; }
       VOTOS[id] = +v; LS.set("cs_votos", VOTOS); draw();
-      if (cfg.votos_form_action && !data.demo) {
+      if (API() && !data.demo) {
+        try { await apiPost({ tipo: "voto", id, voto: v === "1" ? "positivo" : "negativo" }); toast("¡Gracias por votar!"); } catch { toast("No se pudo registrar el voto"); }
+      } else if (cfg.votos_form_action && !data.demo) {
         const fd = new FormData(); fd.append(cfg.campo_voto_id, id); fd.append(cfg.campo_voto, v === "1" ? "positivo" : "negativo");
         try { await fetch(cfg.votos_form_action, { method: "POST", mode: "no-cors", body: fd }); toast("¡Gracias por votar!"); } catch { toast("No se pudo registrar el voto"); }
       } else toast(data.demo ? "Voto de prueba (no se guarda)" : "¡Gracias por votar!");
@@ -879,6 +978,11 @@ async function vSugerencias() {
     e.preventDefault();
     const txt = $("#stxt").value.trim(), err = $("#serr");
     if (txt.length < 10) { err.textContent = "Contanos un poco más (al menos 10 letras)."; return; }
+    if (API()) {
+      try { await apiPost({ tipo: "sugerencia", texto: txt.slice(0, 1000), nombre: $("#snom").value.trim().slice(0, 60) }); $("#sform").innerHTML = `<h3>✅ ¡Gracias!</h3><p>Recibimos tu sugerencia. Cuando la revisemos va a aparecer en la lista para que otros la voten.</p>`; }
+      catch { err.textContent = "No se pudo enviar. Revisá tu conexión y probá de nuevo."; }
+      return;
+    }
     if (!cfg.form_action) { err.innerHTML = "⚙️ El envío de sugerencias todavía no está conectado (prototipo): falta configurar el formulario en <code>config.json</code>. Tu sugerencia <b>no</b> se envió."; return; }
     const fd = new FormData(); fd.append(cfg.campo_texto, txt); if (cfg.campo_nombre) fd.append(cfg.campo_nombre, $("#snom").value.trim());
     try { await fetch(cfg.form_action, { method: "POST", mode: "no-cors", body: fd }); $("#sform").innerHTML = `<h3>✅ ¡Gracias!</h3><p>Recibimos tu sugerencia. Cuando la revisemos va a aparecer en la lista para que otros la voten.</p>`; }
@@ -887,6 +991,23 @@ async function vSugerencias() {
 }
 
 /* ---------- FICHA DE PRODUCTO (panel lateral) ---------- */
+/* productos parecidos (mismo tipo y tamaño parecido) que salen menos por kilo o por litro */
+const TIPO_STOP = new Set("de del la el los las con sin en x y para tipo sabor pack".split(" "));
+const tipoDe = p => { const ws = nrm(p.name).split(/[^a-z]+/).filter(w => w.length > 2 && !TIPO_STOP.has(w)); return ws.slice(0, 2); };
+function alternativas(p) {
+  if (!p.bq || !p.bu) return [];
+  const t = tipoDe(p); if (!t.length) return [];
+  const mine = perUnit(p, best(p).v); if (!mine) return [];
+  const out = [];
+  for (const q of D.products) {
+    if (q === p || q.cat !== p.cat || q.bu !== p.bu || !q.bq) continue;
+    const r = q.bq / p.bq; if (r < 0.6 || r > 1.7) continue;
+    const tq = tipoDe(q); if (tq[0] !== t[0] || (t[1] && tq[1] && tq[1] !== t[1] && !nrm(q.name).includes(t[1]))) continue;
+    const b = best(q), u = perUnit(q, b.v); if (!u || u > mine * 0.95) continue;
+    out.push({ q, b, u, ah: Math.round((1 - u / mine) * 100) });
+  }
+  return out.sort((a, b) => (b.q.offers.length >= 3) - (a.q.offers.length >= 3) || a.u - b.u).slice(0, 3);
+}
 async function openProduct(id) {
   const p = BY[id]; if (!p) return;
   const dr = $("#drawer"), sc = $("#scrim");
@@ -929,8 +1050,10 @@ async function openProduct(id) {
         <div class="bbtn">
           ${q ? `<div class="incart"><span>En tu carrito${PREF[id] ? ` (${esc(ST[PREF[id]].name)})` : ""}:</span> ${addCtl(id)}</div>` : `<button class="btn" data-inc="${id}">🛒 Agregar al carrito</button>`}
           <button class="btn sec" data-plan="${id}">📊 Sumar a ¿Dónde conviene?</button>
-          <button class="btn sec" id="watch">${watching ? "🔔 Avisando" : "🔔 Avisarme si baja"}</button></div>
+          <button class="btn sec" id="watch">${watching ? "🔔 Avisando" : "🔔 Avisarme si baja"}</button>
+          <button class="btn sec" id="pshare">📤 Compartir</button></div>
       </div>
+      ${(() => { const alt = alternativas(p); return alt.length ? `<div class="alts"><h3>💡 Parecidos y más baratos ${p.bu === "kg" ? "por kilo" : p.bu === "l" ? "por litro" : "por unidad"}</h3>${alt.map(({ q, b, ah }) => `<div class="alt" data-open="${q.id}" role="button" tabindex="0">${prodImg(q, "li")}<div class="an"><b>${esc(q.name)}</b><span class="sub">${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · ${unitTxt(q, b.v)}</span></div><span class="tag g sm">−${ah}%</span>${addCtl(q.id)}</div>`).join("")}</div>` : ""; })()}
       <button class="btn sec vermas" id="vermas" aria-expanded="${openProduct.mas}">${openProduct.mas ? "Ocultar supermercados ▲" : `Ver más supermercados (${p.offers.length}) ▼`}</button>
       <div class="slist" id="slist" ${openProduct.mas ? "" : "hidden"}>
         <p class="sub" style="margin:0 0 8px">Precio de cada comercio, de menor a mayor. Podés agregar el producto al carrito desde el súper que prefieras.</p>
@@ -940,9 +1063,18 @@ async function openProduct(id) {
     </div>`;
   if (dr.hidden) { dr.hidden = false; sc.hidden = false; document.body.style.overflow = "hidden"; openProduct.back = document.activeElement; dr.scrollTop = 0; }
   $("#dclose").onclick = closeDrawer;
+  $("#pshare").onclick = async () => {
+    const site = (CFG.sitio_url || location.href.split("#")[0]).replace(/\/?$/, "/");
+    const url = p.offers.length >= 6 ? `${site}p/${id}.html` : `${site}#p-${id}`;   // con 6+ comercios hay página con vista previa
+    const text = `${p.name}: desde ${money(b.v)} en ${ST[b.o.s].name} (comparado en ${p.offers.length} comercios)`;
+    if (navigator.share) { try { await navigator.share({ title: p.name, text, url }); } catch {} return; }
+    openModal(`<h2>📤 Compartir</h2><p>${esc(text)}</p><div class="sharebtns"><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text + " " + url)}">WhatsApp</a><a class="btn sec" href="mailto:?subject=${encodeURIComponent(p.name)}&body=${encodeURIComponent(text + "\n" + url)}">Correo</a><button class="btn sec" id="pcopy">Copiar link</button></div>`);
+    $("#pcopy").onclick = () => navigator.clipboard.writeText(url).then(() => toast("Link copiado"));
+  };
   $("#vermas").onclick = () => { openProduct.mas = !openProduct.mas; const st = dr.scrollTop; openProduct(id); dr.scrollTop = st; };
   $("#watch").onclick = () => { if (id in AVISOS) { delete AVISOS[id]; toast("Ya no te avisamos"); } else { AVISOS[id] = b.v; toast("Te avisamos con la 🔔 cuando baje"); } LS.set("cs_avisos", AVISOS); refreshAvisos(); openProduct(id); };
   if (location.hash !== "#p-" + id) history.replaceState(null, "", "#p-" + id);
+  if (!LINKS_DONE) ensureLinks().then(() => { if (!dr.hidden && openProduct.id === id) { const st = dr.scrollTop; openProduct(id); dr.scrollTop = st; } });
 }
 function closeDrawer() {
   $("#drawer").hidden = true; if ($("#modal").hidden) $("#scrim").hidden = true; document.body.style.overflow = "";
@@ -989,7 +1121,7 @@ async function chart(p) {
 
 /* ---------- ventanas ---------- */
 function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; const f = m.querySelector("input, button"); f && f.focus(); }
-function closeModal() { $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; }
+function closeModal() { if (typeof scanStop === "function") scanStop(); $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; }
 function modalMedios() {
   const sel = new Set(MEDIOS || []);
   const groups = Object.entries(P.tipos).filter(([k]) => k !== "general").map(([k, v]) => [k, v, P.medios.filter(m => m.tipo === k).sort((a, b) => a.name.localeCompare(b.name, "es"))]).filter(g => g[2].length);
@@ -1025,6 +1157,13 @@ function modalNews() {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) { err.textContent = "Revisá el correo: parece incompleto."; $("#nmail").focus(); return; }
     if (!$("#nok").checked) { err.textContent = "Para registrarte tenés que aceptar recibir los correos."; return; }
     const cfg = (CFG.novedades || {});
+    if (API()) {
+      try { await apiPost({ tipo: "novedades", email: mail, temas: $$("input[name=tema]:checked").map(i => i.value).join(", "), zona: $("#nzona") ? $("#nzona").value : "" });
+        LS.set("cs_news", mail);
+        $("#modal").innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button><h2>✅ ¡Listo!</h2><p>Registramos <b>${esc(mail)}</b>. Vas a recibir las novedades que elegiste.</p><div class="mfoot"><span></span><button class="btn" data-close>Cerrar</button></div>`;
+      } catch { err.textContent = "No pudimos enviar el registro. Revisá tu conexión y probá de nuevo."; }
+      return;
+    }
     if (!cfg.form_action) { err.innerHTML = "⚙️ El registro todavía no está conectado (prototipo): falta configurar el formulario en <code>config.json</code>. Tu correo <b>no</b> se guardó."; return; }
     const fd = new FormData();
     fd.append(cfg.campo_email, mail);
@@ -1043,19 +1182,26 @@ function route() {
   if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
+  if (!READY && !/^(inicio|pagos|como|legal|sugerencias)?$/.test(h)) {
+    $("#view").innerHTML = `<div class="loading"><div class="spin"></div>Cargando productos…</div>`;
+    loadProducts().then(() => route()); return;
+  }
+  if (!LINKS_DONE && /^(conviene|carrito)/.test(h)) ensureLinks().then(() => { if (location.hash.slice(1) === h) route(); });   // vuelve a dibujar con los botones de carrito online
   if (h.startsWith("l-")) { importList(h.slice(2)); return; }
   if (h.startsWith("p-")) { if (!$("#view").dataset.v) { closeDrawer.under = "inicio"; vInicio(); $("#view").dataset.v = "inicio"; } openProduct(h.slice(2)); return; }
   if (!$("#drawer").hidden) { $("#drawer").hidden = true; $("#scrim").hidden = $("#modal").hidden; document.body.style.overflow = ""; }
   let v = h;
   if (h.startsWith("c-")) { S.cat = h.slice(2); S.q = ""; $("#q").value = ""; v = "buscar"; }
   if (v === "lista") v = "carrito";   // enlaces viejos
-  ({ inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, sugerencias: vSugerencias }[v] || vInicio)();
+  ({ inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
+  contar(v);
 }
 
 document.addEventListener("click", e => {
   const vm = $("#vmenu"); if (vm && vm.open && !vm.contains(e.target)) vm.open = false;
   if (e.target.closest("[data-ubic]")) { e.preventDefault(); modalUbic(); return; }
+  if (e.target.closest("[data-scan]")) { e.preventDefault(); modalScan(); return; }
   if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set("cs_ubic", null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
   const inc = e.target.closest("[data-inc]"); if (inc) { e.stopPropagation(); const id = inc.dataset.inc; setQty(id, (LISTA[id] || 0) + 1, inc.dataset.sid); return; }
   const dec = e.target.closest("[data-dec]"); if (dec) { e.stopPropagation(); const id = dec.dataset.dec; setQty(id, (LISTA[id] || 0) - 1); return; }
@@ -1078,11 +1224,124 @@ $("#scrim").onclick = () => { if (!$("#modal").hidden) closeModal(); else closeD
 $("#mbtn").onclick = modalMedios;
 $("#abtn").onclick = modalAvisos;
 $("#themebtn").onclick = () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; LS.set("cs_tema", t); applyTheme(t); if (!$("#drawer").hidden && location.hash.startsWith("#p-")) chart(BY[location.hash.slice(3)]); };
-$("#hform").onsubmit = e => { e.preventDefault(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
+$("#hform").onsubmit = e => { e.preventDefault(); qsugShow(false); $("#q").blur(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
 $("#q").addEventListener("input", () => { clearTimeout(route.t); route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; if (location.hash !== "#buscar") location.hash = "buscar"; else vBuscar(); }, 250); });
 window.addEventListener("hashchange", route);
 applyTheme(document.documentElement.dataset.theme);
 
+
+/* ---------- SUGERENCIAS MIENTRAS ESCRIBÍS ---------- */
+function qsugShow(show) { const b = $("#qsug"); b.hidden = !show; $("#q").setAttribute("aria-expanded", show); }
+function qsugDraw() {
+  const q = $("#q").value.trim(), box = $("#qsug");
+  if (q.length < 2 || !READY) { qsugShow(false); return; }
+  vocab();
+  const ws = nrm(q).split(/\s+/).filter(Boolean), last = ws[ws.length - 1], head = ws.slice(0, -1);
+  // palabras que completan lo que estás escribiendo
+  const comp = [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" "));
+  let wsx = ws, fix = "";
+  let prods = D.products.filter(p => ws.every(w => matchW(p, w)));
+  if (!prods.length) { wsx = ws.map(corregir); fix = wsx.join(" ") !== ws.join(" ") ? wsx.join(" ") : ""; prods = fix ? D.products.filter(p => wsx.every(w => matchW(p, w))) : []; }
+  prods = prods.sort((a, b) => (matchScore(a, wsx) - matchScore(b, wsx)) || (b.offers.length - a.offers.length)).slice(0, 6);
+  const cats = D.cats.filter(c => nrm(c.name).includes(last)).slice(0, 2);
+  if (!prods.length && !comp.length && !cats.length) { box.innerHTML = `<div class="qs-none">No encontramos «${esc(q)}». Probá con otra palabra o <button type="button" class="linkbtn" data-scan>escaneá el código</button>.</div>`; qsugShow(true); return; }
+  box.innerHTML = (fix ? `<div class="qs-fix">¿Quisiste decir <button type="button" class="linkbtn" data-qs="${esc(fix)}">${esc(fix)}</button>?</div>` : "")
+    + comp.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">🔎 ${esc(t)}</button>`).join("")
+    + cats.map(c => `<a class="qs-w" role="option" href="#c-${c.id}">${c.emoji} ${esc(c.name)}</a>`).join("")
+    + prods.map(p => { const b = best(p); return `<button type="button" class="qs-p" role="option" data-open="${p.id}">${prodImg(p, "li")}<span class="qn">${esc(p.name)}</span><span class="qp">${money(b.v)}<small>${esc(ST[b.o.s] ? ST[b.o.s].name : "")}</small></span></button>`; }).join("")
+    + `<button type="button" class="qs-all" data-qs="${esc(fix || q)}">Ver todos los resultados de «${esc(fix || q)}» →</button>`;
+  qsugShow(true);
+}
+$("#q").addEventListener("input", () => { clearTimeout(qsugDraw.t); qsugDraw.t = setTimeout(qsugDraw, 120); });
+$("#q").addEventListener("focus", () => { if ($("#q").value.trim().length >= 2) qsugDraw(); });
+$("#q").addEventListener("keydown", e => {
+  const items = $$("#qsug [role=option], #qsug .qs-all"); if ($("#qsug").hidden || !items.length) return;
+  const i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); items[0].focus(); }
+  if (e.key === "Escape") qsugShow(false);
+});
+$("#qsug").addEventListener("keydown", e => {
+  const items = $$("#qsug [role=option], #qsug .qs-all"), i = items.indexOf(document.activeElement);
+  if (e.key === "ArrowDown") { e.preventDefault(); (items[i + 1] || items[i]).focus(); }
+  if (e.key === "ArrowUp") { e.preventDefault(); i > 0 ? items[i - 1].focus() : $("#q").focus(); }
+  if (e.key === "Escape") { qsugShow(false); $("#q").focus(); }
+});
+$("#qsug").addEventListener("click", e => {
+  const t = e.target.closest("[data-qs]");
+  if (t) { $("#q").value = t.dataset.qs; S.q = t.dataset.qs; S.cat = ""; S.bpage = 1; qsugShow(false); location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); return; }
+  if (e.target.closest("[data-open], a")) qsugShow(false);
+});
+document.addEventListener("click", e => { if (!e.target.closest(".hsearch")) qsugShow(false); });
+
+/* ---------- MENÚ DE ABAJO (celular) ---------- */
+$("#bmore").onclick = e => { e.stopPropagation(); const sh = $("#bsheet"), open = sh.hidden; sh.hidden = !open; $("#bmore").setAttribute("aria-expanded", open); };
+document.addEventListener("click", e => { const sh = $("#bsheet"); if (!sh.hidden && !e.target.closest("#bsheet")) { sh.hidden = true; $("#bmore").setAttribute("aria-expanded", false); } });
+
+/* ---------- ESCANEAR CÓDIGO DE BARRAS (cámara o foto) ---------- */
+const SCAN = { stream: null, timer: null, reader: null };
+function findEan(code) {
+  const c = String(code || "").replace(/\D/g, ""); if (!c) return null;
+  const k = c.replace(/^0+/, "");
+  return BY[c] || BY[c.padStart(13, "0")] || BY[c.padStart(14, "0")] || D.products.find(p => p.id.replace(/^0+/, "") === k) || null;
+}
+let ZX_P = null;
+const loadZX = () => ZX_P || (ZX_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "js/vendor/zxing.min.js"; s.onload = () => ok(window.ZXing); s.onerror = ko; document.head.appendChild(s); }));
+async function nativeDetector() {
+  if (!("BarcodeDetector" in window)) return null;
+  try { const f = await BarcodeDetector.getSupportedFormats(); const want = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(x => f.includes(x)); return want.length ? new BarcodeDetector({ formats: want }) : null; } catch { return null; }
+}
+function scanStop() {
+  clearInterval(SCAN.timer); SCAN.timer = null;
+  if (SCAN.reader) { try { SCAN.reader.reset(); } catch {} SCAN.reader = null; }
+  if (SCAN.stream) { SCAN.stream.getTracks().forEach(t => t.stop()); SCAN.stream = null; }
+}
+async function scanFound(code) {
+  scanStop(); await loadProducts();
+  const p = findEan(code);
+  if (p) { closeModal(); openProduct(p.id); toast(`📷 Código ${code}`); return; }
+  const m = $("#scanmsg"); if (m) m.innerHTML = `No encontramos el código <b>${esc(code)}</b> entre los productos comparados. Probá <a href="#buscar" data-close>buscarlo por nombre</a>.`;
+}
+async function modalScan() {
+  openModal(`<h2>📷 Escanear código de barras</h2>
+    <p class="sub">Apuntá la cámara al código de barras del producto (las rayitas con números) y te mostramos dónde está más barato.</p>
+    <div class="scanbox"><video id="scanv" playsinline muted></video><div class="scanframe"></div></div>
+    <p class="sub" id="scanmsg" role="status" style="min-height:22px;margin:8px 0">Pidiendo permiso para usar la cámara…</p>
+    <div class="scanalt">
+      <label class="btn sec sm" for="scanfile">🖼️ Usar una foto del código</label>
+      <input id="scanfile" type="file" accept="image/*" capture="environment" hidden>
+      <form id="scanman" class="scanman"><input class="inp" id="scancode" inputmode="numeric" pattern="[0-9]*" placeholder="o escribí los números" aria-label="Número del código de barras"><button class="btn sm">Buscar</button></form>
+    </div>`);
+  const v = $("#scanv"), msg = $("#scanmsg");
+  $("#scanman").onsubmit = e => { e.preventDefault(); const c = $("#scancode").value.replace(/\D/g, ""); if (c.length >= 8) scanFound(c); else msg.textContent = "El código tiene que tener al menos 8 números."; };
+  $("#scanfile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    scanStop(); msg.textContent = "Buscando el código en la foto…";
+    try {
+      const det = await nativeDetector();
+      if (det) { const r = await det.detect(await createImageBitmap(f)); if (r[0]) return scanFound(r[0].rawValue); }
+      const ZX = await loadZX(), url = URL.createObjectURL(f);
+      try { const r = await new ZX.BrowserMultiFormatReader().decodeFromImageUrl(url); return scanFound(r.getText()); } finally { URL.revokeObjectURL(url); }
+    } catch { msg.textContent = "No encontramos un código de barras en la foto. Sacala de cerca, derecha y con buena luz, que se vean las rayitas y los números."; }
+  };
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = "Tu navegador no deja usar la cámara acá. Usá una foto del código o escribí los números."; return; }
+  try {
+    SCAN.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false });
+    if ($("#modal").hidden) { scanStop(); return; }
+    v.srcObject = SCAN.stream; await v.play();
+    msg.textContent = "Buscando un código…";
+    const det = await nativeDetector();
+    if (det) {
+      SCAN.timer = setInterval(async () => { if ($("#modal").hidden) return scanStop(); try { const r = await det.detect(v); if (r[0]) scanFound(r[0].rawValue); } catch {} }, 250);
+    } else {
+      const ZX = await loadZX();
+      const hints = new Map(); hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]);
+      SCAN.reader = new ZX.BrowserMultiFormatReader(hints);
+      SCAN.reader.decodeFromStream(SCAN.stream, v, r => { if (r) scanFound(r.getText()); });
+    }
+  } catch (err) {
+    msg.textContent = err && err.name === "NotAllowedError" ? "No diste permiso para usar la cámara. Podés usar una foto del código o escribir los números." : "No pudimos abrir la cámara. Usá una foto del código o escribí los números.";
+  }
+}
 
 /* ---------- ASISTENTE VIRTUAL ----------
    Funciona dentro de la página, sin servicios externos: entiende preguntas sobre precios, descuentos,
@@ -1120,8 +1379,9 @@ function botPromos(q) {
 function botProductos(q) {
   const words = nrm(q).replace(/[¿?¡!.,]/g, " ").split(/\s+/).filter(w => w.length > 1 && !STOP.has(w));
   if (!words.length) return null;
-  const hits = D.products.filter(p => { const n = nrm(p.name + " " + p.brand); return words.every(w => n.includes(w)); })
-    .sort((a, b) => (matchScore(a, words) - matchScore(b, words)) || (b.offers.length - a.offers.length)).slice(0, 3);
+  vocab(); let ws2 = words; if (!D.products.some(p => words.every(w => matchW(p, w)))) ws2 = words.map(corregir);
+  const hits = D.products.filter(p => ws2.every(w => matchW(p, w)))
+    .sort((a, b) => (matchScore(a, ws2) - matchScore(b, ws2)) || (b.offers.length - a.offers.length)).slice(0, 3);
   if (!hits.length) return null;
   return `Esto encontré:${hits.map(p => { const b = best(p); return `<div class="bprod">${prodImg(p, "li")}<div><b>${esc(p.name)}</b><br>Más barato: <b>${money(b.v)}</b> en ${esc(chanName(b.o.s, b.c))} <span class="sub">(${p.offers.length} comercios)</span></div><div class="bpa"><button class="linkbtn" data-open="${p.id}">Ver</button>${addCtl(p.id)}</div></div>`; }).join("")}
     <a href="#buscar" data-botq="${esc(words.join(" "))}">Ver todos los resultados</a>`;
@@ -1149,7 +1409,7 @@ function botRender() {
     + (BOT.msgs.length <= 1 ? `<div class="cchips">${BOT_CHIPS.map(c => `<button type="button" class="chip" data-botask="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : "");
   $("#chm").scrollTop = 1e6;
 }
-function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); BOT.msgs.push({ who: "b", html: botResponder(q) }); botRender(); }
+async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(); await loadProducts(); BOT.msgs.push({ who: "b", html: botResponder(q) }); botRender(); }
 function botOpen(open) {
   $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
   if (open && !BOT.msgs.length) { BOT.msgs.push({ who: "b", html: "¡Hola! Soy el asistente de ComparáSúper. Te ayudo a encontrar precios, descuentos por día y banco, y a usar la página. ¿Qué necesitás?" }); botRender(); }
@@ -1165,6 +1425,7 @@ $("#chm").addEventListener("click", e => {
 });
 
 load().then(() => {
+  loadProducts().then(() => { saveLista(); refreshAvisos(); });
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;

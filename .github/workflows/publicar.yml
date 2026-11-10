@@ -29,6 +29,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Páginas para compartir productos (vista previa en WhatsApp y Google)
+        continue-on-error: true
+        run: python scripts/make_pages.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

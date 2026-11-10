@@ -6,6 +6,13 @@
 <title>ComparáSúper · Precios de supermercados</title>
 <meta name="description" content="Compará precios de supermercados, mayoristas y apps de CABA y GBA: el mismo producto en cada comercio, en el local y online, ofertas vigentes y descuentos por medio de pago de cada día.">
 <meta name="theme-color" content="#0e7a55">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ComparáSúper">
+<meta property="og:title" content="ComparáSúper · Encontrá los mejores precios en un solo lugar">
+<meta property="og:description" content="Compará precios de supermercados y mayoristas de CABA y GBA, ofertas y descuentos de bancos y billeteras de cada día.">
+<meta property="og:url" content="https://brunogagna9-stack.github.io/ComparaSuper/">
+<meta property="og:image" content="https://brunogagna9-stack.github.io/ComparaSuper/img/og.png">
+<meta name="twitter:card" content="summary_large_image">
 <script>try{var t=JSON.parse(localStorage.getItem("cs_tema"));if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +27,9 @@
     <a class="logo" href="#inicio" aria-label="ComparáSúper, ir al inicio"><span class="lg-ic" aria-hidden="true">🛒</span><span class="lt">Compará<span>Súper</span></span></a>
     <form class="hsearch" id="hform" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-      <input id="q" type="search" placeholder="Buscá: leche, yerba, aceite…" aria-label="Buscar productos" autocomplete="off">
+      <input id="q" type="search" placeholder="Buscá: leche, yerba, aceite…" aria-label="Buscar productos" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="qsug" aria-autocomplete="list">
+      <button class="qscan" type="button" data-scan title="Escanear código de barras" aria-label="Escanear código de barras"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 8v8M10 8v8M13 8v8M16 8v8"/></svg></button>
+      <div class="qsug" id="qsug" role="listbox" hidden></div>
     </form>
     <button class="hbtn theme" id="themebtn" type="button">🌙<span class="hl">Modo Oscuro</span></button>
     <button class="hbtn" id="mbtn" type="button" aria-haspopup="dialog" title="Mis medios de pago">💳<span class="hl">Mis medios</span><span class="dot" id="mdot" hidden></span></button>
@@ -56,13 +65,29 @@
       <p>Mostramos el precio <b>más común</b> entre las sucursales de la zona; en tu sucursal puede variar. Los descuentos bancarios tienen topes y no suelen sumarse entre sí: <b>verificá antes de pagar</b>.</p>
       <p id="fupd" class="sub"></p></div>
   </div>
-  <div class="fbot">© <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</div>
+  <div class="fbot"><a href="#legal">Términos y privacidad</a> · © <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</div>
 </footer>
 
 <div class="scrim" id="scrim" hidden></div>
 <aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dtitle" hidden></aside>
 <div class="modal" id="modal" role="dialog" aria-modal="true" hidden></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<nav class="bnav" aria-label="Menú">
+  <a href="#inicio" data-v="inicio"><span>🏠</span>Inicio</a>
+  <a href="#buscar" data-v="buscar"><span>🔎</span>Productos</a>
+  <button type="button" class="bscan" data-scan aria-label="Escanear código de barras"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7V4h3M21 7V4h-3M3 17v3h3M21 17v3h-3M7 8v8M10 8v8M13 8v8M16 8v8"/></svg></span>Escanear</button>
+  <a href="#ofertas" data-v="ofertas"><span>🏷️</span>Ofertas</a>
+  <button type="button" id="bmore" aria-haspopup="true" aria-expanded="false"><span>☰</span>Más</button>
+</nav>
+<div class="bsheet" id="bsheet" hidden>
+  <a href="#pagos">💳 Descuentos por día</a>
+  <a href="#conviene">📊 ¿Dónde conviene mi compra?</a>
+  <a href="#carrito">🛒 Mi carrito</a>
+  <a href="#como">ℹ️ Cómo funciona</a>
+  <a href="#sugerencias">💬 Dejanos tu sugerencia</a>
+  <a href="#legal">📄 Términos y privacidad</a>
+</div>
 
 <div class="fabs">
   <a class="fab sug" href="#sugerencias" title="Dejanos tu sugerencia"><span class="fi" aria-hidden="true">💬</span><span class="ft">Dejanos tu sugerencia</span></a>
