@@ -1,5 +1,5 @@
 {
-  "apps_script_url": "",
+  "apps_script_url": "https://script.google.com/macros/s/AKfycbxUPd78gzL30tECRCw3626pTzNPqfdtRiAKrs9T37z_oj9xbUrXNDSeHnzeJzD9Afb9/exec",
   "_comentario": "Configuración que se edita a mano. 'novedades': formulario de Google para guardar los correos de quienes se registran (gratis; las respuestas quedan en una planilla de Google). Ver README, sección 'Registro de novedades'. Mientras 'form_action' esté vacío, el formulario avisa que todavía no está conectado.",
   "novedades": {
     "form_action": "",
