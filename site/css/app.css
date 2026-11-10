@@ -816,3 +816,37 @@ footer.site{padding-bottom:90px}
   .chat{right:8px;left:8px;width:auto;bottom:130px;height:calc(100vh - 210px)}
   .toast{bottom:76px}
 }
+
+/* ===== banner de ofertas: todas las diapositivas en la misma celda, así el alto se adapta solo ===== */
+.banner{height:auto;min-height:0}
+.btrack{display:grid;height:auto}
+.bslide{position:relative;inset:auto;grid-area:1/1;grid-template-columns:260px minmax(0,1fr);gap:32px;align-items:center;padding:26px 72px 50px 36px}
+.bimg{display:flex;align-items:center;justify-content:center}
+.bimg .bi{width:100%;height:220px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;overflow:hidden;padding:14px;border-radius:18px;background:#fff}
+.bimg .bi img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
+.btxt{gap:7px}
+.bdots{bottom:18px}
+@media (max-width:900px){
+  .bslide{grid-template-columns:200px minmax(0,1fr);gap:22px;padding:24px 60px 50px 24px}
+  .bimg .bi{height:180px}
+  .btxt h3{font-size:22px}
+}
+@media (max-width:640px){
+  .banner{height:auto;min-height:0}
+  .bslide{grid-template-columns:1fr;gap:12px;padding:14px 14px 46px;align-items:start;justify-items:center;text-align:center}
+  .bimg{width:100%}
+  .bimg .bi{height:170px;max-width:240px;padding:10px;border-radius:14px}
+  .btxt{align-items:center;width:100%}
+  .btxt h3{font-size:18px}
+  .bpr{justify-content:center}
+  .bbt{justify-content:center}
+  .bpause{top:10px;right:10px}
+  .bdots{bottom:14px}
+}
+@media (max-width:360px){
+  .bimg .bi{height:140px}
+  .btxt h3{font-size:16.5px}
+  .bpr b{font-size:21px}
+}
+.bslide{align-content:center}
+@media (max-width:640px){ .bslide{padding-top:16px} .bimg .bi{max-width:min(240px,calc(100% - 90px))} }
