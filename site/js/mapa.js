@@ -37,7 +37,7 @@
 #pmapa .pm-x{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:700}
 #pmapa h1{font-size:26px;margin:6px 0 4px;line-height:1.2}
 #pmapa .pm-sub{color:var(--mut);margin:0 0 14px;font-size:15px;line-height:1.45}
-#pmapa .pm-box{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;overflow:hidden;box-shadow:var(--sh)}
+#pmapa .pm-box{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:20px;overflow:clip;box-shadow:var(--sh)}
 #pmapa .mapwrap{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
 #pmapa .stage{position:relative;display:flex;justify-content:center;perspective:1000px;padding-top:8px}
 #pmapa .plano{position:relative;width:min(330px,86vw);transform:rotateX(20deg);transform-origin:50% 0;transform-style:preserve-3d}
@@ -208,8 +208,7 @@
     base.addEventListener("click", e => {
       const p = e.target.closest(".prov"); if (!p) return;
       const n = p.dataset.n, tactil = matchMedia("(hover:none)").matches;
-      if (tactil && ultimoToque !== n) { ultimoToque = n; return; }   // en celular: el 1er toque muestra, el 2º elige
-      elegir(n); if (tactil) setTimeout(salir, 350);
+      elegir(n); if (tactil) setTimeout(salir, 700);   // en celular: se eleva un momento, queda la foto con el alfiler y abajo el botón para confirmar
     });
     (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => PROVS.forEach(p => precargar(p[1])));
 
@@ -276,7 +275,8 @@
     $("[data-zpais]").onclick = () => zoomVista("main");
 
     let resolver;
-    const cerrar = v => { document.documentElement.style.overflow = ""; root.remove(); resolver(v); };
+    const tecla = e => { if (e.key === "Escape" && !primera) cerrar(null); };
+    const cerrar = v => { document.removeEventListener("keydown", tecla); document.documentElement.style.overflow = ""; root.remove(); resolver(v); };
     function elegir(n) {
       elegida = n; ultimoToque = null; fijar(n); zActual = null; zoomA(n);
       base.querySelectorAll(".prov").forEach(p => p.classList.toggle("sel", p.dataset.n === n));
@@ -285,7 +285,8 @@
       $(".pm-ok").onclick = () => cerrar(POR_NOMBRE[n][0]);
     }
     const x = $("[data-pmx]"); if (x) x.onclick = () => cerrar(null);
-    root.addEventListener("keydown", e => { if (e.key === "Escape" && !primera) cerrar(null); });
+    document.addEventListener("keydown", tecla);
+    if (!primera) $(".elegido .txt").textContent = "👆 Tocá la provincia nueva en el mapa.";
     const ini = actual && POR_COD[actual] ? POR_COD[actual][1] : null;
     if (ini) elegir(ini); else zoomVista("ins");
     return new Promise(r => { resolver = r; });

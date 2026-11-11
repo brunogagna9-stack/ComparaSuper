@@ -292,7 +292,7 @@ const storeSelect = (id, val, label = "Todos los comercios") => `<select class="
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
 /* ---------- UBICACIÓN: comercios cerca ---------- */
-let UBIC = LS.get("cs_ubic", null);   // { lat, lon, label, km }
+let UBIC = LS.get(PK("cs_ubic"), null);   // { lat, lon, label, km }
 let SUC = null;                        // sucursales con ubicación { comercio: [[lat, lon, dirección, barrio], …] }
 async function loadSuc() { if (!SUC) SUC = await fetch(DIR() + "sucursales.json").then(r => (r.ok ? r.json() : {})).catch(() => ({})); return SUC; }
 function dist(a, b, c, d) { const R = 6371, r = x => x * Math.PI / 180, dl = r(c - a), dn = r(d - b); const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
@@ -339,7 +339,7 @@ async function modalUbic() {
     <p class="sub" id="umsg" style="min-height:20px;margin:8px 0 0"></p>
     ${UBIC && CERCA ? `<div class="unear" style="margin-top:12px">${Object.keys(CERCA).sort((a, b) => CERCA[a].d - CERCA[b].d).slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir)}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No hay sucursales en ese radio.</span>'}</div>` : ""}
     <div class="mfoot">${UBIC ? '<button class="btn sec sm" data-noubic>Quitar mi ubicación</button>' : '<button class="btn sec sm" data-close>Cancelar</button>'}<button class="btn sm" id="usave">Guardar</button></div>`);
-  const save = u => { UBIC = u; LS.set("cs_ubic", UBIC); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
+  const save = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
   $("#ugps").onclick = () => {
     if (!navigator.geolocation) { $("#umsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
     $("#umsg").textContent = "Buscando tu ubicación…";
@@ -453,7 +453,7 @@ function vLegal() {
   $("#view").innerHTML = `<div class="wrap legal"><section class="blk first">
     <h1>📄 Términos de uso y privacidad</h1><p class="sub">Última actualización: noviembre de 2026.</p>
     <h2>Qué es ComparáSúper</h2>
-    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de CABA y GBA. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen.</p>
+    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen.</p>
     <h2>Precios y descuentos</h2>
     <ul>
       <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b> de la Secretaría de Comercio, que informan las cadenas. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto.</li>
@@ -1209,7 +1209,7 @@ function modalNews() {
     <form id="nform" class="nform" novalidate>
       <label class="fl">Correo electrónico<input type="email" id="nmail" required autocomplete="email" placeholder="tu@correo.com"></label>
       <fieldset><legend>Quiero recibir</legend>${temas.map(([v, t], i) => `<label class="ck"><input type="checkbox" name="tema" value="${v}" ${i < 2 ? "checked" : ""}> ${t}</label>`).join("")}</fieldset>
-      <label class="fl">Zona<select class="sel" id="nzona">${["CABA", "GBA Norte", "GBA Oeste", "GBA Sur", "La Plata y alrededores"].map(z => `<option>${z}</option>`).join("")}</select></label>
+      <label class="fl">Zona<select class="sel" id="nzona">${(enAMBA() ? ["CABA", "GBA Norte", "GBA Oeste", "GBA Sur", "La Plata y alrededores"] : [provNombre(PROV)]).concat(PROVINCIAS.map(x => x.name).filter(n => !["Ciudad de Buenos Aires", provNombre(PROV)].includes(n))).map(z => `<option>${esc(z)}</option>`).join("")}</select></label>
       <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de ComparáSúper. Solo usamos tu correo para esto y no lo compartimos.</label>
       <div class="ferr" id="nerr" role="alert"></div>
       <div class="mfoot"><button type="button" class="btn sec sm" data-close>Cancelar</button><button class="btn" type="submit">Registrarme</button></div>
@@ -1268,7 +1268,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-tour]")) { e.preventDefault(); const sh = $("#bsheet"); if (sh) sh.hidden = true; startTour(); return; }
   const ag = e.target.closest("[data-agendar]"); if (ag) { e.preventDefault(); modalAgendar(ag.dataset.agendar); return; }
   const cm = e.target.closest("[data-cmp]"); if (cm) { e.preventDefault(); cmpToggle(cm.dataset.cmp); if (!$("#drawer").hidden && openProduct.id) { const st = $("#drawer").scrollTop; openProduct(openProduct.id); $("#drawer").scrollTop = st; } return; }
-  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set("cs_ubic", null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
+  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set(PK("cs_ubic"), null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
   const inc = e.target.closest("[data-inc]"); if (inc) { e.stopPropagation(); const id = inc.dataset.inc; setQty(id, (LISTA[id] || 0) + 1, inc.dataset.sid); return; }
   const dec = e.target.closest("[data-dec]"); if (dec) { e.stopPropagation(); const id = dec.dataset.dec; setQty(id, (LISTA[id] || 0) - 1); return; }
   const add = e.target.closest("[data-add]"); if (add) { e.stopPropagation(); addToList(add.dataset.add); return; }
@@ -1476,7 +1476,7 @@ async function wizard(paso) {
       <datalist id="wzonas">${nombres.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
       <p class="sub" id="wmsg" style="min-height:20px;margin:8px 0 0">${UBIC ? `Ya tenés marcada: <b>${esc(UBIC.gps ? "tu ubicación actual" : UBIC.label)}</b>.` : ""}</p>
       <div class="mfoot"><button class="btn sec sm" id="wback">← Atrás</button><button class="btn" id="wnext">Siguiente →</button></div>`);
-    const fijar = u => { UBIC = u; LS.set("cs_ubic", UBIC); calcCerca(); updUbic(); };
+    const fijar = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); };
     $("#wback").onclick = () => wizard(1);
     $("#wgps").onclick = () => {
       if (!navigator.geolocation) { $("#wmsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
@@ -1790,6 +1790,7 @@ $("#chm").addEventListener("click", e => {
 });
 
 $("#pbtn").onclick = async () => {
+  if (document.getElementById("pmapa")) return;
   const v = await abrirMapa({ actual: PROV });
   if (v && v !== PROV) { LS.set("cs_prov", v); location.reload(); }
 };
