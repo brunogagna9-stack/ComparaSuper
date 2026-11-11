@@ -19,6 +19,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from provincias import PROVS, AMBA, carpeta
+from modo_fetch import REGIONALES, norm
+import re
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA, SITE = ROOT / "data", ROOT / "site" / "data"
@@ -45,6 +47,13 @@ def main():
     modo = load(DATA / "promos_modo.json", {"promos": []})
     medios = {m["id"]: m for m in amba["medios"] + reg["medios"]}
     comercios = dict(reg.get("comercios") or {})
+    for pr in modo["promos"]:   # cadenas regionales: mismo id que las cargadas a mano (si no, salen repetidas)
+        c = pr.get("comercio")
+        if c and c["id"].startswith("m-") and not re.search(r"supermercados (de|del|adheridos|federal)\b|^supers\b", norm(c["name"])):
+            rg = next(((i, nm) for i, nm, rx in REGIONALES if re.search(rx, norm(c["name"]))), None)
+            if rg:
+                pr["comercio"] = {"id": rg[0], "name": rg[1], **({"lista": c["lista"]} if c.get("lista") else {})}
+                pr["stores"] = [rg[0] if s == c["id"] else s for s in pr["stores"]]
     for pr in modo["promos"]:
         if pr.get("comercio"):
             c = pr["comercio"]

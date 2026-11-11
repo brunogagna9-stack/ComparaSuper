@@ -2,7 +2,7 @@
    Página y código: primero la red (para tener siempre la versión nueva), si no hay señal se usa lo guardado.
    Datos (precios, descuentos) y fotos: se muestra lo guardado al instante y se actualiza por detrás. */
 const VERSION = "cs-v1";
-const BASE = ["./", "index.html", "css/app.css", "js/app.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
+const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/mapa.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
 self.addEventListener("install", e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION && k !== "cs-fotos").map(k => caches.delete(k)))).then(() => self.clients.claim())); });
 self.addEventListener("fetch", e => {

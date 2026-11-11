@@ -72,6 +72,17 @@ CADENA_PROV = [(r"alvear", ["AR-S", "AR-E"]), (r"petrelli", ["AR-S"]), (r"\buaa\
                (r"gallega", ["AR-S"]), (r"la reina", ["AR-S"]), (r"delca", ["AR-S"]), (r"cristian", ["AR-S"]), (r"kilbel", ["AR-S"]),
                (r"\bisis\b", ["AR-X"]), (r"almacor", ["AR-X"]), (r"blow ?max", ["AR-M"]), (r"super a\b", ["AR-M"]),
                (r"hipertehuelche", ["AR-Z", "AR-U", "AR-V", "AR-R", "AR-Q"]), (r"supermercados todo|^todo$", ["AR-R", "AR-Q", "AR-U"])]
+# cadenas regionales sin precios: mismo id que en promos_regionales.json, para que no aparezcan repetidas
+REGIONALES = [("alvear", "Alvear", r"\balvear\b"), ("petrelli", "Petrelli", r"petrelli"), ("uaa", "UAA", r"\buaa\b"),
+              ("arcoiris", "Arco Iris", r"arco ?iris"), ("eltunel", "El Túnel", r"el tunel"), ("cordiez", "Cordiez", r"cordiez"),
+              ("atomo", "Átomo", r"[aá]tomo"), ("lagallega", "La Gallega", r"gallega"), ("lareina", "La Reina", r"la reina"),
+              ("delca", "Delca", r"delca"), ("supercristian", "Super Cristian", r"cristian"), ("kilbel", "Kilbel", r"kilbel"),
+              ("isis", "ISIS", r"\bisis\b"), ("almacor", "Almacor", r"almacor"), ("blowmax", "Blow Max", r"blow ?max"),
+              ("supera", "Super A", r"super a\b"), ("hipertehuelche", "Hipertehuelche", r"hipertehuelche"),
+              ("todo", "Supermercados TODO", r"supermercados todo|^todo$"), ("supercoop", "Supercoop", r"supercoop"),
+              ("basualdo", "Basualdo", r"basualdo"), ("laamistad", "La Amistad", r"la amistad"), ("elnene", "El Nene", r"el nene"),
+              ("donluis", "Don Luis", r"don luis"), ("grupogiro", "Grupo Giro", r"\bgiro\b"), ("mami", "Mami", r"\bmami\b"),
+              ("supermax", "Supermax", r"supermax")]
 # rubros que no son supermercados (MODO a veces los pone en la misma categoría)
 NO_SUPER = re.compile(r"l[aá]cteos?|lactea|helad|farmac|carnicer|pescader|poller|pollo|librer|deco|corral[oó]n|hogar|peluquer|motos|joyas|ortoped|"
                       r"construcci|pintur|bistecca|carnes", re.I)
@@ -229,11 +240,13 @@ def convertir(b, tiendas, bank_names, hoy):
     if sid:
         stores = [sid]
     else:
-        varios = re.search(r"supermercados (de|del|adheridos|federal)|^supers\b|^supermercados$|^supermecados$", norm(lugar))
+        varios = re.search(r"supermercados (de|del|adheridos|federal)\b|^supers\b|^supermercados$|^supermecados$", norm(lugar))
         nombre = re.sub(r"\s+", " ", lugar).strip(" .")
         if norm(nombre) in ("", "supermercados", "supermecados", "supers"):
             nombre = "Supermercados adheridos"
-        comercio = {"id": "m-" + slug(nombre if varios else (nombres.most_common(1)[0][0] if nombres else nombre)), "name": nombre}
+        reg = None if varios else next(((i, nm) for i, nm, rx in REGIONALES if re.search(rx, norm(lugar))), None)
+        comercio = ({"id": reg[0], "name": reg[1]} if reg else
+                    {"id": "m-" + slug(nombre if varios else (nombres.most_common(1)[0][0] if nombres else nombre)), "name": nombre})
         if varios and por_prov:
             comercio["lista"] = {c: unicos([n for n, _ in cnt.most_common(60)])[:30] for c, cnt in por_prov.items()}
         stores = [comercio["id"]]
