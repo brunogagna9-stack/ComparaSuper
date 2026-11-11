@@ -324,33 +324,84 @@ function ubicBar(where) {
       <div class="unear">${ids.slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir + (CERCA[id].zona ? ", " + CERCA[id].zona : ""))}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No encontramos sucursales en ese radio. Probá con más kilómetros.</span>'}</div></div>
     <div class="ubtn"><button class="btn sec sm" data-ubic>Cambiar</button><button class="btn sec sm" data-noubic>Quitar</button></div></div>`;
 }
-async function modalUbic() {
+/* barrios y localidades de la provincia elegida (en AMBA, cada sucursal dice si es de CABA o de Buenos Aires) */
+async function zonasProv() {
   await loadSuc();
-  const zonas = {};
-  for (const list of Object.values(SUC)) for (const [la, lo, , z] of list) { if (!z) continue; (zonas[z] = zonas[z] || []).push([la, lo]); }
+  const zonas = {}, cuenta = {}, grupos = {};
+  for (const list of Object.values(SUC)) for (const b of list) {
+    const [la, lo, , z, pv] = b;
+    if (!z || !/[a-záéíóúñ]{2}/i.test(z) || (PROV && pv && pv !== PROV)) continue;
+    const k = nrm(z).replace(/[^a-z0-9]+/g, " ").trim();          // «Agronomia» y «Agronomía» son la misma
+    const g = grupos[k] = grupos[k] || { pts: [], nom: {} };
+    g.pts.push([la, lo]); g.nom[z] = (g.nom[z] || 0) + 1;
+  }
+  for (const g of Object.values(grupos)) {   // nombre: el más usado, y si empatan el que tiene tildes
+    const z = Object.keys(g.nom).sort((a, b) => (g.nom[b] - g.nom[a]) || (/[áéíóúñ]/i.test(b) - /[áéíóúñ]/i.test(a)))[0];
+    zonas[z] = g.pts; cuenta[z] = g.pts.length;
+  }
   const nombres = Object.keys(zonas).sort((a, b) => a.localeCompare(b, "es"));
+  const ej = PROV === "AR-C" ? "Palermo, Caballito, Belgrano" : PROV === "AR-B" || !PROV ? "Lanús, Quilmes, La Plata"
+    : Object.keys(cuenta).sort((a, b) => cuenta[b] - cuenta[a]).slice(0, 3).join(", ");
+  const centro = k => { const pts = zonas[k]; return { lat: pts.reduce((a, p) => a + p[0], 0) / pts.length, lon: pts.reduce((a, p) => a + p[1], 0) / pts.length }; };
+  const buscar = v => nombres.find(n => nrm(n) === nrm(v)) || (v ? nombres.find(n => nrm(n).startsWith(nrm(v))) : null);
+  /* ¿el punto (GPS) está en la provincia elegida? = hay alguna localidad de la provincia a menos de 40 km */
+  const enProv = (lat, lon) => !nombres.length || nombres.some(k => zonas[k].some(p => dist(lat, lon, p[0], p[1]) < 40));
+  return { zonas, nombres, ej, centro, buscar, enProv };
+}
+/* lista desplegable propia: se abre al tocar el campo y se filtra mientras escribís */
+function zonaPicker(inp, nombres) {
+  const box = document.createElement("div"); box.className = "zlist"; box.hidden = true; box.setAttribute("role", "listbox");
+  inp.setAttribute("role", "combobox"); inp.setAttribute("aria-autocomplete", "list"); inp.setAttribute("aria-expanded", "false");
+  inp.insertAdjacentElement("afterend", box);
+  let act = -1;
+  const draw = () => {
+    const q = nrm(inp.value.trim());
+    const ini = nombres.filter(n => !q || nrm(n).startsWith(q)), med = q ? nombres.filter(n => !nrm(n).startsWith(q) && nrm(n).includes(q)) : [];
+    const l = ini.concat(med).slice(0, 400);
+    act = -1;
+    box.innerHTML = l.length ? l.map(n => `<button type="button" class="zop" role="option" data-z="${esc(n)}">${esc(n)}</button>`).join("")
+      : `<div class="zno">No hay comercios cargados en esa localidad de ${esc(provNombre(PROV) || "tu provincia")}.</div>`;
+    box.hidden = false; inp.setAttribute("aria-expanded", "true");
+  };
+  const cerrar = () => { box.hidden = true; inp.setAttribute("aria-expanded", "false"); };
+  inp.addEventListener("focus", draw); inp.addEventListener("click", draw); inp.addEventListener("input", draw);
+  inp.addEventListener("blur", () => setTimeout(cerrar, 180));
+  inp.addEventListener("keydown", e => {
+    const ops = [...box.querySelectorAll(".zop")]; if (box.hidden || !ops.length) return;
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); act = (act + (e.key === "ArrowDown" ? 1 : -1) + ops.length) % ops.length; ops.forEach((o, i) => o.classList.toggle("on", i === act)); ops[act].scrollIntoView({ block: "nearest" }); }
+    else if (e.key === "Enter" && act >= 0) { e.preventDefault(); inp.value = ops[act].dataset.z; cerrar(); }
+    else if (e.key === "Escape") { e.stopPropagation(); cerrar(); }
+  });
+  box.addEventListener("mousedown", e => e.preventDefault());
+  box.addEventListener("click", e => { const o = e.target.closest(".zop"); if (o) { inp.value = o.dataset.z; cerrar(); inp.dispatchEvent(new Event("change")); } });
+}
+async function modalUbic() {
+  const Z = await zonasProv(), { zonas, nombres } = Z;
   openModal(`<h2>📍 Mi ubicación</h2><p class="sub">La usamos solo en este navegador para mostrarte los comercios cercanos y sus promos. No se manda a ningún lado.</p>
     <button class="btn" id="ugps" style="width:100%;justify-content:center;margin:6px 0 12px">📡 Usar mi ubicación actual</button>
-    <label class="flbl" for="uzona">O escribí tu barrio o localidad</label>
-    <input class="inp" id="uzona" list="uzonas" placeholder="Ej.: Palermo, Caballito, Lanús…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}">
-    <datalist id="uzonas">${nombres.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+    <label class="flbl" for="uzona">O elegí tu barrio o localidad${PROV ? ` de ${esc(provNombre(PROV))}` : ""}</label>
+    <div class="zwrap"><input class="inp" id="uzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}"></div>
     <label class="flbl" for="ukm">Hasta qué distancia</label>
     <select class="sel" id="ukm">${[1, 2, 3, 5, 10, 20].map(k => `<option value="${k}" ${(UBIC ? UBIC.km : 3) === k ? "selected" : ""}>${k} km</option>`).join("")}</select>
     <p class="sub" id="umsg" style="min-height:20px;margin:8px 0 0"></p>
     ${UBIC && CERCA ? `<div class="unear" style="margin-top:12px">${Object.keys(CERCA).sort((a, b) => CERCA[a].d - CERCA[b].d).slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir)}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No hay sucursales en ese radio.</span>'}</div>` : ""}
     <div class="mfoot">${UBIC ? '<button class="btn sec sm" data-noubic>Quitar mi ubicación</button>' : '<button class="btn sec sm" data-close>Cancelar</button>'}<button class="btn sm" id="usave">Guardar</button></div>`);
+  zonaPicker($("#uzona"), nombres);
   const save = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
   $("#ugps").onclick = () => {
     if (!navigator.geolocation) { $("#umsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
     $("#umsg").textContent = "Buscando tu ubicación…";
-    navigator.geolocation.getCurrentPosition(pos => save({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "tu ubicación actual", km: +$("#ukm").value, gps: true }),
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      if (!Z.enProv(lat, lon)) { $("#umsg").innerHTML = `Tu ubicación actual está fuera de <b>${esc(provNombre(PROV))}</b>. Elegí una localidad de la lista o <button class="linkbtn" type="button" data-pcambiar2>cambiá de provincia</button>.`; $("[data-pcambiar2]").onclick = () => { closeModal(); $("#pbtn").click(); }; return; }
+      save({ lat, lon, label: "tu ubicación actual", km: +$("#ukm").value, gps: true });
+    },
       () => { $("#umsg").textContent = "No pudimos obtener tu ubicación (quizás no diste permiso). Escribí tu barrio o localidad."; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
   };
   $("#usave").onclick = () => {
-    const v = $("#uzona").value.trim(), k = nombres.find(n => nrm(n) === nrm(v)) || nombres.find(n => nrm(n).startsWith(nrm(v)) && v);
-    if (!k) { if (UBIC && !v) { UBIC.km = +$("#ukm").value; save(UBIC); return; } $("#umsg").textContent = v ? "No encontramos ese barrio o localidad. Elegilo de la lista." : "Escribí tu barrio o usá tu ubicación actual."; return; }
-    const pts = zonas[k], lat = pts.reduce((a, p) => a + p[0], 0) / pts.length, lon = pts.reduce((a, p) => a + p[1], 0) / pts.length;
-    save({ lat, lon, label: k, km: +$("#ukm").value });
+    const v = $("#uzona").value.trim(), k = Z.buscar(v);
+    if (!k) { if (UBIC && !v) { UBIC.km = +$("#ukm").value; save(UBIC); return; } $("#umsg").textContent = v ? `«${v}» no es una localidad de ${provNombre(PROV) || "tu provincia"} con comercios cargados. Elegila de la lista.` : "Elegí tu barrio o usá tu ubicación actual."; return; }
+    save({ ...Z.centro(k), label: k, km: +$("#ukm").value });
   };
 }
 
@@ -1465,31 +1516,28 @@ async function wizard(paso) {
       <div class="mfoot"><button class="btn sec sm" data-close>Salir</button><button class="btn" id="wnext">Siguiente →</button></div>`);
     $("#wnext").onclick = () => { const v = $$("#modal input:checked").map(i => i.value); MEDIOS = v.length ? v : null; LS.set("cs_medios", MEDIOS); $("#mdot").hidden = !MEDIOS; wizard(2); };
   } else if (paso === 2) {
-    await loadSuc();
-    const zonas = {};
-    for (const list of Object.values(SUC)) for (const [la, lo, , z] of list) { if (z) (zonas[z] = zonas[z] || []).push([la, lo]); }
-    const nombres = Object.keys(zonas).sort((a, b) => a.localeCompare(b, "es"));
+    const Z = await zonasProv(), { nombres } = Z;
     openModal(`${head(2)}<h2>2. ¿Por dónde comprás?</h2><p class="sub">Así te mostramos primero los comercios que tenés cerca. Queda guardado solo en este navegador.</p>
       <button class="btn" id="wgps" style="width:100%;justify-content:center;margin:6px 0 12px">📡 Usar mi ubicación actual</button>
-      <label class="flbl" for="wzona">O escribí tu barrio o localidad</label>
-      <input class="inp" id="wzona" list="wzonas" placeholder="Ej.: Palermo, Caballito, Lanús…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}">
-      <datalist id="wzonas">${nombres.map(n => `<option value="${esc(n)}">`).join("")}</datalist>
+      <label class="flbl" for="wzona">O elegí tu barrio o localidad${PROV ? ` de ${esc(provNombre(PROV))}` : ""}</label>
+      <div class="zwrap"><input class="inp" id="wzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}"></div>
       <p class="sub" id="wmsg" style="min-height:20px;margin:8px 0 0">${UBIC ? `Ya tenés marcada: <b>${esc(UBIC.gps ? "tu ubicación actual" : UBIC.label)}</b>.` : ""}</p>
       <div class="mfoot"><button class="btn sec sm" id="wback">← Atrás</button><button class="btn" id="wnext">Siguiente →</button></div>`);
+    zonaPicker($("#wzona"), nombres);
     const fijar = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); };
     $("#wback").onclick = () => wizard(1);
     $("#wgps").onclick = () => {
       if (!navigator.geolocation) { $("#wmsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
       $("#wmsg").textContent = "Buscando tu ubicación…";
-      navigator.geolocation.getCurrentPosition(pos => { fijar({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "tu ubicación actual", km: 3, gps: true }); $("#wmsg").innerHTML = `✓ Listo: ${Object.keys(CERCA || {}).length} comercios a menos de 3 km.`; },
+      navigator.geolocation.getCurrentPosition(pos => { if (!Z.enProv(pos.coords.latitude, pos.coords.longitude)) { $("#wmsg").innerHTML = `Tu ubicación actual está fuera de <b>${esc(provNombre(PROV))}</b>. Elegí una localidad de la lista (o cambiá de provincia con el botón 🗺️ de arriba).`; return; } fijar({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "tu ubicación actual", km: 3, gps: true }); $("#wmsg").innerHTML = `✓ Listo: ${Object.keys(CERCA || {}).length} comercios a menos de 3 km.`; },
         () => { $("#wmsg").textContent = "No pudimos obtener tu ubicación. Escribí tu barrio o localidad."; }, { timeout: 10000, maximumAge: 600000 });
     };
     $("#wnext").onclick = () => {
       const v = $("#wzona").value.trim();
       if (v) {
-        const k = nombres.find(n => nrm(n) === nrm(v)) || nombres.find(n => nrm(n).startsWith(nrm(v)));
-        if (!k) { $("#wmsg").textContent = "No encontramos ese barrio o localidad. Elegilo de la lista o dejalo vacío."; return; }
-        const pts = zonas[k]; fijar({ lat: pts.reduce((a, p) => a + p[0], 0) / pts.length, lon: pts.reduce((a, p) => a + p[1], 0) / pts.length, label: k, km: 3 });
+        const k = Z.buscar(v);
+        if (!k) { $("#wmsg").textContent = `«${v}» no es una localidad de ${provNombre(PROV) || "tu provincia"} con comercios cargados. Elegila de la lista o dejalo vacío.`; return; }
+        fijar({ ...Z.centro(k), label: k, km: 3 });
       }
       wizard(3);
     };

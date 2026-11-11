@@ -110,7 +110,8 @@ def sucursal_info(r):
         return None
     calle = " ".join(x for x in (r.get("sucursales_calle", "").strip().title(), r.get("sucursales_numero", "").strip()) if x)
     zona = (r.get("sucursales_barrio") or r.get("sucursales_localidad") or "").strip().title()
-    return [round(lat, 5), round(lon, 5), calle, zona]
+    prov = (r.get("sucursales_provincia") or "").strip().upper()
+    return [round(lat, 5), round(lon, 5), calle, zona] + ([prov] if prov in ("AR-C", "AR-B") else [])
 
 
 def iter_comercios(zf):

@@ -1006,3 +1006,10 @@ footer.site{padding-bottom:90px}
 .pbtn{border-style:solid;font-weight:800}
 .adher{margin-top:6px;line-height:1.4}
 #pocos .lnk{background:none;border:0;padding:0;color:inherit;text-decoration:underline;font-weight:700}
+
+/* lista de barrios/localidades (se abre al tocar el campo) */
+.zwrap{position:relative}
+.zlist{position:relative;margin-top:4px;max-height:240px;overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--sh2);padding:4px;overscroll-behavior:contain}
+.zop{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 12px;font-size:15px;color:var(--ink)}
+.zop:hover,.zop.on{background:var(--gl);color:var(--gtx)}
+.zno{padding:10px 12px;color:var(--mut);font-size:14px}
