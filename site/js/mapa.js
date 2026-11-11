@@ -103,6 +103,12 @@
   #pmapa .zbtns{margin-top:0}
   #pmapa .lista{margin-top:8px}#pmapa .lista p{display:none}
   #pmapa h1{font-size:21px}#pmapa .pm-box{padding:14px}
+  #pmapa .pm-in{padding-bottom:120px}
+  #pmapa .elegido{position:fixed;left:10px;right:10px;bottom:10px;margin:0;padding:10px 12px;gap:8px}
+  #pmapa .elegido img{display:none}
+  #pmapa .elegido .txt{min-width:0;font-size:14px}
+  #pmapa .pm-ok{width:100%;padding:11px 16px}
+  #pmapa .zoombox{bottom:128px}
 }
 @media (prefers-reduced-motion:reduce){#pmapa .alza,#pmapa .pin{transition:none!important;animation:none!important}}`;
 
