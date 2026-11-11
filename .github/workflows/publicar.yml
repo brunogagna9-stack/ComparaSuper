@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
   workflow_run:
-    workflows: ["Actualizar precios", "Beta provincias"]
+    workflows: ["Actualizar precios", "Precios por provincia"]
     types: [completed]
   workflow_dispatch:
 
@@ -35,36 +35,22 @@ jobs:
       - name: Páginas para compartir productos (vista previa en WhatsApp y Google)
         continue-on-error: true
         run: python scripts/make_pages.py
-      # Versión de prueba del mapa por provincias en /beta/ (código de la rama "provincias", datos de "beta-datos").
-      # Si algo de la prueba falla, la web principal se publica igual.
-      - name: Prueba por provincias - código
-        continue-on-error: true
-        uses: actions/checkout@v4
-        with:
-          ref: provincias
-          path: _beta_codigo
-      - name: Prueba por provincias - datos
+      # Precios y descuentos de cada provincia (los arma "Precios por provincia" y los guarda en la rama "beta-datos").
+      - name: Datos de cada provincia
         continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: beta-datos
-          path: _beta_datos
-      - name: Prueba por provincias - armar /beta/
-        continue-on-error: true
+          path: _datos_prov
+      - name: Sumar los datos de cada provincia a la web
         run: |
-          if [ -d _beta_codigo/site ] && [ -d _beta_datos/p ]; then
-            mkdir -p site/beta
-            cp -r _beta_codigo/site/. site/beta/
-            rm -rf site/beta/data site/beta/p
-            mkdir -p site/beta/data
-            cp site/data/*.json site/beta/data/
-            cp -r _beta_datos/p site/beta/data/p
-            sed -i 's#<head>#<head><meta name="robots" content="noindex">#' site/beta/index.html
-            echo "Prueba publicada en /beta/"
+          if [ -d _datos_prov/p ]; then
+            rm -rf site/data/p && cp -r _datos_prov/p site/data/p
+            echo "Datos de provincias: $(ls site/data/p | wc -l) carpetas"
           else
-            echo "Todavía no hay datos de la prueba: se publica solo la web principal"
+            echo "AVISO: no se encontraron los datos de las provincias (rama beta-datos)"
           fi
-          rm -rf _beta_codigo _beta_datos
+          rm -rf _datos_prov
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,9 +1,8 @@
-name: Beta provincias
+name: Precios por provincia
 
-# VERSIÓN DE PRUEBA del mapa por provincias. Corre APARTE de "Actualizar precios":
-#   - toma el código de la rama "provincias" (la web actual no se toca);
+# Precios y descuentos de las 24 provincias (para el mapa de entrada de la web). Corre APARTE de "Actualizar precios":
 #   - guarda los datos en la rama "beta-datos" (un solo commit que se reemplaza cada día, para no agrandar el repositorio);
-#   - al terminar, "Publicar la web" arma la página de prueba en /beta/.
+#   - al terminar, "Publicar la web" los suma a la web en data/p/.
 # Todos los días a las 15:30 (Argentina = 18:30 UTC), después de "Actualizar precios".
 on:
   schedule:
@@ -24,7 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: provincias
+          ref: main
       - name: Datos anteriores de la prueba (historial)
         run: |
           git fetch --depth=1 origin beta-datos && git worktree add ../beta-datos FETCH_HEAD || mkdir -p ../beta-datos
