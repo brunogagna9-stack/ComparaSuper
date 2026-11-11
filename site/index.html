@@ -26,6 +26,7 @@
 </head>
 <body>
 <div id="demo" class="demo" hidden><b>Prototipo:</b> los precios de productos son <b>de ejemplo</b><span class="dl"> (con SEPA / Precios Claros se llenan solos todos los días)</span>; los descuentos con medios de pago son <b>reales de noviembre 2026</b>.</div>
+<div id="pocos" class="demo" hidden></div>
 <header class="site">
   <div class="hin">
     <a class="logo" href="#inicio" aria-label="ComparáSúper, ir al inicio"><span class="lg-ic" aria-hidden="true">🛒</span><span class="lt">Compará<span>Súper</span></span></a>
@@ -41,6 +42,7 @@
     <a class="hbtn cart" href="#carrito" title="Mi carrito"><svg class="cart-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 3.5h2.6l2.3 11.2a1.6 1.6 0 0 0 1.6 1.3h8.6a1.6 1.6 0 0 0 1.6-1.2l1.6-6.9H6.2"/><circle cx="9.6" cy="19.8" r="1.5"/><circle cx="17.4" cy="19.8" r="1.5"/></svg><span class="hl">Mi carrito</span><span class="badge" id="lcount" data-n="0">0</span></a>
   </div>
   <div class="hrow2">
+  <button class="uloc pbtn" id="pbtn" type="button" title="Cambiar de provincia"><span aria-hidden="true">🗺️</span><span id="plab">Provincia</span></button>
   <button class="uloc" id="uloc" type="button" data-ubic title="Elegir mi ubicación para ver comercios cercanos"><span aria-hidden="true">📍</span><span id="ulab">Elegí tu ubicación</span></button>
   <button class="hmini" id="hsize" type="button" title="Tamaño de letra">Aa</button>
   <button class="hmini" type="button" data-tour title="Ver la guía rápida" aria-label="Ver la guía rápida">❓</button>
@@ -109,6 +111,7 @@
   <form class="chf" id="chf"><input id="chq" type="text" placeholder="Escribí tu pregunta…" autocomplete="off" aria-label="Tu pregunta"><button class="btn sm" type="submit">Enviar</button></form>
 </section>
 
+<script src="js/mapa.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

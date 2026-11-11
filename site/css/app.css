@@ -1001,3 +1001,8 @@ footer.site{padding-bottom:90px}
 }
 .promo dt{white-space:normal}.promo dt .ibtn,.cmpc dt .ibtn{width:16px;height:16px;font-size:10px}
 .cmpc dt{display:flex;align-items:center;gap:4px}
+
+/* ---------- provincia (mapa de entrada) ---------- */
+.pbtn{border-style:solid;font-weight:800}
+.adher{margin-top:6px;line-height:1.4}
+#pocos .lnk{background:none;border:0;padding:0;color:inherit;text-decoration:underline;font-weight:700}

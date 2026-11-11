@@ -1,5 +1,5 @@
 {
-  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra. sepa_base: 'mayoristas' si la cadena informa en la base de mayoristas (si no, se busca en la de supermercados).",
+  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra. sepa_base: 'mayoristas' si la cadena informa en la base de mayoristas (si no, se busca en la de supermercados). sepa_lat_provincia: para cadenas que informan solo la latitud de la sucursal (sin provincia ni longitud): de norte a sur, [latitud límite, provincia]; la sucursal va a la primera provincia cuyo límite queda al sur.",
   "stores": [
     {
       "id": "carrefour",
@@ -372,6 +372,109 @@
       "buscar": null,
       "online": null,
       "nota": "Cooperativa Obrera. En AMBA tiene sucursales en Caballito, San Telmo y La Plata."
+    },
+    {
+      "id": "laanonima",
+      "name": "La Anónima",
+      "tipo": "super",
+      "color": "#004b8d",
+      "sigla": "LA",
+      "sepa_banderas": [
+        "La Anonima",
+        "LA ANONIMA",
+        "Libertad"
+      ],
+      "web": "https://www.laanonima.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Cadena patagónica, también en el sur de Buenos Aires, Córdoba y el norte (hoy maneja las sucursales Libertad)."
+    },
+    {
+      "id": "marianomax",
+      "name": "Mariano Max",
+      "tipo": "super",
+      "color": "#e30613",
+      "sigla": "MM",
+      "sepa_banderas": [
+        "Mariano Max"
+      ],
+      "web": "https://www.marianomax.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Cadena cordobesa."
+    },
+    {
+      "id": "california",
+      "name": "California",
+      "tipo": "super",
+      "color": "#d71920",
+      "sigla": "Ca",
+      "sepa_banderas": [
+        "California Supermercados"
+      ],
+      "web": "https://www.californiasa.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Cadena de Posadas, Misiones."
+    },
+    {
+      "id": "comodin",
+      "name": "Comodín",
+      "tipo": "super",
+      "color": "#f39200",
+      "sigla": "Co",
+      "sepa_banderas": [
+        "Supermercados Comodin",
+        "Maxi Comodin",
+        "Comodin"
+      ],
+      "web": "https://www.comodinonline.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Cadena de Jujuy, Salta y Tucumán.",
+      "sepa_lat_provincia": [
+        [
+          -24.6,
+          "AR-Y"
+        ],
+        [
+          -25.6,
+          "AR-A"
+        ],
+        [
+          -28,
+          "AR-T"
+        ]
+      ]
+    },
+    {
+      "id": "toledo",
+      "name": "Toledo",
+      "tipo": "super",
+      "color": "#00843d",
+      "sigla": "To",
+      "sepa_banderas": [
+        "Toledo"
+      ],
+      "web": "https://www.toledodigital.com.ar",
+      "buscar": null,
+      "online": null,
+      "nota": "Cadena de Mar del Plata y la costa bonaerense."
+    },
+    {
+      "id": "unicoop",
+      "name": "Unicoop",
+      "tipo": "super",
+      "color": "#0072bc",
+      "sigla": "Un",
+      "sepa_banderas": [
+        "Sup. Unicoop",
+        "Unicoop"
+      ],
+      "web": null,
+      "buscar": null,
+      "online": null,
+      "nota": "Cooperativa del sur de la provincia de Buenos Aires."
     }
   ]
 }
