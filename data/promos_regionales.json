@@ -1,0 +1,1980 @@
+{
+ "_comentario": "Promos regionales cargadas a mano (las de MODO van en promos_modo.json). provincias: códigos ISO donde vale.",
+ "relevado": "2026-11-10",
+ "medios": [
+  {
+   "id": "bsantafe",
+   "name": "Banco Santa Fe",
+   "tipo": "banco"
+  },
+  {
+   "id": "bancor",
+   "name": "Bancor (Banco de Córdoba)",
+   "tipo": "banco"
+  },
+  {
+   "id": "bentrerios",
+   "name": "Banco Entre Ríos",
+   "tipo": "banco"
+  },
+  {
+   "id": "bcorrientes",
+   "name": "Banco de Corrientes",
+   "tipo": "banco"
+  },
+  {
+   "id": "bsantacruz",
+   "name": "Banco Santa Cruz",
+   "tipo": "banco"
+  },
+  {
+   "id": "bsanjuan",
+   "name": "Banco San Juan",
+   "tipo": "banco"
+  },
+  {
+   "id": "bpn",
+   "name": "BPN (Banco Provincia del Neuquén)",
+   "tipo": "banco"
+  },
+  {
+   "id": "bchubut",
+   "name": "Banco del Chubut",
+   "tipo": "banco"
+  },
+  {
+   "id": "bsantiago",
+   "name": "Banco Santiago del Estero",
+   "tipo": "banco"
+  },
+  {
+   "id": "blapampa",
+   "name": "Banco de La Pampa",
+   "tipo": "banco"
+  },
+  {
+   "id": "nbch",
+   "name": "Nuevo Banco del Chaco",
+   "tipo": "banco"
+  },
+  {
+   "id": "btf",
+   "name": "Banco de Tierra del Fuego",
+   "tipo": "banco"
+  },
+  {
+   "id": "brioja",
+   "name": "Banco Rioja",
+   "tipo": "banco"
+  },
+  {
+   "id": "bformosa",
+   "name": "Banco Formosa",
+   "tipo": "banco"
+  },
+  {
+   "id": "coinag",
+   "name": "Banco Coinag",
+   "tipo": "banco"
+  },
+  {
+   "id": "bmunicipal",
+   "name": "Banco Municipal de Rosario",
+   "tipo": "banco"
+  },
+  {
+   "id": "buepp",
+   "name": "Buepp (Banco Ciudad)",
+   "tipo": "billetera"
+  },
+  {
+   "id": "yoy",
+   "name": "YOY",
+   "tipo": "billetera"
+  },
+  {
+   "id": "bdino",
+   "name": "Banco Dino",
+   "tipo": "banco"
+  },
+  {
+   "id": "billeterasantafe",
+   "name": "Billetera Santa Fe / Plus Pagos",
+   "tipo": "billetera"
+  },
+  {
+   "id": "cordobesa",
+   "name": "Tarjeta Cordobesa (Bancor)",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "tlaanonima",
+   "name": "Tarjeta La Anónima",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "sucredito",
+   "name": "Tarjeta Sucrédito",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "credimas",
+   "name": "Tarjeta Credimas",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "favacard",
+   "name": "Favacard / Elebar",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "tuya",
+   "name": "Tarjeta Tuya (Nuevo Banco del Chaco)",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "sidecreer",
+   "name": "Tarjeta Sidecreer",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "tdino",
+   "name": "Tarjeta Dino",
+   "tipo": "tarjeta"
+  },
+  {
+   "id": "mutualcard",
+   "name": "Mutualcard Cabal",
+   "tipo": "tarjeta"
+  }
+ ],
+ "comercios": {
+  "lagallega": {
+   "name": "La Gallega"
+  },
+  "alvear": {
+   "name": "Alvear"
+  },
+  "cordiez": {
+   "name": "Cordiez"
+  },
+  "dino": {
+   "name": "Dino"
+  },
+  "m-cordobaimpulsa": {
+   "name": "Supermercados adheridos a Córdoba Impulsa",
+   "lista": {
+    "AR-X": [
+     "Mariano Max",
+     "Cordiez Super Top",
+     "Super Mami",
+     "Almacor",
+     "Buenos Días",
+     "Luconi",
+     "Hnos Becerra",
+     "Súper Dos",
+     "Súper Granja",
+     "Súper Mac"
+    ]
+   }
+  },
+  "m-bonaerenses": {
+   "name": "Supermercados del interior bonaerense",
+   "lista": {
+    "AR-B": [
+     "5mentarios",
+     "Don Luis",
+     "La Amistad",
+     "Sabor Criollo",
+     "Autoservicio 228",
+     "Actual",
+     "Red Minicosto"
+    ]
+   }
+  },
+  "supercoop": {
+   "name": "Supercoop"
+  },
+  "m-btf": {
+   "name": "Comercios adheridos (La 25, Supermercado Belgrano y otros)"
+  },
+  "m-tuya": {
+   "name": "Supermercados, despensas y almacenes adheridos a Tuya"
+  },
+  "m-macro-cba": {
+   "name": "Supermercados locales de Córdoba (Macro)",
+   "lista": {
+    "AR-X": [
+     "Villa María Supermercados",
+     "Río Cuarto Supermercado",
+     "Justiniano Posse",
+     "La Carlota Supermercados"
+    ]
+   }
+  },
+  "m-macro-sf": {
+   "name": "Supermercados locales de Santa Fe (Macro)",
+   "lista": {
+    "AR-S": [
+     "Supermercado Giro (Ceres, Colonia Alpina, Humberto Primo)",
+     "Frioteka Rafaela"
+    ]
+   }
+  },
+  "m-macro-otros": {
+   "name": "Supermercados locales (Macro)",
+   "lista": {
+    "AR-U": [
+     "Trelew"
+    ],
+    "AR-V": [
+     "Distri TDF"
+    ],
+    "AR-J": [
+     "La Cumbre Sanjuanina"
+    ]
+   }
+  },
+  "m-cualquiera": {
+   "name": "Cualquier supermercado que acepte MODO"
+  }
+ },
+ "promos": [
+  {
+   "id": "r001",
+   "medio": "patagonia",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    1,
+    4
+   ],
+   "pct": 30,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con tarjeta de crédito Visa del Patagonia pagando con el celular (NFC).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-09-07",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r002",
+   "medio": "columbia",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Tarjetas de crédito Visa y Mastercard. Tope por cuenta.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-10-01",
+   "hasta": "2027-03-31",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r003",
+   "medio": "bchubut",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Tarjeta de crédito Patagonia 365. Solo sucursales de Chubut.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2027-01-31",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-U"
+   ]
+  },
+  {
+   "id": "r004",
+   "medio": "cuentadni",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 10,
+   "tope": 5000,
+   "periodo_tope": "dia",
+   "minimo": 25000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Jubilados que cobran por Cuenta DNI: 5% más.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.lanacion.com.ar/economia/promociones-y-ofertas-de-cuenta-dni-en-noviembre-2026-todos-los-beneficios-para-hacer-compras-con-nid02112026/",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false,
+   "bancos": [
+    "provincia"
+   ],
+   "provincias": [
+    "AR-B"
+   ]
+  },
+  {
+   "id": "r005",
+   "medio": "jubilados",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "debito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Jubilados y pensionados de ANSES, con la tarjeta de débito de la cuenta donde cobran. Excluye algunos productos.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r006",
+   "medio": "tlaanonima",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Exclusivo clientes Plus. Hasta 4 cuotas en sucursales del norte, Córdoba y Rosario. No vale en sucursales Libertad.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r007",
+   "medio": "btf",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Tarjetas Fueguina Visa y Master. Solo en Tierra del Fuego, Río Gallegos y El Calafate.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-V",
+    "AR-Z"
+   ]
+  },
+  {
+   "id": "r008",
+   "medio": "bancor",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Visa y Master de Bancor. Sucursales de Laboulaye, Morteros, Arroyito, Marcos Juárez y Córdoba capital.",
+   "cuotas": 4,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r009",
+   "medio": "naranjax",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Solo en las sucursales del norte, Córdoba, San Juan, Posadas y Santa Fe que nombra la web de La Anónima.",
+   "cuotas": 4,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-W",
+    "AR-H",
+    "AR-X",
+    "AR-J",
+    "AR-T",
+    "AR-A",
+    "AR-G",
+    "AR-N",
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r010",
+   "medio": "mp",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 50000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": "Con la tarjeta de crédito Mercado Pago por QR: 2 cuotas desde $50.000 y 3 cuotas desde $150.000.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r011",
+   "medio": "sucredito",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Vale también en las sucursales Libertad.",
+   "cuotas": 4,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T"
+   ]
+  },
+  {
+   "id": "r012",
+   "medio": "credimas",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "En Tucumán también Tarjeta Titanio y en Santiago del Estero Tarjeta Única.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-A",
+    "AR-T",
+    "AR-G"
+   ]
+  },
+  {
+   "id": "r013",
+   "medio": "favacard",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Sucursales de Trenque Lauquen, Azul, 9 de Julio, Pehuajó, Carlos Casares y otras del oeste bonaerense.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B"
+   ]
+  },
+  {
+   "id": "r014",
+   "medio": "bna",
+   "stores": [
+    "laanonima"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 50000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [
+    "bna"
+   ],
+   "provincias": [
+    "AR-B",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-Z",
+    "AR-V",
+    "AR-L",
+    "AR-S",
+    "AR-X",
+    "AR-A",
+    "AR-G",
+    "AR-T",
+    "AR-J",
+    "AR-W",
+    "AR-H",
+    "AR-N",
+    "AR-Y",
+    "AR-K",
+    "AR-D"
+   ]
+  },
+  {
+   "id": "r015",
+   "medio": "credicoop",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 30,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Cabal Credicoop por MODO. Excluye carnes, pescados, hogar y tecnología.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-L",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-S",
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r016",
+   "medio": "bna",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-04",
+   "hasta": "2026-12-31",
+   "fuente": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [
+    "bna"
+   ],
+   "provincias": [
+    "AR-B",
+    "AR-L",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-S",
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r017",
+   "medio": "macro",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo",
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "25% con Platinum (tope $20.000) y 30% con Selecta (tope $25.000). Excluye carnes, pollos, pescados, hogar y tecnología.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-L",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-S",
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r018",
+   "medio": "galicia",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 25,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con Mastercard de crédito Galicia por MODO. 30% para Eminent.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B",
+    "AR-L",
+    "AR-R",
+    "AR-Q",
+    "AR-U",
+    "AR-S",
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r019",
+   "medio": "blapampa",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    1,
+    3,
+    5,
+    6
+   ],
+   "pct": 25,
+   "tope": 25000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Tarjetas de crédito del Banco de La Pampa (los miércoles, con Billetera Pampa).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-L"
+   ]
+  },
+  {
+   "id": "r020",
+   "medio": "cuentadni",
+   "stores": [
+    "coope"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Solo sucursales de Lobos y La Plata.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16379/supermercados-cuenta-dni-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false,
+   "bancos": [
+    "provincia"
+   ],
+   "provincias": [
+    "AR-B"
+   ]
+  },
+  {
+   "id": "r021",
+   "medio": "bna",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 25,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-02",
+   "hasta": "2026-11-30",
+   "fuente": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [
+    "bna"
+   ],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r022",
+   "medio": "billeterasantafe",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "mes",
+   "minimo": 90000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r023",
+   "medio": "supervielle",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r024",
+   "medio": "naranjax",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 3000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Hasta 25% según el plan de Naranja X.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r025",
+   "medio": "galicia",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 5000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r026",
+   "medio": "credicoop",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 30,
+   "tope": 9000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r027",
+   "medio": "bmunicipal",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    4
+   ],
+   "pct": 20,
+   "tope": 18000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r028",
+   "medio": "jubilados",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    4,
+    6
+   ],
+   "pct": 10,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "presentar"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Con registro previo en la cadena.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r029",
+   "medio": "bsantafe",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 30,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Clientes con paquete del Banco Santa Fe.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r030",
+   "medio": "coinag",
+   "stores": [
+    "lagallega"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 20,
+   "tope": 14000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "reintegro",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/la-gallega",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r031",
+   "medio": "bna",
+   "stores": [
+    "alvear"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 25,
+   "tope": 6000,
+   "periodo_tope": "semana",
+   "minimo": 24000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con BNA+ MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-02",
+   "hasta": "2026-11-30",
+   "fuente": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [
+    "bna"
+   ],
+   "provincias": [
+    "AR-S",
+    "AR-E"
+   ]
+  },
+  {
+   "id": "r032",
+   "medio": "cordobesa",
+   "stores": [
+    "marianomax",
+    "m-cordobaimpulsa"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Programa Córdoba Impulsa, en las sucursales adheridas.",
+   "cuotas": 6,
+   "requiere": [],
+   "desde": "2026-09-01",
+   "hasta": "2027-01-31",
+   "fuente": "https://puntoapunto.com.ar/el-gobierno-de-cordoba-sale-a-apuntalar-el-consumo-6-cuotas-sin-interes-y-creditos-por-20-000-millones",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r033",
+   "medio": "credicoop",
+   "stores": [
+    "cordiez"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 3000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo la primera compra.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.convi.ar/promos-bancarias/cordiez",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r034",
+   "medio": "tdino",
+   "stores": [
+    "dino"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 5,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "Tarjeta Dino Mastercard.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.convi.ar/promos-bancarias/dino",
+   "fuente_tipo": "relevamiento",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r035",
+   "medio": "macro",
+   "stores": [
+    "m-macro-cba"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica",
+    "qr_modo",
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con tarjeta de crédito Macro. 25% con Platinum (tope $20.000) y 30% con Selecta (tope $25.000).",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-10-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.macro.com.ar/beneficios",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-X"
+   ]
+  },
+  {
+   "id": "r036",
+   "medio": "macro",
+   "stores": [
+    "m-macro-sf"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica",
+    "qr_modo",
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con tarjeta de crédito Macro, según nivel hasta 30%. En Frioteka Rafaela es los jueves.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-10-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.macro.com.ar/beneficios",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-S"
+   ]
+  },
+  {
+   "id": "r037",
+   "medio": "macro",
+   "stores": [
+    "m-macro-otros"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 20,
+   "tope": 15000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica",
+    "qr_modo",
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con tarjeta de crédito Macro, según nivel hasta 30%.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-10-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.macro.com.ar/beneficios",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-U",
+    "AR-V",
+    "AR-J"
+   ]
+  },
+  {
+   "id": "r038",
+   "medio": "macro",
+   "stores": [
+    "m-cualquiera"
+   ],
+   "dias": [
+    3
+   ],
+   "pct": 30,
+   "tope": 80000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo clientes Macro Selecta nivel 3 (tope $80.000) y nivel 4 (tope $120.000), con crédito por MODO.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2027-03-31",
+   "fuente": "https://www.macro.com.ar/beneficios",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-C",
+    "AR-B",
+    "AR-K",
+    "AR-H",
+    "AR-U",
+    "AR-X",
+    "AR-W",
+    "AR-E",
+    "AR-P",
+    "AR-Y",
+    "AR-L",
+    "AR-F",
+    "AR-M",
+    "AR-N",
+    "AR-Q",
+    "AR-R",
+    "AR-A",
+    "AR-J",
+    "AR-D",
+    "AR-Z",
+    "AR-S",
+    "AR-G",
+    "AR-T",
+    "AR-V"
+   ]
+  },
+  {
+   "id": "r039",
+   "medio": "sidecreer",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    0
+   ],
+   "pct": 25,
+   "tope": 5000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": "en la caja",
+   "nota": "25% con Black (tope $5.000), 20% con Platinum ($3.000) y 10% con Verde ($2.000). Solo tiendas de Entre Ríos.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-07-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-E"
+   ]
+  },
+  {
+   "id": "r040",
+   "medio": "bcorrientes",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    2,
+    4
+   ],
+   "pct": 30,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con MásBanCo por MODO. Solo tiendas de Corrientes.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-W"
+   ]
+  },
+  {
+   "id": "r041",
+   "medio": "tuya",
+   "stores": [
+    "m-tuya"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Consultá la lista de comercios en promociones.nbch.com.ar.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.diarionorte.com/336115-se-suman-chances-para-ganar-12-millones-con-tuya",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-H"
+   ]
+  },
+  {
+   "id": "r042",
+   "medio": "btf",
+   "stores": [
+    "m-btf"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "credito_fisica"
+   ],
+   "reintegro": null,
+   "nota": "Tarjetas Fueguina.",
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.btf.com.ar/promociones/la-25/",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-10",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-V"
+   ]
+  },
+  {
+   "id": "r043",
+   "medio": "cuentadni",
+   "stores": [
+    "m-bonaerenses"
+   ],
+   "dias": [
+    2,
+    3
+   ],
+   "pct": 15,
+   "tope": 6000,
+   "periodo_tope": "semana",
+   "minimo": 30000,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16379/supermercados-cuenta-dni-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false,
+   "bancos": [
+    "provincia"
+   ],
+   "provincias": [
+    "AR-B"
+   ]
+  },
+  {
+   "id": "r044",
+   "medio": "cuentadni",
+   "stores": [
+    "supercoop"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 15,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera"
+   ],
+   "reintegro": "en la caja",
+   "nota": null,
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.lanacion.com.ar/economia/promociones-y-ofertas-de-cuenta-dni-en-noviembre-2026-todos-los-beneficios-para-hacer-compras-con-nid02112026/",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-02",
+   "ejemplo": false,
+   "bancos": [
+    "provincia"
+   ],
+   "provincias": [
+    "AR-B"
+   ]
+  },
+  {
+   "id": "r045",
+   "medio": "mp",
+   "stores": [
+    "toledo"
+   ],
+   "dias": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6
+   ],
+   "pct": 0,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_billetera_tarjeta"
+   ],
+   "reintegro": null,
+   "nota": null,
+   "cuotas": 3,
+   "requiere": [],
+   "desde": "2026-11-01",
+   "hasta": "2026-11-30",
+   "fuente": "https://calcularsueldo.com.ar/?p=16359",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-10-30",
+   "ejemplo": false,
+   "bancos": [],
+   "provincias": [
+    "AR-B"
+   ]
+  }
+ ]
+}

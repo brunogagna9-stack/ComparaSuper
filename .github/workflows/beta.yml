@@ -1,0 +1,57 @@
+name: Beta provincias
+
+# VERSIÓN DE PRUEBA del mapa por provincias. Corre APARTE de "Actualizar precios":
+#   - toma el código de la rama "provincias" (la web actual no se toca);
+#   - guarda los datos en la rama "beta-datos" (un solo commit que se reemplaza cada día, para no agrandar el repositorio);
+#   - al terminar, "Publicar la web" arma la página de prueba en /beta/.
+# Todos los días a las 15:30 (Argentina = 18:30 UTC), después de "Actualizar precios".
+on:
+  schedule:
+    - cron: "30 18 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: beta
+  cancel-in-progress: false
+
+jobs:
+  beta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: provincias
+      - name: Datos anteriores de la prueba (historial)
+        run: |
+          git fetch --depth=1 origin beta-datos && git worktree add ../beta-datos FETCH_HEAD || mkdir -p ../beta-datos
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Precios por provincia (SEPA de todo el país)
+        run: python scripts/sepa_fetch_prov.py
+      - name: Armar datos de cada provincia
+        run: python scripts/build_data_prov.py ../beta-datos
+      - name: Promos de MODO (si MODO no responde, se usan las del último día)
+        continue-on-error: true
+        run: |
+          [ -f ../beta-datos/promos_modo.json ] && cp ../beta-datos/promos_modo.json data/promos_modo.json || true
+          python scripts/modo_fetch.py
+      - name: Promos por provincia
+        run: python scripts/promos_prov.py
+      - name: Guardar en la rama beta-datos
+        run: |
+          rm -rf ../salida && mkdir -p ../salida
+          cp -r site/data/p ../salida/p
+          cp -r ../beta-datos/hist ../salida/hist
+          [ -f data/promos_modo.json ] && cp data/promos_modo.json ../salida/ || true
+          cd ../salida
+          git init -q -b beta-datos
+          git config user.name "comparasuper-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -qm "Datos de prueba por provincia $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" beta-datos
