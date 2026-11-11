@@ -1013,3 +1013,18 @@ footer.site{padding-bottom:90px}
 .zop{display:block;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 12px;font-size:15px;color:var(--ink)}
 .zop:hover,.zop.on{background:var(--gl);color:var(--gtx)}
 .zno{padding:10px 12px;color:var(--mut);font-size:14px}
+
+/* botón de la guía junto a los globos */
+.fab.guia{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+/* footer con enlaces */
+.fin{grid-template-columns:1.4fr 1fr 1fr 1fr}
+.fin nav{display:flex;flex-direction:column;gap:7px}
+.fin nav a{color:#b9cbc2;text-decoration:none}
+.fin nav a:hover{color:#fff;text-decoration:underline}
+.fbot{display:flex;flex-wrap:wrap;gap:6px 18px;justify-content:center}
+@media (max-width:900px){.fin{grid-template-columns:1fr 1fr}.fbrand{grid-column:1/-1}}
+@media (max-width:480px){.fin{grid-template-columns:1fr 1fr;gap:22px 16px}}
+.legal h2{scroll-margin-top:var(--hh,130px)}
+.nosotros .faq details{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 8px;background:var(--card)}
+.nosotros .faq summary{font-weight:700;cursor:pointer}
+.nosotros .faq p{margin:8px 0 2px}

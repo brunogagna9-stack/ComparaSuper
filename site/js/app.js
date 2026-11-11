@@ -287,7 +287,7 @@ function card(p) {
       ${addCtl(p.id)}</div>
   </article>`;
 }
-function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal"].includes(v)); }
+function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
 const storeSelect = (id, val, label = "Todos los comercios") => `<select class="sel" id="${id}" aria-label="Comercio"><option value="">${label}</option>${grupos().map(([n, ss]) => `<optgroup label="${n}">${ss.map(s => `<option value="${s.id}" ${val === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
@@ -498,6 +498,45 @@ function anuncio(lugar) {
       ${a.imagen ? `<img src="${esc(a.imagen)}" alt="${esc(a.titulo || a.anunciante || "Publicidad")}" loading="lazy">` : ""}
       ${a.titulo ? `<span class="adt"><b>${esc(a.titulo)}</b>${a.texto ? `<span>${esc(a.texto)}</span>` : ""}</span>` : ""}</a></aside>`;
 }
+/* ---------- CONOCENOS / ACERCA DE ---------- */
+function vNosotros() {
+  setTab("nosotros");
+  const zona = enAMBA() ? "CABA y el Gran Buenos Aires" : provNombre(PROV);
+  const faq = [
+    ["¿Es gratis?", "Sí. No cobramos nada, no hace falta crear una cuenta y no vendemos productos: te mostramos dónde conviene y el botón «Ver» te lleva a la tienda de cada comercio."],
+    ["¿Por qué el precio de mi sucursal es distinto?", "Mostramos el precio más común entre las sucursales de cada cadena en tu provincia. Algunas sucursales tienen precios propios, así que puede variar un poco."],
+    ["¿Los descuentos se suman entre sí?", "En general no: cada banco o billetera tiene su tope y sus condiciones. En cada descuento te decimos el tope, los días y cómo hay que pagar para que se aplique."],
+    ["¿Cada cuánto se actualizan los precios?", "Todos los días. Los precios de las sucursales salen de la base oficial que las cadenas informan a diario."],
+    ["¿Por qué en mi provincia hay pocas cadenas?", "Solo podemos mostrar las cadenas que informan sus precios a la base oficial. Los descuentos con bancos y billeteras sí están completos, aunque la cadena no informe precios."],
+    ["¿Cómo cambio de provincia?", "Con el botón 🗺️ que está arriba, al lado de «Elegí tu ubicación». Tu carrito se guarda aparte para cada provincia."],
+    ["¿Qué hacen con mis datos?", "Tu carrito, tus medios de pago y tu ubicación quedan solo en tu navegador. Más detalles en la Política de privacidad."],
+  ];
+  $("#view").innerHTML = `<div class="wrap legal nosotros"><section class="blk first">
+    <h1>👋 Conocenos</h1>
+    <p>ComparáSúper nació con una idea simple: que hacer las compras del súper cueste menos. Juntamos en un solo lugar los precios de los supermercados y mayoristas, sus ofertas y los descuentos de bancos, billeteras y tarjetas de cada día, para que sepas <b>dónde, qué día y cómo pagar</b> para gastar menos.</p>
+    <p>Es un <b>proyecto independiente</b>: no tiene relación comercial con los comercios, las apps ni los bancos que aparecen, y ningún comercio paga para salir primero.</p>
+    <h2 id="s-acerca">Acerca de</h2>
+    <ul>
+      <li><b>Qué comparamos:</b> el mismo producto (por código de barras) en cada cadena de ${esc(zona)}, en el local y online.</li>
+      <li><b>Dónde:</b> en las 24 provincias. Elegís la tuya al entrar y ves solo sus comercios, precios y descuentos.</li>
+      <li><b>Cuánto cuesta:</b> nada. Si en algún momento hay publicidad, siempre va a estar marcada como tal y nunca cambia los precios ni el orden.</li>
+    </ul>
+    <h2 id="s-datos">De dónde salen los precios</h2>
+    <ul>
+      <li><b>Precios de las sucursales:</b> base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal.</li>
+      <li><b>Precios online:</b> los de la tienda web o app de cada comercio, sin el costo de envío.</li>
+      <li><b>Descuentos con medios de pago:</b> los leemos de las páginas oficiales de cada banco, billetera o tarjeta (y de MODO, que se actualiza solo). Cada descuento dice su fuente y la fecha en que se verificó.</li>
+    </ul>
+    <h2 id="s-aviso">Aviso sobre precios</h2>
+    <p>Mostramos el precio <b>más común</b> entre las sucursales de cada cadena; en tu sucursal puede variar. Los descuentos bancarios tienen topes, días y condiciones, y no suelen sumarse entre sí: <b>verificá siempre el precio y el descuento antes de pagar</b>.</p>
+    <h2 id="s-preguntas">Preguntas frecuentes</h2>
+    <div class="faq">${faq.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("")}</div>
+    <h2>Contacto</h2>
+    <p>¿Encontraste un error, falta un comercio o tenés una idea? Escribinos desde <a href="#sugerencias">Contacto y sugerencias</a>.</p>
+    <p class="sub">También podés leer los <a href="#legal">Términos de uso</a> y la <a href="#legal-privacidad">Política de privacidad</a>.</p>
+  </section></div>`;
+}
+
 /* ---------- TÉRMINOS Y PRIVACIDAD ---------- */
 function vLegal() {
   setTab("legal");
@@ -513,7 +552,7 @@ function vLegal() {
       <li>Hacemos lo posible para que todo esté correcto, pero <b>la información es orientativa</b>: confirmá siempre el precio y el descuento en el comercio antes de pagar. No nos hacemos responsables por diferencias, errores de las fuentes ni cambios de último momento.</li>
       <li>Las marcas, logos y fotos de productos pertenecen a sus dueños y se usan solo para identificar los productos y comercios comparados.</li>
     </ul>
-    <h2>Privacidad: qué datos usamos</h2>
+    <h2 id="s-privacidad">Privacidad: qué datos usamos</h2>
     <ul>
       <li><b>No necesitás crear una cuenta.</b> Tu carrito, tus medios de pago, tus avisos, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran.</li>
       <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos. No se envía ni se guarda en ningún servidor.</li>
@@ -1307,6 +1346,8 @@ function route() {
   let v = h;
   if (h.startsWith("c-")) { S.cat = h.slice(2); S.q = ""; $("#q").value = ""; v = "buscar"; }
   if (v === "lista") v = "carrito";   // enlaces viejos
+  const [v0, sec] = v.split("-");
+  if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
   ({ inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
@@ -1342,7 +1383,8 @@ $("#mbtn").onclick = modalMedios;
 $("#abtn").onclick = modalAvisos;
 $("#themebtn").onclick = () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; LS.set("cs_tema", t); applyTheme(t); if (!$("#drawer").hidden && location.hash.startsWith("#p-")) chart(BY[location.hash.slice(3)]); };
 $("#hform").onsubmit = e => { e.preventDefault(); clearTimeout(qsugDraw.t); qsugShow(false); $("#q").blur(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
-$("#q").addEventListener("input", () => { clearTimeout(route.t); route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; if (location.hash !== "#buscar") location.hash = "buscar"; else vBuscar(); }, 250); });
+$("#q").addEventListener("input", () => { clearTimeout(route.t); if (location.hash !== "#buscar") return;   // fuera de Productos: solo se abre la lista; se pasa con Enter o al elegir
+  route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; vBuscar(); }, 250); });
 window.addEventListener("hashchange", route);
 applyTheme(document.documentElement.dataset.theme);
 
@@ -1386,7 +1428,14 @@ $("#qsug").addEventListener("keydown", e => {
 $("#qsug").addEventListener("click", e => {
   const t = e.target.closest("[data-qs]");
   if (t) { $("#q").value = t.dataset.qs; S.q = t.dataset.qs; S.cat = ""; S.bpage = 1; qsugShow(false); location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); return; }
-  if (e.target.closest("[data-open], a")) qsugShow(false);
+  const op = e.target.closest("[data-open]");
+  if (op) {   // producto de la lista: pasa a Productos con esa búsqueda y abre el producto
+    e.stopPropagation(); qsugShow(false); $("#q").blur();
+    S.q = $("#q").value.trim(); S.cat = ""; S.bpage = 1;
+    if (location.hash !== "#buscar") { location.hash = "buscar"; setTimeout(() => openProduct(op.dataset.open), 60); } else { vBuscar(); openProduct(op.dataset.open); }
+    return;
+  }
+  if (e.target.closest("a")) qsugShow(false);
 });
 document.addEventListener("click", e => { if (!e.target.closest(".hsearch")) qsugShow(false); });
 
@@ -1564,11 +1613,13 @@ const TOUR = [
   ["#hform .qscan", "📷 Escaneá el código de barras", "¿Estás en el súper? Apuntá la cámara al código del producto y te decimos dónde está más barato.", "desk"],
   [".bnav .bscan", "📷 Escaneá el código de barras", "¿Estás en el súper? Apuntá la cámara al código del producto y te decimos dónde está más barato.", "mob"],
   ["#mbtn", "💳 Mis medios de pago", "Marcá tus bancos y billeteras: te mostramos el precio final con tus descuentos y cómo pagar."],
+  ["#pbtn", "🗺️ Tu provincia", "Ves los precios y descuentos de esta provincia. Tocá acá para cambiarla."],
   ["#uloc", "📍 Tu ubicación", "Te mostramos los comercios que tenés cerca y sus promos."],
   [".hbtn.cart", "🛒 Mi carrito", "Sumá productos con el +. Después lo mandás por WhatsApp o lo usás en el súper para ir tachando."],
   [".tabs a[data-v=conviene]", "📊 ¿Dónde conviene mi compra?", "Te dice en qué súper, qué día y con qué medio de pago sale menos toda tu compra.", "desk"],
   ["#bmore", "☰ Más opciones", "Acá están Descuentos por día, ¿Dónde conviene?, tu carrito y más.", "mob"],
   ["#hsize", "Aa Tamaño de letra", "Si te cuesta leer, agrandá la letra de toda la página."],
+  [".fab.guia", "❓ Guía rápida", "Si te perdés, tocá este botón y te volvemos a mostrar esta guía."],
   ["#botbtn", "🤖 Asistente", "¿Dudas? Preguntale al asistente: precios, descuentos del día o cómo usar la página."],
 ];
 let TOURI = 0;
@@ -1576,7 +1627,7 @@ function startTour() { closeModal(); closeDrawer && !$("#drawer").hidden && clos
 function tourSteps() { const mob = innerWidth <= 640; return TOUR.filter(s => !s[3] || (s[3] === "mob") === mob).filter(s => { const el = $(s[0]); return el && el.getBoundingClientRect().width > 0; }); }
 function tourGo(i) {
   const steps = tourSteps(); if (i < 0) i = 0;
-  if (i >= steps.length) { $("#tour").remove(); LS.set("cs_tour", 1); toast("¡Listo! La guía la podés volver a ver con el botón ❓"); return; }
+  if (i >= steps.length) { $("#tour").remove(); LS.set("cs_tour", 1); toast("¡Listo! La guía la podés volver a ver con el botón ❓ de abajo a la derecha"); return; }
   TOURI = i;
   const [sel, t, d] = steps[i], el = $(sel);
   el.scrollIntoView({ block: "nearest" });

@@ -45,7 +45,6 @@
   <button class="uloc pbtn" id="pbtn" type="button" title="Cambiar de provincia"><span aria-hidden="true">🗺️</span><span id="plab">Provincia</span></button>
   <button class="uloc" id="uloc" type="button" data-ubic title="Elegir mi ubicación para ver comercios cercanos"><span aria-hidden="true">📍</span><span id="ulab">Elegí tu ubicación</span></button>
   <button class="hmini" id="hsize" type="button" title="Tamaño de letra">Aa</button>
-  <button class="hmini" type="button" data-tour title="Ver la guía rápida" aria-label="Ver la guía rápida">❓</button>
   <nav class="tabs" aria-label="Secciones">
     <a href="#inicio" data-v="inicio">Inicio</a>
     <a href="#buscar" data-v="buscar">Productos</a>
@@ -61,19 +60,17 @@
 
 <footer class="site">
   <div class="fin">
-    <div><div class="flogo">Compará<span>Súper</span></div>
-      <p>Comparador independiente de precios de supermercados, mayoristas y apps de delivery de todo el país: el mismo producto en cada comercio, sus ofertas y los descuentos de cada día según cómo pagás.</p>
-      <p><b>No vendemos productos.</b> El botón «Ver» te lleva a la tienda de cada comercio.</p>
+    <div class="fbrand"><div class="flogo">Compará<span>Súper</span></div>
+      <p>Compará precios de supermercados y mayoristas de todo el país, con sus ofertas y los descuentos de tu banco o billetera de cada día.</p>
       <p><button class="btn sm" data-news>📬 Recibir novedades por correo</button></p></div>
-    <div><h4>De dónde salen los datos</h4>
-      <p>Precios y ofertas: base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal. Comparamos por <b>código de barras</b>, así que siempre es exactamente el mismo producto.</p>
-      <p>Precios online: los de la tienda web o app de cada comercio, sin envío.</p>
-      <p>Descuentos con medios de pago: cargados a mano desde la página oficial de cada banco, billetera o tarjeta, con enlace y fecha.</p></div>
-    <div><h4>Importante</h4>
-      <p>Mostramos el precio <b>más común</b> entre las sucursales de la zona; en tu sucursal puede variar. Los descuentos bancarios tienen topes y no suelen sumarse entre sí: <b>verificá antes de pagar</b>.</p>
-      <p id="fupd" class="sub"></p></div>
+    <nav aria-label="ComparáSúper"><h4>ComparáSúper</h4>
+      <a href="#nosotros">Conocenos</a><a href="#nosotros-acerca">Acerca de</a><a href="#como">Cómo funciona</a><a href="#nosotros-datos">De dónde salen los precios</a><a href="#nosotros-preguntas">Preguntas frecuentes</a></nav>
+    <nav aria-label="Herramientas"><h4>Herramientas</h4>
+      <a href="#buscar">Productos</a><a href="#ofertas">Ofertas</a><a href="#pagos">Descuentos por día</a><a href="#conviene">¿Dónde conviene mi compra?</a><a href="#comparar">Comparar productos</a><a href="#super">Modo en el súper</a><a href="#" data-instalar>Instalar como app</a></nav>
+    <nav aria-label="Ayuda y legales"><h4>Ayuda y legales</h4>
+      <a href="#" data-tour>Guía rápida</a><a href="#sugerencias">Contacto y sugerencias</a><a href="#legal">Términos de uso</a><a href="#legal-privacidad">Política de privacidad</a><a href="#nosotros-aviso">Aviso sobre precios</a></nav>
   </div>
-  <div class="fbot"><a href="#legal">Términos y privacidad</a> · <a href="#" data-tour>Guía rápida</a> · <a href="#" data-instalar>Instalar como app</a> · © <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</div>
+  <div class="fbot"><span>© <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</span><span id="fupd"></span></div>
 </footer>
 
 <div class="scrim" id="scrim" hidden></div>
@@ -102,6 +99,7 @@
 </div>
 
 <div class="fabs">
+  <button class="fab guia" type="button" data-tour title="Guía rápida"><span class="fi" aria-hidden="true">❓</span><span class="ft">Guía rápida</span></button>
   <a class="fab sug" href="#sugerencias" title="Dejanos tu sugerencia"><span class="fi" aria-hidden="true">💬</span><span class="ft">Dejanos tu sugerencia</span></a>
   <button class="fab bot" id="botbtn" type="button" aria-controls="chat" aria-expanded="false" title="Asistente virtual"><span class="fi" aria-hidden="true">🤖</span><span class="ft">Asistente virtual</span></button>
 </div>
