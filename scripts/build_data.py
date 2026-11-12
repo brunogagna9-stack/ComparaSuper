@@ -223,6 +223,26 @@ def update_history(hist, snap):
 NAME_PREF = {s: i for i, s in enumerate(["jumbo", "disco", "vea", "carrefour", "coto", "changomas", "dia", "carrefourmaxi", "makro"])}
 
 
+RARO_BAJO, RARO_ALTO = 0.35, 2.8   # frente a la mediana de los demás comercios
+
+
+def marcar_raros(offers):
+    """Precio muy distinto al del resto de los comercios (casi siempre un error de carga: el precio de la caja
+    en vez de la unidad, o al revés). Se marca como "anom": la web lo muestra con un aviso pero no lo usa
+    como "el más barato" ni en las cuentas de ¿Dónde conviene?. Hace falta que al menos 3 comercios más lo vendan."""
+    import statistics
+    if len(offers) < 4:
+        return
+    precios = [(o, o.get("p") or o.get("po")) for o in offers]
+    for o, v in precios:
+        otros = [x for oo, x in precios if oo is not o and x]
+        if not v or len(otros) < 3:
+            continue
+        m = statistics.median(otros)
+        if v < m * RARO_BAJO or v > m * RARO_ALTO:
+            o["anom"] = True
+
+
 def build(snap, hist, stores, min_offers=1):
     known = {s["id"] for s in stores}
     groups = {}
@@ -290,6 +310,7 @@ def build(snap, hist, stores, min_offers=1):
             if len(vals) >= 20 and ref <= min(vals) and not o.get("anom"):
                 o["low"] = True   # el precio más bajo del período guardado
             offers.append(o)
+        marcar_raros(offers)
         offers.sort(key=lambda o: o.get("p") or o.get("po"))
         name = nice_name(first["name"])
         cat = next((c for c in (classify(i["name"]) for i in its) if c != OTROS[0]), OTROS[0])
@@ -337,7 +358,7 @@ def small_img(u):
     return re.sub(r"/arquivos/ids/(\d+)/", r"/arquivos/ids/\1-300-300/", u)
 
 
-OFERTA_K = ["p", "po", "pon", "pmax", "bulto", "promo", "chg", "anom"]
+OFERTA_K = ["p", "po", "pon", "pmax", "bulto", "promo", "chg", "anom", "low"]
 
 
 def columnas(meta, products):

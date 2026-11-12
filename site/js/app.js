@@ -216,8 +216,10 @@ function price1(o, c) { const pr = promoOf(o, c); return pr && pr.n <= 1 ? pr.pu
 /* la opción más barata de un producto: {o, c, v} */
 function best(p, filter = null) {
   let b = null;
+  const sanos = p.offers.some(o => !o.anom && (!filter || filter.has(o.s)));   // un precio mal cargado no cuenta como "el más barato"
   for (const o of p.offers) {
     if (filter && !filter.has(o.s)) continue;
+    if (o.anom && sanos) continue;
     for (const c of chans(o)) { const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }
   }
   return b || { o: p.offers[0], c: allChans(p.offers[0])[0], v: price1(p.offers[0], allChans(p.offers[0])[0]) };
@@ -232,7 +234,7 @@ function lineCost(o, c, qty) {
   }
   return { total: qty * b, save: 0, promo: null };
 }
-const offerAt = (p, sid) => p.offers.find(o => o.s === sid);
+const offerAt = (p, sid) => p.offers.find(o => o.s === sid && !o.anom);   // los precios mal cargados no entran en las cuentas
 
 /* ---------- descuentos por medio de pago ---------- */
 /* una promo cuenta para los cálculos si la persona tiene el medio (y lo que la promo además requiera, p. ej. ser jubilado).
@@ -638,6 +640,16 @@ function gc() {
   if (!GC_P) GC_P = new Promise(ok => { const sc = document.createElement("script"); sc.async = true; sc.src = "https://gc.zgo.at/count.js"; sc.dataset.goatcounter = `https://${code}.goatcounter.com/count`; sc.dataset.goatcounterSettings = '{"no_onload": true}'; sc.onload = ok; document.head.appendChild(sc); });
   return GC_P;
 }
+/* errores que le aparecen a la gente en su celular: se cuentan de forma anónima en el contador de visitas
+   (solo el mensaje y dónde pasó, nada personal; como mucho 3 por visita) */
+let ERRS = 0;
+function reportarError(msg, src) {
+  if (ERRS >= 3 || !(CFG && CFG.goatcounter)) return; ERRS++;
+  const t = String(msg || "error").replace(/https?:\/\/\S+/g, "").slice(0, 90), donde = (String(src || "").split("/").pop() || "").slice(0, 40);
+  evento(`error/${(location.hash.split("-")[0] || "#inicio").slice(1)}/${t.replace(/[^\w áéíóúñ.:]/gi, "").replace(/\s+/g, "-")}`, `Error: ${t} (${donde})`);
+}
+addEventListener("error", e => { if (e.message) reportarError(e.message, `${e.filename}:${e.lineno}`); });
+addEventListener("unhandledrejection", e => reportarError(e.reason && (e.reason.message || e.reason), "promesa"));
 function contar(v) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} }); }
 /* eventos: clics hacia las tiendas (prueba del tráfico que mandamos a cada súper) y a la publicidad */
 function evento(path, title) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path, title, event: true }); } catch {} }); }

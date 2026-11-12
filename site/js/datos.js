@@ -2,7 +2,7 @@
    Entiende los dos formatos: el de siempre ({products: [...]}) y el "por columnas" (v2), que arma
    scripts/build_data.py: pesa menos y se lee más rápido. */
 (function (g) {
-  const K = ["p", "po", "pon", "pmax", "bulto", "promo", "chg", "anom"];
+  const K = ["p", "po", "pon", "pmax", "bulto", "promo", "chg", "anom", "low"];
   g.decodificar = function (d, fuera) {
     let L;
     if (d.products) L = d.products;

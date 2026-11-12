@@ -19,10 +19,22 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      # Los datos del día (precios, historial, fotos, sucursales) viven en la rama "datos", que se reemplaza
+      # entera cada día: así el repositorio no crece con cada actualización. Se trae lo del día anterior.
+      - name: Traer los datos guardados
+        run: |
+          if git fetch --depth=1 origin datos 2>/dev/null; then
+            git worktree add ../datos FETCH_HEAD
+            cp -r ../datos/data/. data/ 2>/dev/null || true
+            cp -r ../datos/site/data/. site/data/ 2>/dev/null || true
+            echo "Datos del día anterior: $(ls data/raw | tr '\n' ' ')"
+          else
+            echo "Todavía no hay rama de datos: se arranca con lo que hay en main"
+          fi
       - name: Pruebas
         run: python tests/run_tests.py
       - name: Descargar SEPA (Precios Claros)
@@ -34,12 +46,16 @@ jobs:
         run: python scripts/build_data.py
       - name: Control antes de publicar
         run: python scripts/check_data.py
-      - name: Guardar
+      - name: Guardar en la rama "datos"
         run: |
+          mkdir -p ../nuevos/data/raw ../nuevos/site/data
+          ls data/raw/*.json | sort | tail -n 2 | xargs -I{} cp {} ../nuevos/data/raw/
+          cp data/history.json data/imagenes.json data/sucursales.json ../nuevos/data/
+          cp site/data/*.json ../nuevos/site/data/
+          cd ../nuevos
+          git init -q -b datos
           git config user.name "comparasuper-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data site/data
-          git diff --cached --quiet && exit 0
-          git commit -m "Precios del $(date -u +%F)"
-          git pull --no-rebase -X ours origin "${GITHUB_REF_NAME}"
-          git push
+          git add -A
+          git commit -qm "Precios del $(date -u +%F)"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" datos

@@ -1,0 +1,50 @@
+name: Revisar descuentos
+
+# Lunes y jueves a las 10:40 (Argentina): revisa los descuentos cargados a mano.
+# Si alguno vence en los próximos 10 días, ya venció o su página de origen cambió, abre (o actualiza)
+# un aviso en la pestaña "Issues" del repositorio. GitHub te lo manda por correo.
+on:
+  schedule:
+    - cron: "40 13 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Estado anterior de las páginas de origen
+        uses: actions/cache/restore@v6
+        with:
+          path: data/fuentes_estado.json
+          key: fuentes-${{ github.run_id }}
+          restore-keys: fuentes-
+      - name: Revisar
+        id: r
+        run: python scripts/revisar_promos.py 10
+      - name: Guardar el estado para la próxima vez
+        uses: actions/cache/save@v6
+        with:
+          path: data/fuentes_estado.json
+          key: fuentes-${{ github.run_id }}
+      - name: Avisar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TITULO="🔔 Descuentos para revisar"
+          gh label create revisar-promos --color FBCA04 --description "Aviso automático de descuentos" 2>/dev/null || true
+          NUM=$(gh issue list --label revisar-promos --state open --json number -q '.[0].number')
+          if [ "${{ steps.r.outputs.avisar }}" = "si" ]; then
+            if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file revision_promos.md
+            else gh issue create --title "$TITULO" --label revisar-promos --body-file revision_promos.md; fi
+          elif [ -n "$NUM" ]; then
+            gh issue close "$NUM" --comment "Todo en orden: se cierra solo."
+          fi

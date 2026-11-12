@@ -10,6 +10,9 @@ except Exception as e:
     sys.exit(f"products.json no se puede leer: {e}")
 ids = {s["id"] for s in d["stores"]}
 all_ids = {s["id"] for s in json.loads((ROOT / "data/stores.json").read_text(encoding="utf-8"))["stores"]}
+sys.path.insert(0, str(ROOT / "scripts"))
+from build_data import descolumnar   # products.json puede venir "por columnas"
+d["products"] = descolumnar(d)
 if len(d["products"]) < 20:
     errors.append(f"muy pocos productos ({len(d['products'])})")
 for p in d["products"]:

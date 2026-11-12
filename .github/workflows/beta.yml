@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           ref: main
       - name: Datos anteriores de la prueba (historial)
         run: |
           git fetch --depth=1 origin beta-datos && git worktree add ../beta-datos FETCH_HEAD || mkdir -p ../beta-datos
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Precios por provincia (SEPA de todo el país)

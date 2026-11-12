@@ -9,3 +9,5 @@ site/data/p/
 node_modules/
 test-results/
 playwright-report/
+revision_promos.md
+data/fuentes_estado.json
