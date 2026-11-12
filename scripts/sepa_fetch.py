@@ -99,6 +99,8 @@ def num(v):
 
 ROTOS = []   # zips internos que no se pudieron abrir (se informan al final)
 SUCURSALES = {}   # (tienda, comercio, bandera, sucursal) -> ubicación, para "comercios cerca de mí"
+ACTIVAS = Counter()   # precios informados hoy por cada sucursal: las que no informan nada suelen estar cerradas
+MIN_PRECIOS_SUC = 20
 
 
 def provincia_sucursal(texto, lat, lon):
@@ -185,9 +187,11 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None, only=None):
                     if info:
                         SUCURSALES[(sid,) + key + (r["id_sucursal"],)] = info
             for r in read_csv(prod_b):
-                sid = sucs.get((r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal")))
+                k3 = (r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal"))
+                sid = sucs.get(k3)
                 if not sid:
                     continue
+                ACTIVAS[(sid,) + k3] += 1
                 ean = barcode(r)
                 if not ean:   # código interno de la cadena: no se puede comparar con otras
                     continue
@@ -290,8 +294,14 @@ def main():
     suc_path = ROOT / "data" / "sucursales.json"
     prev = json.loads(suc_path.read_text(encoding="utf-8")) if suc_path.exists() else {}
     nuevas = defaultdict(list)
-    for (sid, *_), info in SUCURSALES.items():
-        nuevas[sid].append(info)
+    cerradas = Counter()
+    for k, info in SUCURSALES.items():
+        if ACTIVAS[k] < MIN_PRECIOS_SUC:   # registrada en la base pero sin precios hoy: no se muestra en el mapa
+            cerradas[k[0]] += 1
+            continue
+        nuevas[k[0]].append(info)
+    if cerradas:
+        print("Sucursales sin precios hoy (posiblemente cerradas, no se muestran):", dict(cerradas))
     prev.update({k: sorted(v) for k, v in nuevas.items()})
     suc_path.write_text(json.dumps(prev, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"Sucursales con ubicación: {sum(len(v) for v in prev.values())} de {len(prev)} cadenas")

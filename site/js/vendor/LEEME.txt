@@ -16,3 +16,4 @@ Librerías de código abierto usadas por ComparáSúper (copias locales, sin ser
 - Embla Carousel 8.6 (MIT) – carrusel de ofertas: embla.js
 - PhotoSwipe 5.4 (MIT) – foto ampliada: photoswipe/
 Herramientas de desarrollo (no van en la web): Playwright y axe-core (pruebas), esbuild y Lightning CSS (achicar el código), Lighthouse CI (calidad).
+- Leaflet.GestureHandling 1.2.2 (MIT) – en el celular un dedo desplaza la página y dos mueven el mapa: leaflet/gesture.*

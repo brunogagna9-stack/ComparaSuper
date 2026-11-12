@@ -40,6 +40,7 @@ def suc_info(r):
 
 LATPROV = {}            # tienda -> [[latitud, provincia], ...] (ver "sepa_lat_provincia" en stores.json)
 sin_prov = Counter()    # sucursales que no se pudieron ubicar, por tienda
+activas = Counter()     # precios informados hoy por cada sucursal: las que no informan nada suelen estar cerradas
 
 
 def por_latitud(tabla, lat):
@@ -100,9 +101,11 @@ def summarize(zip_path, stores, acc, nsuc, sucursales, seen, only=None):
                 if info:
                     sucursales[prov][sid][k3] = info
             for r in S.read_csv(prod_b):
-                ps = sucs.get((r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal")))
+                k3 = (r.get("id_comercio"), r.get("id_bandera"), r.get("id_sucursal"))
+                ps = sucs.get(k3)
                 if not ps:
                     continue
+                activas[k3] += 1
                 ean = S.barcode(r)
                 if not ean:
                     continue
@@ -205,7 +208,11 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     for old in sorted(OUT.glob("*.json"))[:-2]:
         old.unlink()
-    suc = {p: {sid: sorted(v.values()) for sid, v in d.items()} for p, d in sucursales.items()}
+    cerradas = Counter((p, sid) for p, d in sucursales.items() for sid, v in d.items() for k3 in v if activas[k3] < S.MIN_PRECIOS_SUC)
+    if cerradas:
+        print(f"Sucursales sin precios hoy (posiblemente cerradas, no se muestran): {sum(cerradas.values())}")
+    suc = {p: {sid: sorted(i for k3, i in v.items() if activas[k3] >= S.MIN_PRECIOS_SUC) for sid, v in d.items()} for p, d in sucursales.items()}
+    suc = {p: {sid: l for sid, l in d.items() if l} for p, d in suc.items()}
     (OUT / f"sepa-{date}.json").write_text(json.dumps({"date": date, "source": "sepa", "items": items, "sucursales": suc},
                                                       ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     for p in sorted(items):

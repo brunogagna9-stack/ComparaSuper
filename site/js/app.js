@@ -304,7 +304,7 @@ function mapaUrl(sid) {
     let m = null; for (const b of l) { const d = dist(UBIC.lat, UBIC.lon, b[0], b[1]); if (!m || d < m.d) m = { d, b }; }
     return `https://www.google.com/maps/dir/?api=1&origin=${UBIC.lat},${UBIC.lon}&destination=${m.b[0]},${m.b[1]}`;
   }
-  const zona = UBIC && UBIC.label ? " " + UBIC.label : PROV ? " " + provNombre(PROV) : "";
+  const zona = UBIC && UBIC.label && !UBIC.gps && !UBIC.mapa ? " " + UBIC.label : PROV ? " " + provNombre(PROV) : "";
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s ? s.name : sid) + " supermercado" + zona)}`;
 }
 function shipping(sid, c, sub) {
@@ -547,7 +547,7 @@ async function modalUbic() {
   openModal(`<h2>📍 Mi ubicación</h2><p class="sub">La usamos solo en este navegador para mostrarte los comercios cercanos y sus promos. No se manda a ningún lado.</p>
     <div class="ugrid"><button class="btn" id="ugps">📡 Usar mi ubicación actual</button><button class="btn sec" type="button" data-marcarmapa>🗺️ Marcarla en el mapa</button></div>
     <label class="flbl" for="uzona">O elegí tu barrio o localidad${PROV ? ` de ${esc(provNombre(PROV))}` : ""}</label>
-    <div class="zwrap"><input class="inp" id="uzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}"></div>
+    <div class="zwrap"><input class="inp" id="uzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps && !UBIC.mapa ? esc(UBIC.label) : ""}"></div>
     <label class="flbl" for="ukm">Hasta qué distancia</label>
     <select class="sel" id="ukm">${[1, 2, 3, 5, 10, 20].map(k => `<option value="${k}" ${(UBIC ? UBIC.km : 3) === k ? "selected" : ""}>${k} km</option>`).join("")}</select>
     <p class="sub" id="umsg" style="min-height:20px;margin:8px 0 0"></p>
@@ -630,7 +630,7 @@ function vInicio() {
   $$("[data-tienda]").forEach(a => a.onclick = () => { S.stores = new Set([a.dataset.tienda]); S.cat = ""; S.q = ""; $("#q").value = ""; S.bpage = 1; });
 }
 /* marcador de ubicación del encabezado */
-function updUbic() { const l = $("#ulab"); if (l) l.textContent = UBIC ? (UBIC.gps ? `Tu ubicación · ${UBIC.km} km` : `${UBIC.label} · ${UBIC.km} km`) : "Elegí tu ubicación"; $("#uloc").classList.toggle("on", !!UBIC); }
+function updUbic() { const l = $("#ulab"); if (l) l.textContent = UBIC ? (UBIC.gps ? `Tu ubicación · ${UBIC.km} km` : UBIC.mapa ? `Punto del mapa · ${UBIC.km} km` : `${UBIC.label} · ${UBIC.km} km`) : "Elegí tu ubicación"; $("#uloc").classList.toggle("on", !!UBIC); }
 
 /* ---------- CONTADOR DE VISITAS (GoatCounter: gratis, anónimo, sin cookies; se activa poniendo el código en config.json) ---------- */
 let GC_P = null;
@@ -807,9 +807,9 @@ function cargarLeaflet() {
   if (!LF_P) LF_P = new Promise((ok, ko) => {
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "js/vendor/leaflet/leaflet.css"; document.head.appendChild(l);
     const js = src => new Promise((a, b) => { const sc = document.createElement("script"); sc.src = src; sc.onload = a; sc.onerror = b; document.head.appendChild(sc); });
-    for (const css of ["js/vendor/leaflet/markercluster.css", "js/vendor/leaflet/locate.css"]) { const k = document.createElement("link"); k.rel = "stylesheet"; k.href = css; document.head.appendChild(k); }
+    for (const css of ["js/vendor/leaflet/markercluster.css", "js/vendor/leaflet/locate.css", "js/vendor/leaflet/gesture.css"]) { const k = document.createElement("link"); k.rel = "stylesheet"; k.href = css; document.head.appendChild(k); }
     // Leaflet + agrupar puntos (Leaflet.markercluster, MIT) + "seguir mi ubicación" (Leaflet.Locate, MIT)
-    js("js/vendor/leaflet/leaflet.js").then(() => Promise.all([js("js/vendor/leaflet/markercluster.js"), js("js/vendor/leaflet/locate.js")])).then(() => ok(window.L), () => { LF_P = null; ko(); });
+    js("js/vendor/leaflet/leaflet.js").then(() => Promise.all([js("js/vendor/leaflet/markercluster.js"), js("js/vendor/leaflet/locate.js"), js("js/vendor/leaflet/gesture.js").catch(() => {})])).then(() => ok(window.L), () => { LF_P = null; ko(); });
   });
   return LF_P;
 }
@@ -840,7 +840,8 @@ async function vMapa() {
   intro();
   const centro = UBIC ? [UBIC.lat, UBIC.lon] : (() => { const all = cadenas.flatMap(st => SUC[st.id].filter(sucValida)); if (!all.length) return OBELISCO; return [all.reduce((a, b) => a + b[0], 0) / all.length, all.reduce((a, b) => a + b[1], 0) / all.length]; })();
   $("#mapa").innerHTML = "";
-  const m = L.map("mapa", { zoomControl: true, tap: true }).setView(centro, UBIC ? 15 : PROV === "AR-C" ? 12 : 9);
+  const m = L.map("mapa", { zoomControl: true, tap: true, gestureHandling: !!window.leafletGestureHandling,
+    gestureHandlingOptions: { duration: 1400, text: { touch: "Usá dos dedos para mover el mapa", scroll: "Usá Ctrl + rueda del mouse para acercar o alejar", scrollMac: "Usá ⌘ + rueda del mouse para acercar o alejar" } } }).setView(centro, UBIC ? 15 : PROV === "AR-C" ? 12 : 9);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
 
   // ---- tu ubicación: punto azul que se puede arrastrar ----
@@ -851,7 +852,7 @@ async function vMapa() {
     yo = L.marker([UBIC.lat, UBIC.lon], { draggable: true, zIndexOffset: 1000, title: "Tu ubicación (arrastrala para moverla)", keyboard: false,
       icon: L.divIcon({ className: "yo", html: "<span></span>", iconSize: [26, 26] }) }).addTo(m)
       .bindTooltip("Vos estás acá · arrastrá para mover", { direction: "top", offset: [0, -14] });
-    yo.on("dragend", e => { const { lat, lng } = e.target.getLatLng(); fijarUbic(lat, lng, "el punto marcado en el mapa"); });
+    yo.on("dragend", e => { const { lat, lng } = e.target.getLatLng(); fijarUbic(lat, lng, "punto del mapa"); });
   };
   const fijarUbic = (lat, lon, label, gps) => {
     UBIC = { lat: +lat.toFixed(5), lon: +lon.toFixed(5), label, km: (UBIC && UBIC.km) || 3, ...(gps ? { gps: true } : { mapa: true }) };
@@ -861,9 +862,12 @@ async function vMapa() {
   ponerYo();
   // tocar el mapa: marcar mi ubicación en ese punto
   m.on("click", e => {
-    L.popup({ closeButton: true, className: "mmarca" }).setLatLng(e.latlng)
-      .setContent(`<button type="button" class="btn sm" id="mmarcar">${ic("map-pin")} Marcar mi ubicación acá</button>`).openOn(m);
-    setTimeout(() => { const b = $("#mmarcar"); if (b) b.onclick = () => fijarUbic(e.latlng.lat, e.latlng.lng, "el punto marcado en el mapa"); });
+    // el botón se arma como elemento y se conecta directo: si tocás el mapa varias veces, cada cartel tiene el suyo
+    const box = L.DomUtil.create("div", "mmb"), bt = L.DomUtil.create("button", "btn sm", box);
+    bt.type = "button"; bt.innerHTML = `${ic("map-pin")} Marcar mi ubicación acá`;
+    L.DomEvent.disableClickPropagation(box);
+    L.DomEvent.on(bt, "click", ev => { L.DomEvent.stop(ev); m.closePopup(); fijarUbic(e.latlng.lat, e.latlng.lng, "punto del mapa"); });
+    L.popup({ closeButton: true, className: "mmarca", autoPan: false }).setLatLng(e.latlng).setContent(box).openOn(m);
   });
   // botón ➤: usar la ubicación del dispositivo (y seguirla mientras caminás)
   if (L.control.locate) {
@@ -2323,7 +2327,7 @@ async function wizard(paso) {
     openModal(`${head(2)}<h2>2. ¿Por dónde comprás?</h2><p class="sub">Así te mostramos primero los comercios que tenés cerca. Queda guardado solo en este navegador.</p>
       <button class="btn" id="wgps" style="width:100%;justify-content:center;margin:6px 0 12px">📡 Usar mi ubicación actual</button>
       <label class="flbl" for="wzona">O elegí tu barrio o localidad${PROV ? ` de ${esc(provNombre(PROV))}` : ""}</label>
-      <div class="zwrap"><input class="inp" id="wzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}"></div>
+      <div class="zwrap"><input class="inp" id="wzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps && !UBIC.mapa ? esc(UBIC.label) : ""}"></div>
       <p class="sub" id="wmsg" style="min-height:20px;margin:8px 0 0">${UBIC ? `Ya tenés marcada: <b>${esc(UBIC.gps ? "tu ubicación actual" : UBIC.label)}</b>.` : ""}</p>
       <div class="mfoot"><button class="btn sec sm" id="wback">← Atrás</button><button class="btn" id="wnext">Siguiente →</button></div>`);
     zonaPicker($("#wzona"), nombres);

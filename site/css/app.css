@@ -1226,3 +1226,9 @@ header.site{view-transition-name:encabezado}
 .mapw{z-index:0;isolation:isolate}
 .yo span{background:#111827;box-shadow:0 0 0 6px rgba(17,24,39,.22),0 2px 6px rgba(0,0,0,.4)}
 @keyframes yop{0%,100%{box-shadow:0 0 0 4px rgba(17,24,39,.3),0 2px 6px rgba(0,0,0,.4)}50%{box-shadow:0 0 0 13px rgba(17,24,39,.06),0 2px 6px rgba(0,0,0,.4)}}
+/* la etiqueta de ubicación no empuja el menú (se corta con "…") */
+@media (min-width:901px){.hrow2 .uloc{max-width:230px;flex:0 1 auto;min-width:0}}
+.mmb .btn{white-space:nowrap}
+/* mapa en el celular: más bajo, con aire para deslizar la página; un dedo desplaza la página */
+@media (max-width:640px){.mapa{height:min(52vh,430px)}}
+.leaflet-gesture-handling-touch-warning:after,.leaflet-gesture-handling-scroll-warning:after{font-family:inherit;font-weight:700;font-size:17px}
