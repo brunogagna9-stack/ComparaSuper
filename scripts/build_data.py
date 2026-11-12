@@ -370,6 +370,28 @@ def columnas(meta, products):
                 O=[[oferta(o) for o in p["offers"]] for p in products])
 
 
+def descolumnar(d):
+    """Lo inverso de columnas(): devuelve la lista de productos en el formato de siempre."""
+    if "products" in d:
+        return d["products"]
+    P, out = d["P"], []
+    for i, pid in enumerate(P["id"]):
+        offers = []
+        for a in d["O"][i]:
+            o = {"s": d["sids"][a[0]]}
+            for k, v in zip(OFERTA_K, a[1:]):
+                if v is None:
+                    continue
+                o[k] = {"txt": v[0], "pu": v[1], "n": v[2]} if k == "promo" else {"prev": v[0], "pct": v[1]} if k == "chg" else v
+            offers.append(o)
+        x = {"id": pid, "name": P["name"][i], "brand": P["brand"][i], "cat": d["cats_i"][P["cat"][i]] if P["cat"][i] >= 0 else "",
+             "bq": P["bq"][i], "bu": d["bus"][P["bu"][i]] if P["bu"][i] >= 0 else None, "offers": offers}
+        if P["img"][i]:
+            x["img"] = P["img"][i]
+        out.append(x)
+    return out
+
+
 def main():
     ip = ROOT / "data" / "imagenes.json"
     if ip.exists():

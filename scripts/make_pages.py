@@ -26,7 +26,8 @@ def main():
     out.mkdir(exist_ok=True)
     urls = [url]
     n = 0
-    for p in d["products"]:
+    from build_data import descolumnar   # products.json puede venir "por columnas" (ver build_data.py)
+    for p in descolumnar(d):
         if len(p["offers"]) < MIN_COMERCIOS:
             continue
         precios = sorted((min(x for x in (o.get("p"), o.get("po")) if x), o["s"]) for o in p["offers"] if o.get("p") or o.get("po"))
