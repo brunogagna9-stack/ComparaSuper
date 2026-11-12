@@ -355,6 +355,34 @@ function bestSplit(items, day) {
   return bestR;
 }
 
+/* Cada producto donde sale menos, yendo a todos los comercios que haga falta. Se calcula igual que las otras
+   opciones (con el descuento de medio de pago del día, sus topes y el envío si es online), así se pueden comparar.
+   Como ir a muchos lugares incluye la posibilidad de ir a uno o a dos, nunca puede dar más caro que esas opciones. */
+function bestMulti(items, day, bst, split) {
+  const opts = options();
+  const bruto = items.reduce((a, { p, qty }) => a + Math.min(...opts.map(x => { const o = offerAt(p, x.sid); return o && base(o, x.c) ? lineCost(o, x.c, qty).total : Infinity; })), 0);
+  if (!isFinite(bruto) || !bruto) return null;
+  const armar = tasa => {
+    const g = new Map();
+    for (const it of items) {
+      let m = null;
+      opts.forEach((x, i) => { const o = offerAt(it.p, x.sid); if (!o || !base(o, x.c)) return; const v = lineCost(o, x.c, it.qty).total * (1 - tasa(x)); if (!m || v < m.v) m = { v, i }; });
+      if (!m) return null;
+      g.set(m.i, [...(g.get(m.i) || []), it]);
+    }
+    const parts = [...g].map(([i, its]) => basketAt(opts[i].sid, opts[i].c, its, day));
+    let total = parts.reduce((a, b) => a + b.total, 0);
+    const porPromo = {};   // un mismo tope por persona aunque se use en varios comercios
+    for (const b of parts) if (b.pay.promo && b.pay.promo.tope) (porPromo[b.pay.promo.id] = porPromo[b.pay.promo.id] || { d: 0, t: b.pay.promo.tope }).d += b.pay.disc;
+    for (const x of Object.values(porPromo)) total += Math.max(0, x.d - x.t);
+    return { total, parts };
+  };
+  const cands = [armar(() => 0), armar(x => payDiscount(x.sid, day, x.c, bruto).disc / bruto)].filter(Boolean);
+  if (split) cands.push({ total: split.total, parts: split.parts });
+  if (bst) cands.push({ total: bst.total, parts: [bst] });
+  return cands.sort((a, b) => a.total - b.total || a.parts.length - b.parts.length)[0] || null;
+}
+
 /* ---------- interfaz general ---------- */
 function toast(t, ms = 2400) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), ms); }
 function saveLista() { LS.set(PK("cs_lista"), LISTA); const n = Object.values(LISTA).reduce((a, b) => a + b, 0); const el = $("#lcount"); el.textContent = n; el.dataset.n = n; }
@@ -1352,9 +1380,11 @@ function vConviene() {
 
   const rk = rankAll(items, day), full = rk.filter(b => !b.miss.length), bst = full[0], worst = full[full.length - 1];
   const split = bestSplit(items, day);
-  const byDay = DIAS.map((_, d) => { const r = rankAll(items, d).filter(b => !b.miss.length)[0]; return r ? { d, b: r } : null; }).filter(Boolean).sort((a, b) => a.b.total - b.b.total);
-  const bd = byDay[0];
-  const ideal = items.reduce((a, { p, qty }) => a + Math.min(...p.offers.flatMap(o => chans(o).map(c => lineCost(o, c, qty).total))), 0);
+  const byDay = DIAS.map((_, d) => { const r = rankAll(items, d).filter(b => !b.miss.length)[0]; return r ? { d, b: r } : null; }).filter(Boolean).sort((a, b) => (a.b.total - b.b.total) || ((a.d === day ? 0 : 1) - (b.d === day ? 0 : 1)));
+  let bd = byDay[0];
+  if (bd && bst && bd.d !== day && bst.total - bd.b.total < 1) bd = { d: day, b: bst };   // ningún otro día es más barato: se queda con hoy
+  const multi = bestMulti(items, day, bst, split);
+  const pagoDe = parts => { const ps = parts.filter(b => b.pay.promo && b.pay.disc > 0); return ps.length ? `Incluye ${ps.map(b => `${money(b.pay.disc)} de descuento con ${esc(medioName(b.pay.promo))} en ${esc(ST[b.sid].name)}`).join(" y ")}.` : "Sin descuentos de medio de pago este día."; };
   const splitGain = split && bst ? bst.total - split.total : 0;
   const pct = (a, b2) => b2 ? Math.round(a / b2 * 100) : 0;
 
@@ -1364,11 +1394,14 @@ function vConviene() {
       ${cartBtn(bst) ? `<div style="margin-top:10px">${cartBtn(bst)}</div>` : ""}</div>`
     : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>Ningún comercio tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.</p></div>`;
   const card2 = split ? `<div class="sumc box ${splitGain > 0 ? "good" : ""}"><div class="k">② Mezclando dos comercios</div><div class="t">${split.parts.map(b => esc(optName(b))).join(" + ")}</div><div class="big">${money(split.total)}</div>
-      <div class="sub">${bst ? (splitGain > 0 ? `<b class="okc">Ahorrás ${money(splitGain)} (${pct(splitGain, bst.total)}%)</b> frente a todo en ${esc(optName(bst))}, pero tenés que ir a dos lugares.` : `No conviene: sale ${money(-splitGain)} más que todo en ${esc(optName(bst))}.`) : "Es la única forma de conseguir todo."}</div></div>`
+      <div class="sub">${bst ? (splitGain > 0 ? `<b class="okc">Ahorrás ${money(splitGain)} (${pct(splitGain, bst.total)}%)</b> frente a todo en ${esc(optName(bst))}, pero tenés que ir a dos lugares. ${pagoDe(split.parts)}` : `No conviene: sale ${money(-splitGain)} más que todo en ${esc(optName(bst))}.`) : "Es la única forma de conseguir todo."}</div></div>`
     : `<div class="sumc box"><div class="k">② Mezclando dos comercios</div><p class="sub">No hay una combinación de dos comercios que tenga todo.</p></div>`;
-  const card3 = `<div class="sumc box"><div class="k">③ Cada producto en su lugar más barato</div><div class="big">${money(ideal)}</div><div class="sub">Yendo a todos los comercios que haga falta y sin descuentos de pago. Sirve de referencia.</div></div>`;
+  const mismos = multi && split && multi.total >= split.total - 1, nm = multi ? new Set(multi.parts.map(b => b.sid)).size : 0;
+  const card3 = multi ? `<div class="sumc box"><div class="k">③ Cada producto en su lugar más barato</div><div class="t">${nm === 1 ? esc(optName(multi.parts[0])) : `${nm} comercios`}</div><div class="big">${money(multi.total)}</div>
+      <div class="sub">${mismos || nm <= 2 ? `Ir a más comercios no baja el total: lo más barato ya se consigue ${nm === 1 ? "en un solo lugar" : "con la opción ②"}.`
+        : `${split ? `<b class="okc">${money(split.total - multi.total)} menos</b> que mezclando dos, pero` : "Pero"} hay que ir a ${[...new Set(multi.parts.map(b => ST[b.sid].name))].map(esc).join(", ")}. ${pagoDe(multi.parts)}`}</div></div>` : "";
   const card4 = bd ? `<div class="sumc box ${bst && bd.d !== day && bst.total - bd.b.total > 100 ? "good" : ""}"><div class="k">④ El mejor día de la semana</div><div class="t">${DIAS[bd.d]} en ${esc(optName(bd.b))}</div><div class="big">${money(bd.b.total)}</div>
-      <div class="sub">${bd.b.pay.promo ? `con ${esc(medioName(bd.b.pay.promo))} (${esc(pagoTxt(bd.b.pay.promo))})` : "sin descuento de pago"}${bst && bd.d !== day ? ` · ${money(bst.total - bd.b.total)} menos que el ${DIAS[day].toLowerCase()}` : ""}</div>
+      <div class="sub">${bd.b.pay.promo ? `con ${esc(medioName(bd.b.pay.promo))} (${esc(pagoTxt(bd.b.pay.promo))})` : "sin descuento de pago"}${bst && bd.d !== day ? ` · ${money(bst.total - bd.b.total)} menos que el ${DIAS[day].toLowerCase()}` : bd.d === day ? " · ningún otro día de la semana sale menos" : ""}</div>
       ${bd.d !== day ? `<button class="btn sec sm" data-ld="${bd.d}" style="margin-top:8px">Ver el ${DIAS[bd.d].toLowerCase()}</button>` : ""}</div>` : "";
 
   const splitTable = split ? `<section class="box"><h3>Detalle: cómo repartir la compra entre ${split.parts.map(b => esc(optName(b))).join(" y ")}</h3>
