@@ -2052,7 +2052,7 @@ $("#bmore").onclick = e => { e.stopPropagation(); masShow($("#bsheet").hidden); 
 document.addEventListener("click", e => { const sh = $("#bsheet"); if (!sh.hidden && (!e.target.closest("#bsheet") || e.target.closest("a, button"))) masShow(false); });
 
 /* ---------- ESCANEAR CÓDIGO DE BARRAS (cámara o foto) ---------- */
-const SCAN = { stream: null, timer: null, reader: null };
+const SCAN = { stream: null, timer: null, reader: null, ses: 0, parado: 0, leido: false, vigia: null };
 function findEan(code) {
   const c = String(code || "").replace(/\D/g, ""); if (!c) return null;
   const k = c.replace(/^0+/, "");
@@ -2080,14 +2080,18 @@ async function nativeDetector() {
   try { const f = await BarcodeDetector.getSupportedFormats(); const want = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(x => f.includes(x)); return want.length ? new BarcodeDetector({ formats: want }) : null; } catch { return null; }
 }
 function scanStop() {
-  clearInterval(SCAN.timer); SCAN.timer = null;
+  SCAN.ses++;   // cualquier pedido de cámara que todavía esté en camino queda anulado
+  clearInterval(SCAN.timer); SCAN.timer = null; clearTimeout(SCAN.vigia);
   if (SCAN.reader) { try { SCAN.reader.reset(); } catch {} SCAN.reader = null; }
-  if (SCAN.stream) { SCAN.stream.getTracks().forEach(t => t.stop()); SCAN.stream = null; }
+  if (SCAN.stream) { SCAN.stream.getTracks().forEach(t => t.stop()); SCAN.stream = null; SCAN.parado = Date.now(); }
+  const v = $("#scanv"); if (v) { try { v.pause(); } catch {} v.srcObject = null; }
 }
 async function scanFound(code) {
+  if (SCAN.leido) return; SCAN.leido = true;   // el mismo código puede leerse dos veces seguidas: se usa una sola
   scanStop(); await loadProducts();
   const p = findEan(code);
   if (p) { closeModal(); openProduct(p.id); toast(`📷 Código ${code}`); return; }
+  SCAN.leido = false;
   const m = $("#scanmsg"); if (m) m.innerHTML = `No encontramos el código <b>${esc(code)}</b> entre los productos comparados. Probá <a href="#buscar" data-close>buscarlo por nombre</a>.`;
 }
 async function modalScan() {
@@ -2117,38 +2121,67 @@ async function modalScan() {
     } catch { msg.textContent = "No encontramos un código de barras en la foto. Sacala de cerca, derecha y con buena luz, que se vean las rayitas y los números."; }
   };
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { msg.textContent = "Tu navegador no deja usar la cámara acá. Usá una foto del código o escribí los números."; return; }
+  SCAN.leido = false;
+  camara(v, msg);
+}
+/* abre la cámara para esta ventana del escáner. Cada apertura tiene su número (SCAN.ses): si mientras tanto
+   se cerró o se abrió otra, la cámara que llega tarde se apaga enseguida y no queda tomada. */
+async function camara(v, msg, intento = 0) {
+  scanStop(); const ses = SCAN.ses;
+  const vivo = () => ses === SCAN.ses && !$("#modal").hidden && $("#scanv") === v;
+  // el celular tarda un momento en soltar la cámara anterior: si se cerró hace muy poco, se espera
+  const espera = 450 - (Date.now() - SCAN.parado); if (espera > 0) await new Promise(r => setTimeout(r, espera));
+  if (!vivo()) return;
+  let st;
   try {
-    SCAN.stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false });
-    if ($("#modal").hidden) { scanStop(); return; }
-    v.srcObject = SCAN.stream; await v.play();
-    msg.textContent = "Buscando un código…";
+    st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 } }, audio: false });
+  } catch (err) {
+    if (!vivo()) return;
+    if (err && (err.name === "NotReadableError" || err.name === "AbortError" || err.name === "TrackStartError") && intento < 2) { msg.textContent = "Abriendo la cámara…"; SCAN.parado = Date.now(); return camara(v, msg, intento + 1); }
+    msg.textContent = err && err.name === "NotAllowedError" ? "No diste permiso para usar la cámara. Podés usar una foto del código o escribir los números." : "No pudimos abrir la cámara. Usá una foto del código o escribí los números.";
+    return;
+  }
+  if (!vivo()) { st.getTracks().forEach(t => t.stop()); SCAN.parado = Date.now(); return; }
+  SCAN.stream = st;
+  try { v.srcObject = st; await v.play(); } catch {}
+  if (!vivo()) return;
+  msg.textContent = "Buscando un código…";
+  // vigía: si en 2,5 segundos la imagen sigue negra (sin cuadros), se reabre la cámara sola (hasta 2 veces)
+  const t0 = v.currentTime;
+  SCAN.vigia = setTimeout(() => { if (vivo() && (!v.videoWidth || v.readyState < 2 || v.currentTime === t0) && intento < 2) { msg.textContent = "Reiniciando la cámara…"; camara(v, msg, intento + 1); } }, 2500);
+  st.getVideoTracks().forEach(t => t.addEventListener("ended", () => { if (vivo() && intento < 2) camara(v, msg, intento + 1); }));
+  try {
     const det = await nativeDetector();
+    if (!vivo()) return;
     if (det) {
-      SCAN.timer = setInterval(async () => { if ($("#modal").hidden) return scanStop(); try { const r = await det.detect(v); if (r[0]) scanFound(r[0].rawValue); } catch {} }, 250);
+      SCAN.timer = setInterval(async () => { if (!vivo()) return; try { const r = await det.detect(v); if (r[0] && vivo()) scanFound(r[0].rawValue); } catch {} }, 250);
     } else if (await loadZW().then(() => true, () => false)) {
+      if (!vivo()) return;
       // cuadro por cuadro de la cámara, ~6 veces por segundo, recortando el centro (donde está el recuadro)
       const cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true });
       let ocupado = false;
       SCAN.timer = setInterval(async () => {
-        if ($("#modal").hidden) return scanStop();
-        if (ocupado || !v.videoWidth) return; ocupado = true;
+        if (!vivo() || ocupado || !v.videoWidth) return; ocupado = true;
         try {
           const w = v.videoWidth, h = v.videoHeight, cw = Math.round(w * 0.8), ch = Math.round(h * 0.5);
           cv.width = cw; cv.height = ch; cx.drawImage(v, (w - cw) / 2, (h - ch) / 2, cw, ch, 0, 0, cw, ch);
           const t = await leerZW(cx.getImageData(0, 0, cw, ch));
-          if (t) scanFound(t);
+          if (t && vivo()) scanFound(t);
         } catch {} finally { ocupado = false; }
       }, 160);
     } else {
-      const ZX = await loadZX();
+      const ZX = await loadZX(); if (!vivo()) return;
       const hints = new Map(); hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]);
       SCAN.reader = new ZX.BrowserMultiFormatReader(hints);
-      SCAN.reader.decodeFromStream(SCAN.stream, v, r => { if (r) scanFound(r.getText()); });
+      SCAN.reader.decodeFromStream(st, v, r => { if (r && vivo()) scanFound(r.getText()); });
     }
-  } catch (err) {
-    msg.textContent = err && err.name === "NotAllowedError" ? "No diste permiso para usar la cámara. Podés usar una foto del código o escribir los números." : "No pudimos abrir la cámara. Usá una foto del código o escribí los números.";
-  }
+  } catch { if (vivo()) msg.textContent = "No pudimos usar el lector. Usá una foto del código o escribí los números."; }
 }
+/* si salís de la página (otra app usó la cámara) y volvés con el escáner abierto, se reabre la cámara */
+document.addEventListener("visibilitychange", () => {
+  const v = $("#scanv"), msg = $("#scanmsg");
+  if (document.visibilityState === "visible" && v && msg && !$("#modal").hidden && (!SCAN.stream || SCAN.stream.getVideoTracks().every(t => t.readyState === "ended"))) camara(v, msg);
+});
 
 /* =====================================================================
    AYUDAS PARA ENTENDER Y USAR LA PÁGINA
