@@ -7,3 +7,12 @@ Librerías de código abierto usadas por ComparáSúper (copias locales, sin ser
 - Workbox 7.4.1 (MIT) – funcionamiento sin internet: workbox/
 - ZXing (Apache 2.0) – lector anterior, de respaldo: zxing.min.js
 - Tesseract.js 7.0.0 (Apache 2.0) – lector de tickets; se baja de cdn.jsdelivr.net solo al usarlo.
+- idb-keyval 6.3.0 (Apache 2.0) – guarda productos e índice en el celular: idb-keyval.js
+- Leaflet.markercluster 1.5.3 y Leaflet.Locate 0.90 (MIT) – agrupar puntos y seguir mi ubicación: leaflet/
+- Íconos Lucide 1.72 (ISC) – dentro de index.html
+- AutoAnimate 0.10 (MIT) – listas que se acomodan con movimiento: auto-animate.js
+- Driver.js 1.12 (MIT) – guía rápida: driver/
+- Floating UI 1.8 (MIT) – carteles y menús que no se salen de la pantalla: floating-ui.js
+- Embla Carousel 8.6 (MIT) – carrusel de ofertas: embla.js
+- PhotoSwipe 5.4 (MIT) – foto ampliada: photoswipe/
+Herramientas de desarrollo (no van en la web): Playwright y axe-core (pruebas), esbuild y Lightning CSS (achicar el código), Lighthouse CI (calidad).

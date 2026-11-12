@@ -1,0 +1,10 @@
+{
+  "name": "comparasuper",
+  "private": true,
+  "description": "Pruebas automáticas de la web (no hace falta para usarla).",
+  "scripts": { "test": "playwright test" },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.0",
+    "@playwright/test": "^1.50.0"
+  }
+}

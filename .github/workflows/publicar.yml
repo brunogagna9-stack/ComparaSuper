@@ -20,7 +20,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Pruebas automáticas (Playwright + axe-core, ver tests/): cuando se sube un cambio de la web,
+  # se publica solo si pasan. Las actualizaciones diarias de precios no esperan las pruebas.
+  pruebas:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Instalar las herramientas de prueba
+        run: npm ci || npm install --no-audit --no-fund
+      - name: Instalar el navegador de prueba
+        run: npx playwright install --with-deps chromium
+      - name: Probar la web (PC y celular)
+        run: npx playwright test
+      - name: Guardar el informe si algo falló
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: informe-pruebas
+          path: test-results
+          retention-days: 7
+
   publicar:
+    needs: pruebas
+    if: always() && (needs.pruebas.result == 'success' || needs.pruebas.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -51,6 +78,17 @@ jobs:
             echo "AVISO: no se encontraron los datos de las provincias (rama beta-datos)"
           fi
           rm -rf _datos_prov
+      # Código y estilos más livianos para la web publicada (esbuild y Lightning CSS, de código abierto).
+      # En el repositorio quedan legibles; si algo falla, se publica sin achicar.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Achicar el código (esbuild y Lightning CSS)
+        continue-on-error: true
+        run: |
+          npx --yes esbuild@0.25 site/js/app.js site/js/mapa.js site/js/datos.js site/js/buscador.js --minify --target=es2020 --outdir=site/js --allow-overwrite
+          npx --yes --package=lightningcss-cli@1 lightningcss --minify --targets '>= 0.25%' site/css/app.css -o site/css/app.css
+          ls -la site/js/app.js site/css/app.css
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:

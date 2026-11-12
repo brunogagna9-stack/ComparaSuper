@@ -32,10 +32,37 @@ let MEDIOS = LS.get("cs_medios", null);      // null = no configurado (se muestr
 let AVISOS = LS.get(PK("cs_avisos"), {});        // {idProducto: precio cuando se pidió el aviso}
 
 /* ---------- tema claro / oscuro ---------- */
+/* librerías que se bajan solo cuando hacen falta */
+const LIBS = {};
+function lib(js, css, glob) {
+  if (!LIBS[js]) LIBS[js] = new Promise((ok, ko) => {
+    if (css) for (const c of [].concat(css)) { const k = document.createElement("link"); k.rel = "stylesheet"; k.href = c; document.head.appendChild(k); }
+    const s = document.createElement("script"); s.src = js; s.onload = () => ok(glob ? glob() : true); s.onerror = () => { delete LIBS[js]; ko(); }; document.head.appendChild(s);
+  });
+  return LIBS[js];
+}
+/* listas que se acomodan con movimiento (AutoAnimate, licencia MIT) */
+function animar(el) { if (el && window.autoAnimate && !el.__aa && !matchMedia("(prefers-reduced-motion: reduce)").matches) { el.__aa = 1; try { autoAnimate(el, { duration: 180 }); } catch {} } }
+/* pantallas que se vuelven a dibujar enteras (carrito, en el súper): cada producto se desliza a su nuevo lugar */
+function suave(fn) {
+  if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return fn();
+  document.documentElement.classList.add("vt-items");
+  const t = document.startViewTransition(fn); t.finished.finally(() => document.documentElement.classList.remove("vt-items"));
+}
+/* carteles y menús que nunca se salen de la pantalla (Floating UI, licencia MIT) */
+function flotar(ref, el, placement = "bottom") {
+  const F = window.FloatingUIDOM; if (!F || !ref || !el) return () => {};
+  Object.assign(el.style, { position: "fixed", left: "0px", top: "0px", right: "auto" });
+  const upd = () => F.computePosition(ref, el, { strategy: "fixed", placement, middleware: [F.offset(8), F.flip({ padding: 8 }), F.shift({ padding: 8 })] })
+    .then(({ x, y }) => Object.assign(el.style, { left: x + "px", top: y + "px" }));
+  return F.autoUpdate(ref, el, upd);
+}
+/* íconos Lucide (sprite dentro de index.html): iguales en todos los celulares, a diferencia de los emojis */
+const ic = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   const b = $("#themebtn");
-  if (b) { b.innerHTML = t === "dark" ? '☀️<span class="hl">Modo Claro</span>' : '🌙<span class="hl">Modo Oscuro</span>'; b.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"; }
+  if (b) { b.innerHTML = t === "dark" ? ic("sun") + '<span class="hl">Modo Claro</span>' : ic("moon") + '<span class="hl">Modo Oscuro</span>'; b.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"; }
   const m = $('meta[name="theme-color"]'); if (m) m.content = t === "dark" ? "#0b3d2c" : "#0e7a55";
 }
 applyTheme(LS.get("cs_tema", "light"));
@@ -112,6 +139,7 @@ function iniciarFondo() {
     BUSC.w.onmessage = e => {
       const m = e.data;
       if (m.t === "top") usarTop({ products: m.products, listo: true });
+      else if (m.t === "origen") BUSC.cache_ = m.cache;
       else if (m.t === "parte") (BUSC.partes = BUSC.partes || []).push(m.products);
       else if (m.t === "full") { const L = [].concat(...BUSC.partes); BUSC.partes = null; prepProducts({ products: L, listo: true }); ok(); }
       else if (m.t === "indice") { BUSC.ok = true; if (document.activeElement === $("#q")) qsugDraw(); }
@@ -121,7 +149,7 @@ function iniciarFondo() {
     };
     BUSC.w.onerror = () => { if (READY) return; BUSC.w = false; PROD_P = null; loadProducts().then(ok); };
   });
-  BUSC.w.postMessage({ t: "cargar", full: abs("products.json"), top: abs("products-top.json"), fuera: [...FUERA] });
+  BUSC.w.postMessage({ t: "cargar", full: abs("products.json"), top: abs("products-top.json"), fuera: [...FUERA], clave: D && D.updated ? `${D.updated}|${PROV || ""}` : "" });
   return true;
 }
 /* pregunta al proceso de fondo qué productos coinciden; devuelve lo guardado si ya se preguntó */
@@ -660,20 +688,24 @@ function tamTicket(t) {
   const n = parseFloat(m[1].replace(",", ".")), u = m[2];
   return /^(kgs?|k)$/.test(u) ? { q: n, u: "kg" } : /^(grs?|g)$/.test(u) ? { q: n / 1000, u: "kg" } : /^(lts?|l)$/.test(u) ? { q: n, u: "l" } : { q: n / 1000, u: "l" };
 }
-function ticketTabla(lineas, res) {
-  const orden = (l, ids) => { const t = tamTicket(l.txt); if (!t) return ids; const d = id => { const p = BY[id]; return p.bq && p.bu === t.u ? Math.abs(p.bq - t.q) / t.q : 9; }; return [...ids].sort((a, b) => d(a) - d(b)); };
+function ticketTabla(lineas, res, esLista) {
+  // primero el tamaño que dice el renglón (si lo dice) y después el producto que más comercios venden (el más común)
+  const orden = (l, ids) => { const t = tamTicket(l.txt); const d = id => { const p = BY[id]; return !t ? 0 : p.bq && p.bu === t.u ? Math.round(Math.abs(p.bq - t.q) / t.q * 10) : 99; };
+    return [...ids].sort((a, b) => d(a) - d(b) || BY[b].offers.length - BY[a].offers.length).slice(0, 6); };
   const filas = lineas.map((l, i) => ({ ...l, ids: orden(l, (res[i] && res[i].ids.filter(id => BY[id])) || []), sel: 0, on: !!(res[i] && res[i].ids.length) }));
   const draw = () => {
     let pag = 0, mej = 0, n = 0;
     const html = filas.map((f, i) => {
       const p = f.on && BY[f.ids[f.sel]], b = p && best(p);
-      if (p) { pag += f.precio; mej += Math.min(f.precio, b.v * f.cant); n++; }
-      return `<div class="tkrow${p ? "" : " off"}"><div class="tkl"><span class="sub">«${esc(f.txt)}»${f.cant > 1 ? ` × ${f.cant}` : ""} · pagaste ${money(f.precio)}</span>
+      if (p) { pag += f.precio; mej += esLista ? b.v * f.cant : Math.min(f.precio, b.v * f.cant); n++; }
+      return `<div class="tkrow${p ? "" : " off"}"><div class="tkl"><span class="sub">«${esc(f.txt)}»${f.cant > 1 ? ` × ${f.cant}` : ""}${esLista ? "" : ` · pagaste ${money(f.precio)}`}</span>
         ${f.ids.length ? `<select class="sel" data-tksel="${i}" aria-label="Producto">${f.ids.map((id, k) => `<option value="${k}" ${k === f.sel && f.on ? "selected" : ""}>${esc(BY[id].name)}</option>`).join("")}<option value="-1" ${f.on ? "" : "selected"}>No es ninguno</option></select>` : `<span class="sub">No lo reconocimos</span>`}</div>
         <div class="tkp">${p ? `<b>${money(b.v * f.cant)}</b><br><span class="sub">en ${esc(ST[b.o.s].name)}</span>` : ""}</div></div>`;
     }).join("");
     const ah = pag - mej;
-    $("#tkres").innerHTML = `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos. Pagaste <b>${money(pag)}</b> por ellos.</div>
+    $("#tkres").innerHTML = esLista ? `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos.</div><div class="big">Desde ${money(mej)}</div><div class="sub">comprando cada uno donde está más barato. Tocá abajo para ver en qué comercio y qué día te conviene todo junto.</div>` : "No reconocimos productos. Probá escribiéndolos de otra forma."}</div>
+      <p class="sub">Revisá que cada producto sea el correcto; si no, elegí otro de la lista.</p>${html}
+      <div class="mfoot"><span></span>${n ? `<button class="btn" id="tkplan">${ic("chart-column")} Ver dónde conviene esta compra</button>` : ""}</div>` : `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos. Pagaste <b>${money(pag)}</b> por ellos.</div>
         <div class="big">${ah > 0 ? `Podrías ahorrar ${money(ah)}` : "¡Compraste bien!"}</div><div class="sub">comprando cada uno donde está más barato (${money(mej)}), sin contar descuentos con tu banco.</div>` : "No reconocimos productos. Elegilos de la lista si alguno aparece."}</div>
       <p class="sub">Los tickets abrevian los nombres: revisá que cada producto sea el correcto.</p>${html}
       <div class="mfoot"><span></span>${n ? `<button class="btn" id="tkplan">📊 Ver dónde conviene esta compra</button>` : ""}</div>`;
@@ -683,12 +715,62 @@ function ticketTabla(lineas, res) {
   draw();
 }
 
+/* ---------- LISTA DE COMPRAS COMPARTIDA DESDE OTRA APP O PEGADA ----------
+   Con la web instalada, en "Compartir" de WhatsApp, Notas, etc. aparece ComparáSúper (Web Share Target).
+   Cada renglón ("2 leche", "yerba x1kg", "• aceite") se busca entre los productos. */
+function partirLista(t) {
+  return (t || "").split(/\n|,|;|•|·|- (?=\S)/).map(x => x.replace(/^[\s\-*–—>✅☑️🔲⬜\d.)]*(?=\D)/u, m => (/^\s*\d+\s*$/.test(m) ? m : m.replace(/[\d.)]/g, ""))).trim()).filter(x => x.length >= 3)
+    .map(x => { let cant = 1; const a = x.match(/^(\d{1,2})\s*(?:x\s*)?(?=\D)/i) || x.match(/\s+x\s*(\d{1,2})$/i); if (a) { cant = +a[1] || 1; x = x.replace(a[0], " ").trim(); } return { txt: x, cant, precio: 0 }; })
+    .slice(0, 60);
+}
+function modalLista(texto, auto) {
+  openModal(`<h2>${ic("receipt")} ${auto ? "Recibimos tu lista" : "Pegá tu lista de compras"}</h2>
+    <p class="sub">Un producto por renglón (por ejemplo «2 leche», «yerba 1kg», «aceite»). Te mostramos qué producto es cada uno y después calculamos dónde te conviene comprar todo.</p>
+    <textarea class="ta" id="lstxt" rows="7" placeholder="leche&#10;2 yerba&#10;aceite girasol&#10;galletitas">${esc(texto || "")}</textarea>
+    <div class="mfoot"><span></span><button class="btn" id="lsgo">Buscar los productos</button></div><div id="tkres" role="status"></div>`);
+  const go = async () => {
+    const lineas = partirLista($("#lstxt").value);
+    if (!lineas.length) { $("#tkres").innerHTML = `<div class="warn">Escribí al menos un producto.</div>`; return; }
+    $("#tkres").innerHTML = `<div class="tkprog"><div class="spin"></div>Buscando cada producto…</div>`;
+    await loadProducts();
+    for (let i = 0; i < 40 && !BUSC.ok && BUSC.w; i++) await new Promise(r => setTimeout(r, 250));   // el buscador termina de armarse
+    const res = await matchTicket(lineas);
+    if ($("#tkres")) ticketTabla(lineas, res || [], true);
+  };
+  $("#lsgo").onclick = go;
+  if (texto) go();
+}
+/* abierta desde "Compartir" de otra app: la dirección trae ?texto=… */
+function listaCompartida() {
+  const q = new URLSearchParams(location.search), t = [q.get("titulo"), q.get("texto"), q.get("enlace")].filter(Boolean).join("\n").trim();
+  if (!t) return;
+  history.replaceState(null, "", location.pathname + (location.hash || "#conviene"));
+  setTimeout(() => modalLista(t, true), 300);
+}
+
+/* ---------- FOTO AMPLIADA (PhotoSwipe, licencia MIT): se puede pellizcar para acercar ---------- */
+async function zoomFoto(p) {
+  const PS = await lib("js/vendor/photoswipe/photoswipe.js", "js/vendor/photoswipe/photoswipe.css", () => window.PhotoSwipe).catch(() => null);
+  const src = /\/arquivos\/ids\/\d+-300-300\//.test(p.img) ? p.img.replace(/-300-300\//, "-1000-1000/") : p.img;
+  const im = new Image(); im.referrerPolicy = "no-referrer"; im.src = src;
+  await new Promise(ok => { im.onload = im.onerror = ok; });
+  const w = im.naturalWidth || 800, h = im.naturalHeight || 800, ok = im.naturalWidth > 0;
+  if (!PS) { window.open(ok ? src : p.img, "_blank", "noopener"); return; }
+  const ps = new PS({ dataSource: [{ src: ok ? src : p.img, width: w, height: h, alt: p.name }], bgOpacity: 0.92, showHideAnimationType: "fade", closeTitle: "Cerrar", zoomTitle: "Acercar", arrowPrevTitle: "Anterior", arrowNextTitle: "Siguiente", errorMsg: "No se pudo cargar la foto" });
+  ps.on("destroy", () => ovDone("zoom"));
+  ovOpen("zoom", () => ps.close());
+  ps.init();
+}
+
 /* ---------- MAPA DE SUCURSALES (Leaflet + OpenStreetMap, gratis y sin clave) ---------- */
 let LF_P = null;
 function cargarLeaflet() {
   if (!LF_P) LF_P = new Promise((ok, ko) => {
     const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "js/vendor/leaflet/leaflet.css"; document.head.appendChild(l);
-    const sc = document.createElement("script"); sc.src = "js/vendor/leaflet/leaflet.js"; sc.onload = () => ok(window.L); sc.onerror = () => { LF_P = null; ko(); }; document.head.appendChild(sc);
+    const js = src => new Promise((a, b) => { const sc = document.createElement("script"); sc.src = src; sc.onload = a; sc.onerror = b; document.head.appendChild(sc); });
+    for (const css of ["js/vendor/leaflet/markercluster.css", "js/vendor/leaflet/locate.css"]) { const k = document.createElement("link"); k.rel = "stylesheet"; k.href = css; document.head.appendChild(k); }
+    // Leaflet + agrupar puntos (Leaflet.markercluster, MIT) + "seguir mi ubicación" (Leaflet.Locate, MIT)
+    js("js/vendor/leaflet/leaflet.js").then(() => Promise.all([js("js/vendor/leaflet/markercluster.js"), js("js/vendor/leaflet/locate.js")])).then(() => ok(window.L), () => { LF_P = null; ko(); });
   });
   return LF_P;
 }
@@ -714,22 +796,28 @@ async function vMapa() {
   const m = L.map("mapa", { preferCanvas: true, zoomControl: true }).setView(centro, UBIC ? 14 : PROV === "AR-C" ? 12 : 9);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
   if (UBIC) L.circleMarker([UBIC.lat, UBIC.lon], { radius: 11, color: "#fff", weight: 4, fillColor: "#111827", fillOpacity: 1 }).addTo(m).bindTooltip("Vos estás acá", { permanent: true, direction: "top", offset: [0, -10] });
+  // seguir mi ubicación mientras camino
+  if (L.control.locate) L.control.locate({ position: "topleft", setView: "untilPanOrZoom", flyTo: true, showPopup: false, keepCurrentZoomLevel: false, initialZoomLevel: 15,
+    strings: { title: "Mostrar dónde estoy y seguirme" }, locateOptions: { enableHighAccuracy: true, maxZoom: 16 } }).addTo(m);
+  // los puntos cercanos se agrupan en un círculo con la cantidad; se abren al acercarse
+  const grupo = L.markerClusterGroup ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 48, disableClusteringAtZoom: 15, showCoverageOnHover: false, spiderfyOnMaxZoom: true }) : L.layerGroup();
+  grupo.addTo(m);
   const capas = {};
   for (const st of cadenas) {
-    const g = L.layerGroup();
+    const g = [];
     for (const b of SUC[st.id]) {
       if (!sucValida(b)) continue;
       const d = UBIC ? dist(UBIC.lat, UBIC.lon, b[0], b[1]) : null;
       const html = `<div class="mpop"><b>${esc(st.name)}</b><br>${esc(b[2] || "")}${b[3] ? `, ${esc(b[3])}` : ""}${d != null ? `<br><span class="sub">a ${kmTxt(d)}</span>` : ""}
         ${st.id in tot ? `<div class="mtot">Tu carrito acá: <b>${money(tot[st.id])}</b></div>` : ""}
         <a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1${UBIC ? `&origin=${UBIC.lat},${UBIC.lon}` : ""}&destination=${b[0]},${b[1]}">📍 Cómo llegar</a></div>`;
-      L.circleMarker([b[0], b[1]], { radius: 7, color: "#fff", weight: 2, fillColor: st.color || "#16a34a", fillOpacity: 0.95 }).bindPopup(html).addTo(g);
+      g.push(L.marker([b[0], b[1]], { title: st.name, icon: L.divIcon({ className: "mpin", html: `<i style="background:${st.color || "#16a34a"}"></i>`, iconSize: [18, 18] }) }).bindPopup(html));
     }
-    capas[st.id] = g; if (!MAPA.off.has(st.id)) g.addTo(m);
+    capas[st.id] = g; if (!MAPA.off.has(st.id)) grupo.addLayers(g);
   }
   const chips = () => { $("#mchips").innerHTML = cadenas.map(st => `<button type="button" class="chip${MAPA.off.has(st.id) ? "" : " on"}" data-mcad="${st.id}" aria-pressed="${!MAPA.off.has(st.id)}"><span class="mdot" style="background:${st.color || "#16a34a"}"></span>${esc(st.name)}${st.id in tot ? ` · ${money(tot[st.id])}` : ""}</button>`).join(""); };
   chips();
-  $("#mchips").onclick = e => { const c = e.target.closest("[data-mcad]"); if (!c) return; const id = c.dataset.mcad; if (MAPA.off.has(id)) { MAPA.off.delete(id); capas[id].addTo(m); } else { MAPA.off.add(id); m.removeLayer(capas[id]); } chips(); };
+  $("#mchips").onclick = e => { const c = e.target.closest("[data-mcad]"); if (!c) return; const id = c.dataset.mcad; if (MAPA.off.has(id)) { MAPA.off.delete(id); grupo.addLayers ? grupo.addLayers(capas[id]) : capas[id].forEach(x => x.addTo(grupo)); } else { MAPA.off.add(id); grupo.removeLayers ? grupo.removeLayers(capas[id]) : capas[id].forEach(x => grupo.removeLayer(x)); } chips(); };
   setTimeout(() => m.invalidateSize(), 100);
 }
 
@@ -922,7 +1010,7 @@ function vBuscar() {
       ${D.cats.filter(c => D.products.some(p => p.cat === c.id)).map(c => `<label><input type="radio" name="cat" value="${c.id}" ${S.cat === c.id ? "checked" : ""}> ${c.emoji} ${esc(c.name)}</label>`).join("")}
       <h4>Dónde comprar</h4>
       ${[["ambos", "Local y online"], ["tienda", "Solo en el local"], ["online", "Solo online / apps"]].map(([v, t]) => `<label><input type="radio" name="can" value="${v}" ${S.canal === v ? "checked" : ""}> ${t}</label>`).join("")}
-      ${grupos().map(([n, ss], i) => `<h4>${n}${i === 0 ? ' <button class="linkbtn" id="stall"></button>' : ""}</h4>
+      ${grupos().map(([n, ss], i) => `<h4>${n}${i === 0 ? ' <button class="linkbtn" id="stall" hidden>ver todos</button>' : ""}</h4>
       <div class="stlist">${ss.map(s => `<label><input type="checkbox" name="st" value="${s.id}" ${S.stores.has(s.id) ? "checked" : ""}> ${storeChip(s.id)}</label>`).join("")}</div>`).join("")}
       <div class="ffoot"><button class="btn sec sm" id="freset" type="button">Limpiar</button><button class="btn sm" id="fclose" type="button">Ver resultados</button></div>
     </aside>
@@ -935,14 +1023,15 @@ function vBuscar() {
           ${[["relev", "Más populares"], ["precio", "Menor precio"], ["unidad", "Menor precio por kg / litro"], ["ahorro", "Mayor diferencia entre comercios"], ["baja", "Más bajaron"], ["nombre", "Nombre (A-Z)"]].map(([v, t]) => `<option value="${v}" ${S.sort === v ? "selected" : ""}>${t}</option>`).join("")}
         </select></div></div>
       <div class="qchips" role="group" aria-label="Filtros rápidos">${[
-        ["promo", "🏷️ Con oferta", S.onlyPromo], FAV.size ? ["fav", `⭐ Mis súper (${FAV.size})`, S.favf] : null, UBIC ? ["cerca", "📍 Cerca mío", S.cerca] : null,
-        ["tacc", "🌾 Sin TACC", S.sintacc], ["propia", "🏪 Marca propia del súper", S.propia], ["kilo", "⚖️ Más barato por kilo", S.sort === "unidad"]]
+        ["promo", ic("tag") + " Con oferta", S.onlyPromo], FAV.size ? ["fav", `${ic("star")} Mis súper (${FAV.size})`, S.favf] : null, UBIC ? ["cerca", ic("map-pin") + " Cerca mío", S.cerca] : null,
+        ["tacc", ic("wheat-off") + " Sin TACC", S.sintacc], ["propia", ic("store") + " Marca propia del súper", S.propia], ["kilo", ic("scale") + " Más barato por kilo", S.sort === "unidad"]]
         .filter(Boolean).map(([k, t, on]) => `<button type="button" class="qchip${on ? " on" : ""}" data-qchip="${k}" aria-pressed="${!!on}">${t}</button>`).join("")}</div>
       <div id="res"></div>
     </div></div>`;
   const draw = vBuscar.draw = () => {
     const r = results();
     if (!r) { $("#res").innerHTML = esqueleto(8); return; }
+    animar($("#res"));
     $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">Mostramos resultados para <b>«${esc(S.qfix)}»</b> (buscaste «${esc(S.q)}»)</span>` : ""}`;
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
     const pg = S.bpage || 1, slice = r.slice((pg - 1) * per, pg * per);
@@ -951,7 +1040,7 @@ function vBuscar() {
       + `<div class="more">${pager(r.length, pg, "b", per)}</div>`;
     $$("[data-pg]", $("#res")).forEach(b => b.onclick = () => { S.bpage = +b.dataset.pg.split("|")[1]; draw(); $("#view").scrollIntoView({ behavior: "smooth" }); });
     const c = $("#clr"); if (c) c.onclick = () => { S.q = ""; $("#q").value = ""; S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; vBuscar(); };
-    $("#stall").textContent = S.stores.size ? "ver todos" : "";
+    $("#stall").textContent = S.stores.size ? "ver todos" : ""; $("#stall").hidden = !S.stores.size;
     const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.cerca ? 1 : 0) + (S.favf ? 1 : 0) + (S.sintacc ? 1 : 0) + (S.propia ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
     $("#fopen").textContent = nf ? `Filtros (${nf})` : "Filtros";
     $("#fclose").textContent = r.length ? `Ver ${r.length} ${r.length === 1 ? "producto" : "productos"}` : "Sin resultados";
@@ -1016,11 +1105,26 @@ function bannerGo(i) {
 }
 function bannerStart() {
   clearInterval(BAN.t);
+  if (BAN.emb) { try { BAN.emb.destroy(); } catch {} BAN.emb = null; }
+  if ($(".banner")) lib("js/vendor/embla.js", null, () => window.EmblaCarousel).then(emblaBanner).catch(() => {});
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (!BAN.pausa && !reduce) BAN.t = setInterval(() => { if (!$(".banner")) { clearInterval(BAN.t); return; } bannerGo(BAN.i + 1); }, 5000);
   $$("[data-bdot]").forEach(b => b.onclick = () => { bannerGo(+b.dataset.bdot); bannerStart(); });
   const pz = $("#bpause"); if (pz) pz.onclick = () => { BAN.pausa = !BAN.pausa; pz.textContent = BAN.pausa ? "▶" : "⏸"; pz.setAttribute("aria-label", BAN.pausa ? "Seguir pasando" : "Pausar"); bannerStart(); };
   const bn = $(".banner"); if (bn) { let x0 = null; bn.ontouchstart = e => (x0 = e.touches[0].clientX); bn.ontouchend = e => { if (x0 === null) return; const dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) { bannerGo(BAN.i + (dx < 0 ? 1 : -1)); bannerStart(); } x0 = null; }; }
+}
+/* carrusel que se desliza con el dedo, con inercia (Embla Carousel + Autoplay, licencia MIT) */
+function emblaBanner(E) {
+  const bn = $(".banner"); if (!E || !bn || BAN.emb) return;
+  clearInterval(BAN.t); bn.ontouchstart = bn.ontouchend = null; bn.classList.add("embla");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches, A = window.EmblaCarouselAutoplay;
+  const auto = A && !reduce ? A({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true, playOnInit: !BAN.pausa }) : null;
+  const emb = BAN.emb = E(bn, { loop: true, container: ".btrack", startIndex: BAN.i % $$(".bslide").length }, auto ? [auto] : []);
+  const dots = $$("[data-bdot]"), sel = () => { BAN.i = emb.selectedScrollSnap(); dots.forEach((x, k) => x.classList.toggle("on", k === BAN.i)); $$(".bslide").forEach((x, k) => x.setAttribute("aria-hidden", k !== BAN.i)); };
+  emb.on("select", sel); sel();
+  dots.forEach(b => b.onclick = () => emb.scrollTo(+b.dataset.bdot));
+  const pz = $("#bpause");
+  if (pz) { if (!auto) pz.hidden = true; pz.onclick = () => { BAN.pausa = !BAN.pausa; pz.textContent = BAN.pausa ? "▶" : "⏸"; pz.setAttribute("aria-label", BAN.pausa ? "Seguir pasando" : "Pausar"); if (auto) BAN.pausa ? auto.stop() : auto.play(); }; }
 }
 function vOfertas() {
   setTab("ofertas");
@@ -1102,7 +1206,7 @@ function vPagos() {
 
     <h2 style="font-size:18px;margin:30px 0 10px">La semana de un vistazo <span class="sub" style="font-weight:500">· mayor descuento de cada día${S.ptipo ? " (" + esc(P.tipos[S.ptipo]) + ")" : ""}</span></h2>
     <div class="matrix"><table><thead><tr><th>Comercio</th>${DIAS.map((d, i) => `<th>${DCORTO[i]}${i === HOY ? " · hoy" : ""}</th>`).join("")}</tr></thead><tbody>
-      ${grupos().map(([n, ss]) => `<tr class="grp"><th colspan="8">${n}</th></tr>` + ss.map(s => `<tr><td>${storeChip(s.id)}</td>${DIAS.map((_, i) => { const v = cellPct(s.id, i); return `<td class="${i === HOY ? "tdhoy" : ""}">${v ? `<button class="cell" data-cell="${s.id}|${i}" style="--a:${(0.12 + v / 40).toFixed(2)}" data-hi="${v >= 20 ? 1 : 0}">${v}%</button>` : '<span class="sub">—</span>'}</td>`; }).join("")}</tr>`).join("")).join("")}
+      ${grupos().map(([n, ss]) => `<tr class="grp"><th colspan="8">${n}</th></tr>` + ss.map(s => `<tr><td>${storeChip(s.id)}</td>${DIAS.map((_, i) => { const v = cellPct(s.id, i); return `<td class="${i === HOY ? "tdhoy" : ""}">${v ? `<button class="cell" data-cell="${s.id}|${i}" style="--a:${Math.min(0.3, 0.08 + v / 80).toFixed(2)}" data-hi="${v >= 20 ? 1 : 0}">${v}%</button>` : '<span class="sub">—</span>'}</td>`; }).join("")}</tr>`).join("")).join("")}
     </tbody></table></div>
   </section></div>`;
   $$("[data-day]").forEach(b => b.onclick = () => { S.pday = +b.dataset.day; vPagos(); });
@@ -1123,7 +1227,7 @@ function qtyRow(p, qty, kind) {
   const b = best(p), sid = kind === "c" && PREF[p.id], o = sid && offerAt(p, sid);
   const at = o ? allChans(o).map(c => ({ c, v: price1(o, c) })).sort((x, y) => x.v - y.v)[0] : null;
   const hint = qtyHint(p, qty, sid || null);
-  return `<div class="litem">${prodImg(p, "e")}
+  return `<div class="litem" style="view-transition-name:q${kind}${p.id}">${prodImg(p, "e")}
     <div><div class="n" data-open="${p.id}">${esc(p.name)}</div>
       <div class="sub">${at ? `Elegido en <b>${esc(chanName(sid, at.c))}</b>: ${money(at.v)} c/u <button class="linkbtn" data-unpref="${p.id}">quitar elección</button>` : `Desde ${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · en ${p.offers.length} comercios`}</div>
       ${hint ? `<div class="qhint">🏷️ ${esc(hint)}</div>` : ""}</div>
@@ -1133,10 +1237,10 @@ function qtyRow(p, qty, kind) {
 function bindQty(rerender) {
   $$("[data-q]").forEach(b => b.onclick = () => {
     const [k, id] = b.dataset.q.split("|"), o = k === "c" ? LISTA : PLAN;
-    o[id] = Math.max(1, Math.min(999, o[id] + +b.dataset.d)); k === "c" ? saveLista() : savePlan(); rerender();
+    o[id] = Math.max(1, Math.min(999, o[id] + +b.dataset.d)); k === "c" ? saveLista() : savePlan(); suave(rerender);
     const h = qtyHint(BY[id], o[id], k === "c" ? PREF[id] : null); if (h) toast(h, 4500);
   });
-  $$("[data-rm]").forEach(b => b.onclick = () => { const [k, id] = b.dataset.rm.split("|"); delete (k === "c" ? LISTA : PLAN)[id]; if (k === "c") { delete PREF[id]; savePref(); } k === "c" ? saveLista() : savePlan(); rerender(); });
+  $$("[data-rm]").forEach(b => b.onclick = () => { const [k, id] = b.dataset.rm.split("|"); delete (k === "c" ? LISTA : PLAN)[id]; if (k === "c") { delete PREF[id]; savePref(); } k === "c" ? saveLista() : savePlan(); suave(rerender); });
   $$("[data-unpref]").forEach(b => b.onclick = () => { delete PREF[b.dataset.unpref]; savePref(); rerender(); });
 }
 
@@ -1240,7 +1344,7 @@ function vConviene() {
   const day = S.lday;
   const head = `<div class="toolbar"><div><h1>📊 ¿Dónde conviene mi compra?</h1><span class="sub">Armá la compra acá (no cambia tu carrito) y comparamos todo en un comercio, mezclando dos, por día y por medio de pago.</span></div></div>`;
   const editor = `<section class="box"><div class="blk-h"><h2>Productos a comparar <span class="sub" style="font-weight:500">· ${items.length}</span></h2>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.keys(LISTA).length ? `<button class="btn sec sm" id="fromcart">⬇️ Traer mi carrito</button>` : ""}${items.length ? `<button class="btn sec sm" id="tocart">🛒 Enviar al carrito</button><button class="btn sec sm" id="pclear">Vaciar</button>` : ""}</div></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.keys(LISTA).length ? `<button class="btn sec sm" id="fromcart">⬇️ Traer mi carrito</button>` : ""}<button class="btn sec sm" type="button" data-pegar>📋 Pegar una lista</button>${items.length ? `<button class="btn sec sm" id="tocart">🛒 Enviar al carrito</button><button class="btn sec sm" id="pclear">Vaciar</button>` : ""}</div></div>
     <div class="psearch"><input id="pq" type="search" placeholder="Sumá un producto: leche, yerba, aceite…" autocomplete="off" aria-label="Buscar producto para sumar"><div class="pres" id="pres" hidden></div></div>
     ${items.map(({ p, qty }) => qtyRow(p, qty, "p")).join("") || `<p class="sub" style="margin:14px 0 4px">Buscá productos arriba, traé tu carrito o <a href="#" data-canasta>probá con la canasta básica</a>.</p>`}
   </section>`;
@@ -1453,28 +1557,28 @@ async function openProduct(id) {
     const mine = PREF[id] === o.s && q;
     return `<div class="srow${mine ? " mine" : ""}"><div class="sh">${storeChip(o.s)}${FAV.has(o.s) ? '<span class="tag y sm">⭐ tu súper</span>' : ""}${CERCA && CERCA[o.s] ? `<span class="sub">📍 a ${kmTxt(CERCA[o.s].d)}</span>` : ""}${o.anom ? '<span class="tag r sm">⚠️ precio inusual</span>' : ""}</div>
       <div class="sp">${chanLine(o, "tienda")}${chanLine(o, "online")}</div>
-      <div class="sa">${link(o)}${o.p ? `<a class="go sec" data-mapa="${o.s}" href="${esc(mapaUrl(o.s))}" target="_blank" rel="noopener" title="Ver en Google Maps la sucursal más cercana y cómo llegar">📍 Cómo llegar</a>` : ""}<button class="btn sm${mine ? " sec" : ""}" data-inc="${id}" data-sid="${o.s}">${mine ? `✓ Elegido · sumar otro` : `🛒 Agregar desde ${esc(ST[o.s].name)}`}</button></div></div>`;
+      <div class="sa">${link(o)}${o.p ? `<a class="go sec" data-mapa="${o.s}" href="${esc(mapaUrl(o.s))}" target="_blank" rel="noopener" title="Ver en Google Maps la sucursal más cercana y cómo llegar">${ic("navigation")} Cómo llegar</a>` : ""}<button class="btn sm${mine ? " sec" : ""}" data-inc="${id}" data-sid="${o.s}">${mine ? `✓ Elegido · sumar otro` : `🛒 Agregar desde ${esc(ST[o.s].name)}`}</button></div></div>`;
   };
-  dr.innerHTML = `<div class="dh">${prodImg(p, "ph")}<div><h2 id="dtitle">${esc(p.name)}</h2>
+  dr.innerHTML = `<div class="dh"><button type="button" class="zoomb" ${p.img ? `data-zoom="${p.id}" aria-label="Ver la foto más grande"` : "disabled aria-hidden=\"true\""}>${prodImg(p, "ph")}</button><div><h2 id="dtitle">${esc(p.name)}</h2>
       <div class="sub">${esc(p.brand)} · en ${p.offers.length} ${p.offers.length === 1 ? "comercio" : "comercios"}</div></div>
       <button class="x" id="dclose" aria-label="Cerrar">✕</button></div>
     <div class="db">
       <div class="box best">
-        <div><div class="sub">Más barato sin descuentos ${tip("sindto")}</div><div class="big">${money(b.v)}</div><div class="sub">${where(b)}${b.c === "online" ? " · más envío" : ` · <a data-mapa="${b.o.s}" href="${esc(mapaUrl(b.o.s))}" target="_blank" rel="noopener" title="Sucursal más cercana en Google Maps">📍 Cómo llegar</a>`}</div><div class="sub">${unitTxt(p, b.v)} ${unitTxt(p, b.v) ? tip("kg") : ""}</div></div>
+        <div><div class="sub">Más barato sin descuentos ${tip("sindto")}</div><div class="big">${money(b.v)}</div><div class="sub">${where(b)}${b.c === "online" ? " · más envío" : ` · <a data-mapa="${b.o.s}" href="${esc(mapaUrl(b.o.s))}" target="_blank" rel="noopener" title="Sucursal más cercana en Google Maps">${ic("navigation")} Cómo llegar</a>`}</div><div class="sub">${unitTxt(p, b.v)} ${unitTxt(p, b.v) ? tip("kg") : ""}</div></div>
         ${bp && bp.v < b.v ? `<div class="bestpay"><div class="sub">Pagando hoy con descuento ${tip("condto")}</div><div class="big">${money(bp.v)}</div><div class="sub">${storeChip(bp.o.s, bp.c)} con <b>${esc(medioName(bp.pay.promo))}</b></div><div class="sub">${pagoIcon(bp.pay.promo)} ${esc(pagoTxt(bp.pay.promo))}</div></div>` : ""}
         ${pq.length ? `<div class="qnote">🏷️ ${esc(hint || qtyHint(p, 1))}</div>` : ""}
         <div class="bbtn">
-          ${q ? `<div class="incart"><span>En tu carrito${PREF[id] ? ` (${esc(ST[PREF[id]].name)})` : ""}:</span> ${addCtl(id)}</div>` : `<button class="btn" data-inc="${id}">🛒 Agregar al carrito</button>`}
-          <div class="pmas"><button class="btn sec" id="pmasb" type="button" aria-expanded="${!!openProduct.menu}" aria-controls="pmenu">⋯ Más opciones</button>
+          ${q ? `<div class="incart"><span>En tu carrito${PREF[id] ? ` (${esc(ST[PREF[id]].name)})` : ""}:</span> ${addCtl(id)}</div>` : `<button class="btn" data-inc="${id}">${ic("shopping-cart")} Agregar al carrito</button>`}
+          <div class="pmas"><button class="btn sec" id="pmasb" type="button" aria-expanded="${!!openProduct.menu}" aria-controls="pmenu">${ic("ellipsis")} Más opciones</button>
           <div class="pmenu" id="pmenu" ${openProduct.menu ? "" : "hidden"}>
-          <button type="button" data-plan="${id}">📊 Sumar a ¿Dónde conviene?</button>
-          <button type="button" id="watch">${watching ? "🔔 Avisando si baja (tocá para quitar)" : "🔔 Avisarme si baja"}</button>
-          <button type="button" data-cmp="${id}">${CMP.includes(id) ? "✓ En comparación" : "⚖️ Comparar"}</button>
-          <button type="button" id="pshare">📤 Compartir</button></div></div></div>
+          <button type="button" data-plan="${id}">${ic("chart-column")} Sumar a ¿Dónde conviene?</button>
+          <button type="button" id="watch">${ic("bell")} ${watching ? "Avisando si baja (tocá para quitar)" : "Avisarme si baja"}</button>
+          <button type="button" data-cmp="${id}">${CMP.includes(id) ? ic("check") + " En comparación" : ic("scale") + " Comparar"}</button>
+          <button type="button" id="pshare">${ic("share-2")} Compartir</button></div></div></div>
         <div class="pbueno" id="pbueno"></div>
       </div>
       ${(() => { const alt = alternativas(p); return alt.length ? `<div class="alts"><h3>💡 Parecidos y más baratos ${p.bu === "kg" ? "por kilo" : p.bu === "l" ? "por litro" : "por unidad"}</h3>${alt.map(({ q, b, ah }) => `<div class="alt" data-open="${q.id}" role="button" tabindex="0">${prodImg(q, "li")}<div class="an"><b>${esc(q.name)}</b><span class="sub">${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · ${unitTxt(q, b.v)}</span></div><span class="tag g sm">−${ah}%</span>${addCtl(q.id)}</div>`).join("")}</div>` : ""; })()}
-      <details class="hist" id="phist" ${openProduct.hist ? "open" : ""}><summary>📈 Historial de precios</summary>
+      <details class="hist" id="phist" ${openProduct.hist ? "open" : ""}><summary>${ic("history")} Historial de precios</summary>
         <div class="chips hper" role="group" aria-label="Período">${[[7, "7 días"], [30, "30 días"], [0, "Todo"]].map(([d, t]) => `<button type="button" class="chip${(openProduct.dias ?? 30) === d ? " on" : ""}" data-hdias="${d}">${t}</button>`).join("")}</div>
         <div id="chart" class="chart"></div></details>
       ${anuncio("ficha")}
@@ -1487,7 +1591,9 @@ async function openProduct(id) {
     </div>`;
   if (dr.hidden) { dr.hidden = false; sc.hidden = false; document.body.style.overflow = "hidden"; openProduct.back = document.activeElement; dr.scrollTop = 0; }
   $("#dclose").onclick = closeDrawer;
-  $("#pmasb").onclick = e => { e.stopPropagation(); openProduct.menu = !openProduct.menu; $("#pmenu").hidden = !openProduct.menu; $("#pmasb").setAttribute("aria-expanded", openProduct.menu); };
+  $("#pmasb").onclick = e => { e.stopPropagation(); openProduct.menu = !openProduct.menu; $("#pmenu").hidden = !openProduct.menu; $("#pmasb").setAttribute("aria-expanded", openProduct.menu);
+    if (openProduct.fin) { openProduct.fin(); openProduct.fin = null; }
+    if (openProduct.menu) openProduct.fin = flotar($("#pmasb"), $("#pmenu"), "bottom-end"); };
   buenPrecio(p, b.v);
   $("#phist").ontoggle = () => { openProduct.hist = $("#phist").open; if (openProduct.hist) chartU(p, openProduct.dias ?? 30); };
   if (openProduct.hist) chartU(p, openProduct.dias ?? 30);
@@ -1528,10 +1634,10 @@ async function buenPrecio(p, ahora) {
   const min = Math.min(...serie), ini = serie[0], dias = n === 1 ? "" : `desde el ${desde}`;
   const pct = Math.round((ahora - ini) / ini * 100);
   let t = "", c = "";
-  if (ahora <= min && ahora < Math.max(...serie)) { t = `📉 Es el precio más bajo ${dias}`; c = "dn"; }
-  else if (pct <= -3) { t = `📉 Bajó ${Math.abs(pct)}% ${dias}`; c = "dn"; }
-  else if (pct >= 3) { t = `📈 Subió ${pct}% ${dias}` + (min < ahora ? ` · llegó a estar a ${money(min)}` : ""); c = "up"; }
-  else { t = `➖ Precio estable ${dias}`; c = ""; }
+  if (ahora <= min && ahora < Math.max(...serie)) { t = `${ic("trending-down")} Es el precio más bajo ${dias}`; c = "dn"; }
+  else if (pct <= -3) { t = `${ic("trending-down")} Bajó ${Math.abs(pct)}% ${dias}`; c = "dn"; }
+  else if (pct >= 3) { t = `${ic("trending-up")} Subió ${pct}% ${dias}` + (min < ahora ? ` · llegó a estar a ${money(min)}` : ""); c = "up"; }
+  else { t = `${ic("minus")} Precio estable ${dias}`; c = ""; }
   el.innerHTML = `<span class="chg ${c}">${t}</span>`;
 }
 /* historial de precios con uPlot (licencia MIT): liviano, se puede tocar para ver el precio de cada día */
@@ -1621,7 +1727,7 @@ function avisoBajas() {
   const visto = LS.get(PK("cs_avisos_vistos"), {}), nuevos = bajaron.filter(id => visto[id] !== best(BY[id]).v);
   if (!nuevos.length) return;
   const el = document.createElement("div"); el.className = "abaja"; el.setAttribute("role", "status");
-  el.innerHTML = `<span>🔔 ${nuevos.length === 1 ? `Bajó <b>${esc(BY[nuevos[0]].name)}</b>` : `Bajaron <b>${nuevos.length} productos</b> que seguís`}</span><button class="btn sm" type="button">Ver</button><button class="ax" type="button" aria-label="Cerrar aviso">✕</button>`;
+  el.innerHTML = `<span>${ic("bell")} ${nuevos.length === 1 ? `Bajó <b>${esc(BY[nuevos[0]].name)}</b>` : `Bajaron <b>${nuevos.length} productos</b> que seguís`}</span><button class="btn sm" type="button">Ver</button><button class="ax" type="button" aria-label="Cerrar aviso">✕</button>`;
   const cerrar = () => { el.remove(); for (const id of bajaron) visto[id] = best(BY[id]).v; LS.set(PK("cs_avisos_vistos"), visto); };
   el.querySelector(".btn").onclick = () => { cerrar(); nuevos.length === 1 ? openProduct(nuevos[0]) : modalAvisos(); };
   el.querySelector(".ax").onclick = cerrar;
@@ -1675,7 +1781,7 @@ function modalNews() {
 /* menú "⋯ Más opciones" de la ficha: se cierra al tocar afuera o al elegir algo */
 document.addEventListener("click", e => {
   if (!openProduct.menu || e.target.closest("#pmasb")) return;
-  const m = $("#pmenu"); openProduct.menu = false;
+  const m = $("#pmenu"); openProduct.menu = false; if (openProduct.fin) { openProduct.fin(); openProduct.fin = null; }
   if (m) { m.hidden = true; const b = $("#pmasb"); b && b.setAttribute("aria-expanded", false); }
 }, true);
 
@@ -1793,6 +1899,8 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-close]")) { closeModal(); return; }
   if (e.target.closest("[data-medios]")) { e.preventDefault(); modalMedios(); return; }
   if (e.target.closest("[data-news]")) { e.preventDefault(); modalNews(); return; }
+  const zb = e.target.closest("[data-zoom]"); if (zb) { e.preventDefault(); zoomFoto(BY[zb.dataset.zoom]); return; }
+  if (e.target.closest("[data-pegar]")) { e.preventDefault(); modalLista(""); return; }
   if (e.target.closest("[data-ticket]")) { e.preventDefault(); scanStop(); if (!$("#bsheet").hidden) masShow(false); modalTicket(); return; }
   const cn = e.target.closest("[data-canal]"); if (cn) { S.canal = cn.dataset.canal; route(); return; }
   if (e.target.closest("[data-canasta]")) { e.preventDefault(); canasta().forEach(({ p }) => (PLAN[p.id] = PLAN[p.id] || 1)); savePlan(); toast("Canasta básica cargada para comparar"); location.hash === "#conviene" ? route() : (location.hash = "conviene"); return; }
@@ -1827,7 +1935,7 @@ function guardarVisto(id) { VISTOS = [id, ...VISTOS.filter(x => x !== id)].slice
 function recientesDraw() {
   const vis = VISTOS.filter(id => BY && BY[id]).slice(0, 5), box = $("#qsug");
   if (!BUSQ.length && !vis.length) { qsugShow(false); return; }
-  box.innerHTML = (BUSQ.length ? `<div class="qs-h">Búsquedas recientes <button type="button" class="linkbtn" data-borrarbusq>Borrar</button></div>` + BUSQ.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">🕘 ${esc(t)}</button>`).join("") : "")
+  box.innerHTML = (BUSQ.length ? `<div class="qs-h">Búsquedas recientes <button type="button" class="linkbtn" data-borrarbusq>Borrar</button></div>` + BUSQ.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">${ic("history")} ${esc(t)}</button>`).join("") : "")
     + (vis.length ? `<div class="qs-h">Vistos hace poco</div>` + vis.map(id => { const p = BY[id], b = best(p); return `<button type="button" class="qs-p" role="option" data-open="${p.id}">${prodImg(p, "li")}<span class="qn">${esc(p.name)}</span><span class="qp">${money(b.v)}<small>${esc(ST[b.o.s] ? ST[b.o.s].name : "")}</small></span></button>`; }).join("") : "");
   qsugShow(true);
 }
@@ -1857,11 +1965,11 @@ function qsugDraw() {
   const cats = D.cats.filter(c => nrm(c.name).includes(last)).slice(0, 2);
   if (!prods.length && !comp.length && !cats.length) { box.innerHTML = `<div class="qs-none">No encontramos «${esc(q)}». Probá con otra palabra o <button type="button" class="linkbtn" data-scan>escaneá el código</button>.</div>`; qsugShow(true); return; }
   box.innerHTML = (fix ? `<div class="qs-fix">¿Quisiste decir <button type="button" class="linkbtn" data-qs="${esc(fix)}">${esc(fix)}</button>?</div>` : "")
-    + comp.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">🔎 ${esc(t)}</button>`).join("")
+    + comp.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">${ic("search")} ${esc(t)}</button>`).join("")
     + cats.map(c => `<a class="qs-w" role="option" href="#c-${c.id}">${c.emoji} ${esc(c.name)}</a>`).join("")
     + prods.map(p => { const b = best(p); return `<button type="button" class="qs-p" role="option" data-open="${p.id}">${prodImg(p, "li")}<span class="qn">${esc(p.name)}</span><span class="qp">${money(b.v)}<small>${esc(ST[b.o.s] ? ST[b.o.s].name : "")}</small></span></button>`; }).join("")
     + `<button type="button" class="qs-all" data-qs="${esc(fix || q)}">Ver todos los resultados de «${esc(fix || q)}» →</button>`;
-  qsugShow(true);
+  qsugShow(true); animar(box);
 }
 $("#q").addEventListener("input", () => { clearTimeout(qsugDraw.t); qsugDraw.t = setTimeout(qsugDraw, 120); });
 $("#q").addEventListener("focus", () => qsugDraw());
@@ -2014,7 +2122,7 @@ const GLOS = {
   local: ["Precio en el local", "El precio más común en las sucursales de la zona, según la base oficial de precios (SEPA). En tu sucursal puede variar un poco."],
 };
 const tip = k => GLOS[k] ? `<button type="button" class="ibtn" data-tip="${k}" aria-label="Qué significa: ${esc(GLOS[k][0])}">i</button>` : "";
-function tipClose() { const t = $("#tippop"); if (t) t.remove(); }
+function tipClose() { const t = $("#tippop"); if (t) { if (t.__fin) t.__fin(); t.remove(); } }
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-tip]");
   if (!b) { if (!e.target.closest("#tippop")) tipClose(); return; }
@@ -2023,11 +2131,12 @@ document.addEventListener("click", e => {
   const [t, d] = GLOS[b.dataset.tip], r = b.getBoundingClientRect(), pop = document.createElement("div");
   pop.id = "tippop"; pop.className = "tippop"; pop.dataset.k = b.dataset.tip; pop.setAttribute("role", "tooltip");
   pop.innerHTML = `<b>${esc(t)}</b><p>${esc(d)}</p>`; document.body.appendChild(pop);
+  if (window.FloatingUIDOM) { pop.__fin = flotar(b, pop, "bottom"); return; }   // sigue al botón aunque se mueva la pantalla
   const w = pop.offsetWidth, h = pop.offsetHeight;
   pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
   pop.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 8 : Math.max(8, r.top - h - 8)) + "px";
 }, true);
-addEventListener("scroll", tipClose, { passive: true, capture: true });
+addEventListener("scroll", () => { if (!window.FloatingUIDOM) tipClose(); }, { passive: true, capture: true });
 
 /* ---------- mis súper (los que la persona elige como habituales) ---------- */
 let FAV = new Set(LS.get("cs_fav", []));
@@ -2112,7 +2221,25 @@ const TOUR = [
   ["#botbtn", "🤖 Asistente", "¿Dudas? Preguntale al asistente: precios, descuentos del día o cómo usar la página."],
 ];
 let TOURI = 0;
-function startTour() { closeModal(); closeDrawer && !$("#drawer").hidden && closeDrawer(); TOURI = 0; if (!$("#tour")) document.body.insertAdjacentHTML("beforeend", `<div id="tour" class="tour" role="dialog" aria-live="polite"><div class="tspot"></div><div class="tbub"></div></div>`); ovOpen("tour", () => tourGo(1e3)); tourGo(0); }
+/* guía rápida con Driver.js (licencia MIT); si no carga, la guía de siempre */
+let TOURD = null;
+async function startTour() {
+  closeModal(); if (!$("#drawer").hidden) closeDrawer();
+  let mk = null;
+  try { mk = await lib("js/vendor/driver/driver.js", "js/vendor/driver/driver.css", () => window.driver && window.driver.js && window.driver.js.driver); } catch {}
+  if (!mk) return tourViejo();
+  if (TOURD) TOURD.destroy();
+  const steps = tourSteps();
+  TOURD = mk({
+    showProgress: true, progressText: "{{current}} de {{total}}", nextBtnText: "Siguiente →", prevBtnText: "← Atrás", doneBtnText: "¡Listo!",
+    allowClose: true, overlayOpacity: 0.55, stagePadding: 6, stageRadius: 12, popoverClass: "cs-tour", smoothScroll: true,
+    steps: steps.map(([el, title, description]) => ({ element: el, popover: { title, description } })),
+    onDestroyed: () => { TOURD = null; ovDone("tour"); LS.set("cs_tour", 1); toast("¡Listo! La guía la podés volver a ver con el botón de ayuda, abajo a la derecha"); },
+  });
+  ovOpen("tour", () => TOURD && TOURD.destroy());
+  TOURD.drive();
+}
+function tourViejo() { closeModal(); closeDrawer && !$("#drawer").hidden && closeDrawer(); TOURI = 0; if (!$("#tour")) document.body.insertAdjacentHTML("beforeend", `<div id="tour" class="tour" role="dialog" aria-live="polite"><div class="tspot"></div><div class="tbub"></div></div>`); ovOpen("tour", () => tourGo(1e3)); tourGo(0); }
 function tourSteps() { const mob = innerWidth <= 640; return TOUR.filter(s => !s[3] || (s[3] === "mob") === mob).filter(s => { const el = $(s[0]); return el && el.getBoundingClientRect().width > 0; }); }
 function tourGo(i) {
   const steps = tourSteps(); if (i < 0) i = 0;
@@ -2165,10 +2292,10 @@ function vSuper() {
       <p class="sub"><b>${hechos} de ${tot}</b> en el chango${hechos < tot ? ` · falta aprox. <b>${money(falta)}</b>` : " · ¡ya tenés todo! 🎉"}</p></div>
       <div class="sbtns"><button class="btn sec sm" id="sreset">Destachar todo</button><a class="btn sm" href="#carrito">Salir</a></div></div>
     ${Object.entries(g).map(([sid, xs]) => `<section class="sgrp"><h2>${storeChip(sid)}</h2>${xs.sort((a, b) => (TACH[a.p.id] ? 1 : 0) - (TACH[b.p.id] ? 1 : 0)).map(({ p, qty, v }) => `
-      <label class="sitem${TACH[p.id] ? " done" : ""}"><input type="checkbox" data-tach="${p.id}" ${TACH[p.id] ? "checked" : ""}>${prodImg(p, "si")}
+      <label class="sitem${TACH[p.id] ? " done" : ""}" style="view-transition-name:t${p.id}"><input type="checkbox" data-tach="${p.id}" ${TACH[p.id] ? "checked" : ""}>${prodImg(p, "si")}
         <span class="sn"><b>${qty} × ${esc(p.name)}</b><span class="sub">${money(v)}${qtyHint(p, qty, sid) ? " · 🏷️ " + esc(qtyHint(p, qty, sid)) : ""}</span></span></label>`).join("")}</section>`).join("")}
     <p class="sub" style="text-align:center;margin:18px 0">La pantalla queda prendida mientras estás en esta lista. Los precios son de referencia: confirmalos en la góndola.</p></div>`;
-  $$("[data-tach]").forEach(c => c.onchange = () => { if (c.checked) TACH[c.dataset.tach] = 1; else delete TACH[c.dataset.tach]; LS.set("cs_tach", TACH); if (navigator.vibrate) navigator.vibrate(15); vSuper(); });
+  $$("[data-tach]").forEach(c => c.onchange = () => { if (c.checked) TACH[c.dataset.tach] = 1; else delete TACH[c.dataset.tach]; LS.set("cs_tach", TACH); if (navigator.vibrate) navigator.vibrate(15); suave(vSuper); });
   $("#sreset").onclick = () => { TACH = {}; LS.set("cs_tach", TACH); vSuper(); };
   despierto(true);
 }
@@ -2372,7 +2499,7 @@ function botOpen(open) {
 }
 $("#botbtn").onclick = () => botOpen($("#chat").hidden);
 /* celular: los tres globos se juntan en uno ("Ayuda") para no tapar precios ni botones */
-function fabsShow(open) { $("#fabs").classList.toggle("abierto", open); $("#fmas").setAttribute("aria-expanded", open); $("#fmas .fi").textContent = open ? "✕" : "🙋"; $("#fmas .ft").textContent = open ? "Cerrar" : "Ayuda"; if (open) ovOpen("fabs", () => fabsShow(false)); else ovDone("fabs"); }
+function fabsShow(open) { $("#fabs").classList.toggle("abierto", open); $("#fmas").setAttribute("aria-expanded", open); $("#fmas .fi").innerHTML = open ? ic("x") : ic("life-buoy"); $("#fmas .ft").textContent = open ? "Cerrar" : "Ayuda"; if (open) ovOpen("fabs", () => fabsShow(false)); else ovDone("fabs"); }
 $("#fmas").onclick = e => { e.stopPropagation(); fabsShow(!$("#fabs").classList.contains("abierto")); };
 document.addEventListener("click", e => { if ($("#fabs").classList.contains("abierto") && !e.target.closest("#fmas")) fabsShow(false); }, true);
 $("#chatx").onclick = () => botOpen(false);
@@ -2389,6 +2516,7 @@ $("#pbtn").onclick = async () => {
   const v = await pr; ovDone("mapa");
   if (v && v !== PROV) { LS.set("cs_prov", v); setTimeout(() => location.reload(), 150); }
 };
+listaCompartida();
 (async () => {
   if (!PROV) {                         // primera visita: elegir la provincia antes de cargar precios
     $("#view").innerHTML = "";

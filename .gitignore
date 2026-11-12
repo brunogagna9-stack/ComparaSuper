@@ -6,3 +6,6 @@ data/raw-prov/
 data/hist-prov/
 site/data/p/
 .lighthouseci/
+node_modules/
+test-results/
+playwright-report/

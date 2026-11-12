@@ -1152,3 +1152,39 @@ header.site{view-transition-name:encabezado}
 .uley span{display:inline-flex;align-items:center;gap:5px}.uley i{width:10px;height:10px;border-radius:50%;display:inline-block}
 .db>*{flex-shrink:0}
 .hist .chart{height:auto}
+/* íconos Lucide */
+.ic{width:1.15em;height:1.15em;flex:none;display:inline-block;vertical-align:-.2em;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bnav .ic{width:22px;height:22px}
+.fab .fi .ic{width:26px;height:26px;vertical-align:middle}
+.bsheet a .ic{width:20px;height:20px;margin-right:4px;color:var(--gtx)}
+.chg .ic{width:1.05em;height:1.05em}
+.qchip .ic{width:1em;height:1em;vertical-align:-.15em}
+.mpin{background:none;border:0}.mpin i{display:block;width:14px;height:14px;margin:2px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.4)}
+.marker-cluster div{font:700 12px/30px inherit;font-family:inherit}
+/* listas que se acomodan: solo se mueven los productos, no toda la página */
+.vt-items::view-transition-old(root),.vt-items::view-transition-new(root){animation:none}
+::view-transition-group(*){animation-duration:.22s}
+/* carrusel Embla */
+.banner.embla .btrack{display:flex;touch-action:pan-y pinch-zoom}
+.banner.embla .bslide{flex:0 0 100%;min-width:0;opacity:1;visibility:visible;grid-area:auto;position:relative;transition:none}
+/* foto ampliable en la ficha */
+.zoomb{all:unset;cursor:zoom-in;display:block;border-radius:14px;flex:none}
+.zoomb:focus-visible{outline:3px solid var(--g);outline-offset:2px}
+.zoomb[disabled]{cursor:default}
+/* guía (Driver.js) con los colores de la web */
+.driver-popover.cs-tour{border-radius:16px;padding:16px 18px;font-family:inherit;max-width:min(340px,calc(100vw - 24px));background:var(--card);color:var(--ink)}
+.driver-popover.cs-tour .driver-popover-title{font:800 17px/1.3 inherit;font-family:inherit}
+.driver-popover.cs-tour .driver-popover-description{font-size:14.5px;line-height:1.45;color:var(--ink2)}
+.driver-popover.cs-tour .driver-popover-footer button{font:700 14px inherit;font-family:inherit;border-radius:999px;padding:7px 14px;text-shadow:none;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.driver-popover.cs-tour .driver-popover-footer .driver-popover-next-btn{background:var(--g);color:#fff;border-color:var(--g)}
+.driver-popover.cs-tour .driver-popover-progress-text{color:var(--mut)}
+.driver-popover.cs-tour .driver-popover-arrow-side-bottom{border-bottom-color:var(--card)}
+.driver-popover.cs-tour .driver-popover-arrow-side-top{border-top-color:var(--card)}
+.driver-popover.cs-tour .driver-popover-arrow-side-left{border-left-color:var(--card)}
+.driver-popover.cs-tour .driver-popover-arrow-side-right{border-right-color:var(--card)}
+.ta{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:inherit;background:var(--card);color:var(--ink);margin:8px 0}
+/* contraste (axe-core): pestañas del encabezado y celdas de la tabla de descuentos */
+.tabs a{color:#fff}
+.tabs a:not(.on){opacity:1}
+.cell[data-hi="1"]{background:var(--g)}
+[data-theme="dark"] .cell[data-hi="1"]{background:var(--g)}
