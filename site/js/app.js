@@ -46,18 +46,36 @@ let D, P, BY = {}, ST = {}, HIST, CFG = {};
    1) meta.json + descuentos (pocos KB) → se muestra el inicio;
    2) products.json (los ~25.000 productos) en segundo plano; links.json (enlaces a las tiendas) cuando hace falta. */
 let READY = false, PROD_P = null, LINKS_P = null, LINKS_DONE = false;
-/* CABA: se quitan las cadenas que no tienen ninguna sucursal cerca (por ejemplo Toledo, que está en Mar del Plata).
-   La base oficial de precios viene junta para CABA y toda la provincia de Buenos Aires. */
-let FUERA = new Set();
-const OBELISCO = [-34.6037, -58.3816], RADIO_CABA = 45;   // km: CABA y el conurbano
-const LEJOS_SIN_DATOS = new Set(["toledo", "unicoop", "comodin", "california", "marianomax"]);   // sin ubicación cargada: se sabe que están lejos
-function calcFuera(stores) {
-  FUERA = new Set();
-  if (PROV !== "AR-C" || !SUC) return;
+/* Cadenas que no tienen sucursales cerca: no se muestran (ni sus precios ni sus descuentos).
+   - Si cargaste tu ubicación: las que no tienen ninguna sucursal a menos de 50 km de ahí.
+   - En CABA sin ubicación: las que no tienen sucursal en CABA o el conurbano (por ejemplo Toledo, de Mar del Plata).
+   No cuentan las "sucursales" que son depósitos o tiendas online (la base oficial las informa con dirección)
+   ni las que dicen ser de la provincia pero están en la Ciudad (por ejemplo Supercoop, que informa con La Coope). */
+let FUERA = new Set(), META_STORES = [], FUERA_PEND = false;
+const OBELISCO = [-34.6037, -58.3816], RADIO_CABA = 45, RADIO_UBIC = 50;
+const LEJOS_SIN_DATOS = new Set(["toledo", "unicoop", "comodin", "california", "marianomax"]);   // sin ubicación cargada: se sabe que no están en CABA
+const VIRTUAL = /online|e-?commerce|virtual|dep[oó]sito|centro de dist|oficina|administraci/i;
+const CABA_POLY = [[-58.531, -34.615], [-58.529, -34.651], [-58.461, -34.705], [-58.42, -34.668], [-58.392, -34.66], [-58.359, -34.647], [-58.335, -34.628], [-58.35, -34.58], [-58.368, -34.567], [-58.406, -34.548], [-58.462, -34.527], [-58.505, -34.546], [-58.531, -34.57]];
+function enCABA(lat, lon) { let ins = false; for (let i = 0, j = CABA_POLY.length - 1; i < CABA_POLY.length; j = i++) { const [xi, yi] = CABA_POLY[i], [xj, yj] = CABA_POLY[j]; if ((yi > lat) !== (yj > lat) && lon < (xj - xi) * (lat - yi) / (yj - yi) + xi) ins = !ins; } return ins; }
+const sucValida = b => !VIRTUAL.test(`${b[2] || ""} ${b[3] || ""}`) && !(b[4] === "AR-B" && enCABA(b[0], b[1]));
+function fueraDe(stores, ubic) {
+  const out = new Set();
+  if (!SUC) return out;
+  const c = ubic ? [ubic.lat, ubic.lon, RADIO_UBIC] : PROV === "AR-C" ? [...OBELISCO, RADIO_CABA] : null;
+  if (!c) return out;
   for (const st of stores) {
-    const l = SUC[st.id];
-    if (l && l.length ? !l.some(b => dist(OBELISCO[0], OBELISCO[1], b[0], b[1]) <= RADIO_CABA) : LEJOS_SIN_DATOS.has(st.id)) FUERA.add(st.id);
+    const l = SUC[st.id] || [];
+    if (!l.length) { if (PROV === "AR-C" && LEJOS_SIN_DATOS.has(st.id)) out.add(st.id); continue; }   // sin datos de ubicación: se deja
+    if (!l.some(b => sucValida(b) && dist(c[0], c[1], b[0], b[1]) <= c[2])) out.add(st.id);
   }
+  return out;
+}
+function calcFuera(stores) { META_STORES = stores.slice(); FUERA = fueraDe(stores, UBIC); }
+/* al cambiar la ubicación: si cambian las cadenas que corresponden, se recarga para rearmar precios y descuentos */
+function ubicCambio(ahora = true) {
+  const n = fueraDe(META_STORES, UBIC);
+  if (n.size === FUERA.size && [...n].every(x => FUERA.has(x))) return;
+  if (ahora) setTimeout(() => location.reload(), 900); else FUERA_PEND = true;
 }
 function prepProducts(d) {
   if (FUERA.size) d.products = d.products.filter(x => (x.offers = x.offers.filter(o => !FUERA.has(o.s))).length);
@@ -83,7 +101,7 @@ function ensureLinks() {
 }
 async function load() {
   const [m, p, c] = await Promise.all([
-    PROV === "AR-C" ? loadSuc().then(() => fetch(DIR() + "meta.json")).then(r => (r.ok ? r.json() : null)).catch(() => null) :
+    PROV === "AR-C" || UBIC ? loadSuc().then(() => fetch(DIR() + "meta.json")).then(r => (r.ok ? r.json() : null)).catch(() => null) :
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : fetch("data/promos.json").then(r => r.json()))),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
@@ -332,7 +350,16 @@ const canalChips = () => `<div class="chips" role="group" aria-label="Dónde com
 /* ---------- UBICACIÓN: comercios cerca ---------- */
 let UBIC = LS.get(PK("cs_ubic"), null);   // { lat, lon, label, km }
 let SUC = null;                        // sucursales con ubicación { comercio: [[lat, lon, dirección, barrio], …] }
-async function loadSuc() { if (!SUC) SUC = await fetch(DIR() + "sucursales.json").then(r => (r.ok ? r.json() : {})).catch(() => ({})); return SUC; }
+async function loadSuc() {
+  if (!SUC) {
+    const [a, x] = await Promise.all([fetch(DIR() + "sucursales.json").then(r => (r.ok ? r.json() : {})).catch(() => ({})),
+      fetch("data/sucursales_extra.json").then(r => (r.ok ? r.json() : {})).catch(() => ({}))]);   // las que la base informa sin longitud (Makro)
+    const provs = enAMBA() ? ["AR-C", "AR-B"] : [PROV];
+    for (const [sid, l] of Object.entries(x)) if (Array.isArray(l) && !(a[sid] || []).length) { const m = l.filter(b => provs.includes(b[4])); if (m.length) a[sid] = m; }
+    SUC = a;
+  }
+  return SUC;
+}
 function dist(a, b, c, d) { const R = 6371, r = x => x * Math.PI / 180, dl = r(c - a), dn = r(d - b); const h = Math.sin(dl / 2) ** 2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dn / 2) ** 2; return 2 * R * Math.asin(Math.sqrt(h)); }
 let CERCA = null;   // { comercio: { d, dir, zona } } con la sucursal más cercana dentro del radio
 function calcCerca() {
@@ -425,7 +452,7 @@ async function modalUbic() {
     ${UBIC && CERCA ? `<div class="unear" style="margin-top:12px">${Object.keys(CERCA).sort((a, b) => CERCA[a].d - CERCA[b].d).slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir)}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No hay sucursales en ese radio.</span>'}</div>` : ""}
     <div class="mfoot">${UBIC ? '<button class="btn sec sm" data-noubic>Quitar mi ubicación</button>' : '<button class="btn sec sm" data-close>Cancelar</button>'}<button class="btn sm" id="usave">Guardar</button></div>`);
   zonaPicker($("#uzona"), nombres);
-  const save = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); };
+  const save = async u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); await loadSuc(); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); ubicCambio(); };
   $("#ugps").onclick = () => {
     if (!navigator.geolocation) { $("#umsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
     $("#umsg").textContent = "Buscando tu ubicación…";
@@ -1321,7 +1348,7 @@ async function chart(p) {
 
 /* ---------- ventanas ---------- */
 function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; ovOpen("modal", closeModal); const f = m.querySelector("input, button"); f && f.focus(); }
-function closeModal() { if (typeof scanStop === "function") scanStop(); const was = !$("#modal").hidden; $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; if (was || ovEsta("modal")) ovDone("modal"); }
+function closeModal() { if (FUERA_PEND) { FUERA_PEND = false; setTimeout(() => location.reload(), 300); } if (typeof scanStop === "function") scanStop(); const was = !$("#modal").hidden; $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; if (was || ovEsta("modal")) ovDone("modal"); }
 function modalMedios() {
   const sel = new Set(MEDIOS || []);
   const groups = Object.entries(P.tipos).filter(([k]) => k !== "general").map(([k, v]) => [k, v, P.medios.filter(m => m.tipo === k).sort((a, b) => a.name.localeCompare(b.name, "es"))]).filter(g => g[2].length);
@@ -1447,7 +1474,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-tour]")) { e.preventDefault(); if (!$("#bsheet").hidden) masShow(false); startTour(); return; }
   const ag = e.target.closest("[data-agendar]"); if (ag) { e.preventDefault(); modalAgendar(ag.dataset.agendar); return; }
   const cm = e.target.closest("[data-cmp]"); if (cm) { e.preventDefault(); cmpToggle(cm.dataset.cmp); if (!$("#drawer").hidden && openProduct.id) { const st = $("#drawer").scrollTop; openProduct(openProduct.id); $("#drawer").scrollTop = st; } return; }
-  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set(PK("cs_ubic"), null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
+  if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set(PK("cs_ubic"), null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); ubicCambio(); return; }
   const inc = e.target.closest("[data-inc]"); if (inc) { e.stopPropagation(); const id = inc.dataset.inc; setQty(id, (LISTA[id] || 0) + 1, inc.dataset.sid); return; }
   const dec = e.target.closest("[data-dec]"); if (dec) { e.stopPropagation(); const id = dec.dataset.dec; setQty(id, (LISTA[id] || 0) - 1); return; }
   const add = e.target.closest("[data-add]"); if (add) { e.stopPropagation(); addToList(add.dataset.add); return; }
@@ -1661,7 +1688,7 @@ async function wizard(paso) {
       <p class="sub" id="wmsg" style="min-height:20px;margin:8px 0 0">${UBIC ? `Ya tenés marcada: <b>${esc(UBIC.gps ? "tu ubicación actual" : UBIC.label)}</b>.` : ""}</p>
       <div class="mfoot"><button class="btn sec sm" id="wback">← Atrás</button><button class="btn" id="wnext">Siguiente →</button></div>`);
     zonaPicker($("#wzona"), nombres);
-    const fijar = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); };
+    const fijar = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); loadSuc().then(() => { calcCerca(); updUbic(); ubicCambio(false); }); };
     $("#wback").onclick = () => wizard(1);
     $("#wgps").onclick = () => {
       if (!navigator.geolocation) { $("#wmsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }

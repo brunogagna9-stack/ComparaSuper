@@ -101,6 +101,11 @@ ROTOS = []   # zips internos que no se pudieron abrir (se informan al final)
 SUCURSALES = {}   # (tienda, comercio, bandera, sucursal) -> ubicación, para "comercios cerca de mí"
 
 
+def provincia_sucursal(texto, lat, lon):
+    from provincias import provincia_sucursal as ps   # import tardío: provincias.py no depende de este archivo
+    return ps(texto, lat, lon)
+
+
 def sucursal_info(r):
     try:
         lat, lon = float(r.get("sucursales_latitud") or 0), float(r.get("sucursales_longitud") or 0)
@@ -163,8 +168,13 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None, only=None):
             sucs = {}   # (comercio, bandera, sucursal) -> id de nuestra tienda
             for r in read_csv(suc_b):
                 key = (r["id_comercio"], r["id_bandera"])
-                if key not in bandera or r.get("sucursales_provincia", "").upper() not in provincias:
+                if key not in bandera:
                     continue
+                # provincia corregida por coordenadas si la cadena cargó mal el código (ver provincias.py)
+                prov_ok = provincia_sucursal(r.get("sucursales_provincia"), r.get("sucursales_latitud"), r.get("sucursales_longitud"))
+                if prov_ok not in provincias:
+                    continue
+                r["sucursales_provincia"] = prov_ok
                 nombre = norm(r.get("sucursales_nombre", "") + " " + r.get("sucursales_tipo", ""))
                 cands = bandera[key]
                 sid = next((c for c, kw in cands if kw and any(k in nombre for k in kw)), None) \

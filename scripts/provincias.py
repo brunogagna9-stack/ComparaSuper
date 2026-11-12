@@ -97,7 +97,41 @@ def por_coordenadas(lat, lon):
     return best[1] if best and best[0] < 0.25 else None
 
 
+def km_afuera(lat, lon, code):
+    """Cuántos km hay desde el punto hasta el contorno de la provincia (0 si está adentro)."""
+    import math
+    lat, lon = float(lat), float(lon)
+    kx = 111.32 * math.cos(math.radians(lat))
+    best = None
+    for c, (x0, y0, x1, y1), ring in _poligonos():
+        if c != code:
+            continue
+        if x0 <= lon <= x1 and y0 <= lat <= y1 and _dentro(lon, lat, ring):
+            return 0.0
+        for (ax, ay), (bx, by) in zip(ring, ring[1:]):
+            # distancia del punto al segmento, en km (aproximación plana; alcanza para decenas de km)
+            px, py = (lon - ax) * kx, (lat - ay) * 111.32
+            vx, vy = (bx - ax) * kx, (by - ay) * 111.32
+            t = max(0.0, min(1.0, (px * vx + py * vy) / (vx * vx + vy * vy or 1)))
+            d = math.hypot(px - t * vx, py - t * vy)
+            if best is None or d < best:
+                best = d
+    return best if best is not None else 0.0
+
+
+MARGEN_KM = 15   # los contornos están simplificados: cerca del límite se respeta lo informado
+
+
 def provincia_sucursal(texto, lat=None, lon=None):
     """Provincia de una sucursal: la que informa SEPA si se reconoce; si viene vacía o rara, por coordenadas.
-    (Los contornos del mapa están simplificados: cerca de un límite no son exactos, por eso no pisan lo informado.)"""
-    return codigo(texto) or por_coordenadas(lat, lon)
+    Si las coordenadas caen claramente en otra provincia (a más de MARGEN_KM del contorno de la informada),
+    manda la ubicación: hay cadenas que cargan mal el código (ej. AR-J San Juan por AR-Y Jujuy).
+    Cerca de un límite no se pisa lo informado (los contornos del mapa están simplificados)."""
+    dec, pc = codigo(texto), por_coordenadas(lat, lon)
+    if dec and pc and pc != dec and not (dec == "AR-B" and pc == "AR-C"):
+        try:
+            if km_afuera(lat, lon, dec) > MARGEN_KM:
+                return pc
+        except (TypeError, ValueError):
+            pass
+    return dec or pc
