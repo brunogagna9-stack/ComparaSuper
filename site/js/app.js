@@ -174,7 +174,7 @@ function ensureLinks() {
 async function load() {
   const [m, p, c] = await Promise.all([
     PROV === "AR-C" || UBIC ? loadSuc().then(() => fetch(DIR() + "meta.json")).then(r => (r.ok ? r.json() : null)).catch(() => null) :
-    fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : fetch("data/promos.json").then(r => r.json()))),
+    fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : Promise.reject())).catch(() => fetch("data/promos.json").then(r => r.json())),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
   if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts(); loadTop(); }
