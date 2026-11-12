@@ -545,7 +545,7 @@ function zonaPicker(inp, nombres) {
 async function modalUbic() {
   const Z = await zonasProv(), { zonas, nombres } = Z;
   openModal(`<h2>📍 Mi ubicación</h2><p class="sub">La usamos solo en este navegador para mostrarte los comercios cercanos y sus promos. No se manda a ningún lado.</p>
-    <button class="btn" id="ugps" style="width:100%;justify-content:center;margin:6px 0 12px">📡 Usar mi ubicación actual</button>
+    <div class="ugrid"><button class="btn" id="ugps">📡 Usar mi ubicación actual</button><button class="btn sec" type="button" data-marcarmapa>🗺️ Marcarla en el mapa</button></div>
     <label class="flbl" for="uzona">O elegí tu barrio o localidad${PROV ? ` de ${esc(provNombre(PROV))}` : ""}</label>
     <div class="zwrap"><input class="inp" id="uzona" placeholder="Ej.: ${esc(Z.ej)}…" autocomplete="off" value="${UBIC && !UBIC.gps ? esc(UBIC.label) : ""}"></div>
     <label class="flbl" for="ukm">Hasta qué distancia</label>
@@ -556,14 +556,13 @@ async function modalUbic() {
   zonaPicker($("#uzona"), nombres);
   const save = async u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); await loadSuc(); calcCerca(); updUbic(); closeModal(); route(); toast(`📍 ${Object.keys(CERCA || {}).length} comercios cerca de ${u.label}`); ubicCambio(); };
   $("#ugps").onclick = () => {
-    if (!navigator.geolocation) { $("#umsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
-    $("#umsg").textContent = "Buscando tu ubicación…";
-    navigator.geolocation.getCurrentPosition(pos => {
+    $("#umsg").textContent = "Buscando tu ubicación… (puede tardar unos segundos)";
+    pedirUbicacion(pos => {
       const { latitude: lat, longitude: lon } = pos.coords;
       if (!Z.enProv(lat, lon)) { $("#umsg").innerHTML = `Tu ubicación actual está fuera de <b>${esc(provNombre(PROV))}</b>. Elegí una localidad de la lista o <button class="linkbtn" type="button" data-pcambiar2>cambiá de provincia</button>.`; $("[data-pcambiar2]").onclick = () => { closeModal(); $("#pbtn").click(); }; return; }
       save({ lat, lon, label: "tu ubicación actual", km: +$("#ukm").value, gps: true });
     },
-      () => { $("#umsg").textContent = "No pudimos obtener tu ubicación (quizás no diste permiso). Escribí tu barrio o localidad."; }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 600000 });
+      code => { $("#umsg").innerHTML = `${esc(geoError(code))} <button type="button" class="linkbtn" data-marcarmapa>Marcarla en el mapa</button>`; });
   };
   $("#usave").onclick = () => {
     const v = $("#uzona").value.trim(), k = Z.buscar(v);
@@ -815,13 +814,18 @@ function cargarLeaflet() {
   return LF_P;
 }
 const MAPA = { off: new Set() };
+/* pin de una sucursal: gota con la sigla de la cadena (en vez de un puntito de color) */
+const pinHtml = (st, grande) => `<span class="pin${grande ? " g" : ""}" style="--c:${st.color || "#0e7a55"}"><b>${esc(st.sigla || st.name.slice(0, 2))}</b></span>`;
 async function vMapa() {
   setTab("");
+  const marcar = MAPA.marcar; MAPA.marcar = false;
   $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>🗺️ Sucursales cerca</h1>
-      <button class="btn sec sm" data-ubic>📍 ${UBIC ? "Cambiar ubicación" : "Marcar mi ubicación"}</button></div>
-    <p class="sub" style="margin:-4px 0 10px">${UBIC ? `Alrededor de <b>${esc(UBIC.label)}</b>.` : "Marcá tu ubicación para ver las más cercanas."}${Object.keys(LISTA).length ? " Tocá una sucursal para ver cuánto te sale tu carrito ahí." : ""}</p>
+      <button class="btn sec sm" data-ubic>${ic("map-pin")} ${UBIC ? "Cambiar ubicación" : "Elegir ubicación"}</button></div>
+    <p class="sub" id="mintro" style="margin:-4px 0 10px"></p>
     <div class="chips mchips" id="mchips"></div>
-    <div id="mapa" class="mapa" role="region" aria-label="Mapa de sucursales"><div class="loading" style="padding:40px">Cargando el mapa…</div></div>
+    <div class="mapw"><div id="mapa" class="mapa" role="region" aria-label="Mapa de sucursales"><div class="loading" style="padding:40px">Cargando el mapa…</div></div>
+      <button type="button" class="btn sm mzona" id="mzona" hidden>${ic("search")} Buscar en esta zona</button></div>
+    <div id="mlista" class="mlista" aria-live="polite"></div>
     <p class="sub" style="margin-top:8px">Mapa: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Ubicaciones de la base oficial de precios; algunas son aproximadas.</p>
   </section></div>`;
   let L;
@@ -831,34 +835,108 @@ async function vMapa() {
   const items = itemsOf(LISTA), tot = {};
   if (items.length) for (const b of rankAll(items, HOY)) if (b.c === "tienda" && !b.miss.length && !(b.sid in tot)) tot[b.sid] = b.total;
   const cadenas = D.stores.filter(st => (SUC[st.id] || []).some(sucValida));
+  const intro = () => { $("#mintro").innerHTML = (UBIC ? `Tu ubicación: <b>${esc(UBIC.label)}</b> (tocá el mapa o arrastrá el punto negro para cambiarla). ` : "<b>Tocá el mapa donde estás</b> para marcar tu ubicación, o usá el botón ➤. ")
+    + "Tocá una sucursal para ver la dirección" + (items.length ? " y cuánto te sale tu carrito ahí." : "."); };
+  intro();
   const centro = UBIC ? [UBIC.lat, UBIC.lon] : (() => { const all = cadenas.flatMap(st => SUC[st.id].filter(sucValida)); if (!all.length) return OBELISCO; return [all.reduce((a, b) => a + b[0], 0) / all.length, all.reduce((a, b) => a + b[1], 0) / all.length]; })();
   $("#mapa").innerHTML = "";
-  const m = L.map("mapa", { preferCanvas: true, zoomControl: true }).setView(centro, UBIC ? 14 : PROV === "AR-C" ? 12 : 9);
+  const m = L.map("mapa", { zoomControl: true, tap: true }).setView(centro, UBIC ? 15 : PROV === "AR-C" ? 12 : 9);
   L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
-  if (UBIC) L.circleMarker([UBIC.lat, UBIC.lon], { radius: 11, color: "#fff", weight: 4, fillColor: "#111827", fillOpacity: 1 }).addTo(m).bindTooltip("Vos estás acá", { permanent: true, direction: "top", offset: [0, -10] });
-  // seguir mi ubicación mientras camino
-  if (L.control.locate) L.control.locate({ position: "topleft", setView: "untilPanOrZoom", flyTo: true, showPopup: false, keepCurrentZoomLevel: false, initialZoomLevel: 15,
-    strings: { title: "Mostrar dónde estoy y seguirme" }, locateOptions: { enableHighAccuracy: true, maxZoom: 16 } }).addTo(m);
-  // los puntos cercanos se agrupan en un círculo con la cantidad; se abren al acercarse
-  const grupo = L.markerClusterGroup ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 48, disableClusteringAtZoom: 15, showCoverageOnHover: false, spiderfyOnMaxZoom: true }) : L.layerGroup();
+
+  // ---- tu ubicación: punto azul que se puede arrastrar ----
+  let yo = null;
+  const ponerYo = () => {
+    if (yo) { m.removeLayer(yo); yo = null; }
+    if (!UBIC) return;
+    yo = L.marker([UBIC.lat, UBIC.lon], { draggable: true, zIndexOffset: 1000, title: "Tu ubicación (arrastrala para moverla)", keyboard: false,
+      icon: L.divIcon({ className: "yo", html: "<span></span>", iconSize: [26, 26] }) }).addTo(m)
+      .bindTooltip("Vos estás acá · arrastrá para mover", { direction: "top", offset: [0, -14] });
+    yo.on("dragend", e => { const { lat, lng } = e.target.getLatLng(); fijarUbic(lat, lng, "el punto marcado en el mapa"); });
+  };
+  const fijarUbic = (lat, lon, label, gps) => {
+    UBIC = { lat: +lat.toFixed(5), lon: +lon.toFixed(5), label, km: (UBIC && UBIC.km) || 3, ...(gps ? { gps: true } : { mapa: true }) };
+    LS.set(PK("cs_ubic"), UBIC); calcCerca(); updUbic(); ponerYo(); intro(); m.closePopup(); buscarZona(); ubicCambio();
+    toast("📍 Ubicación guardada: «Cómo llegar» sale desde acá");
+  };
+  ponerYo();
+  // tocar el mapa: marcar mi ubicación en ese punto
+  m.on("click", e => {
+    L.popup({ closeButton: true, className: "mmarca" }).setLatLng(e.latlng)
+      .setContent(`<button type="button" class="btn sm" id="mmarcar">${ic("map-pin")} Marcar mi ubicación acá</button>`).openOn(m);
+    setTimeout(() => { const b = $("#mmarcar"); if (b) b.onclick = () => fijarUbic(e.latlng.lat, e.latlng.lng, "el punto marcado en el mapa"); });
+  });
+  // botón ➤: usar la ubicación del dispositivo (y seguirla mientras caminás)
+  if (L.control.locate) {
+    const lc = L.control.locate({ position: "topleft", setView: "untilPanOrZoom", flyTo: true, showPopup: false, keepCurrentZoomLevel: false, initialZoomLevel: 16, drawCircle: true, drawMarker: false,
+      strings: { title: "Usar mi ubicación actual" }, locateOptions: { enableHighAccuracy: true, maxZoom: 16, timeout: 20000 } }).addTo(m);
+    let primera = true;
+    m.on("locationfound", e => { if (primera) { primera = false; fijarUbic(e.latlng.lat, e.latlng.lng, "tu ubicación actual", true); } });
+    m.on("locationerror", e => { primera = true; lc.stop(); toast(geoError(e.code), 7000); });
+  }
+
+  // ---- sucursales, agrupadas cuando están muy juntas ----
+  const grupo = L.markerClusterGroup ? L.markerClusterGroup({ chunkedLoading: true, maxClusterRadius: 44, disableClusteringAtZoom: 15, showCoverageOnHover: false, spiderfyOnMaxZoom: true,
+    iconCreateFunction: c => { const n = c.getChildCount(); return L.divIcon({ className: "mcl", html: `<span>${n}</span>`, iconSize: n < 10 ? [34, 34] : n < 100 ? [40, 40] : [46, 46] }); } }) : L.layerGroup();
   grupo.addTo(m);
-  const capas = {};
+  const capas = {}, todas = [];
+  const popup = (st, b) => {
+    const d = UBIC ? dist(UBIC.lat, UBIC.lon, b[0], b[1]) : null;
+    return `<div class="mpop"><div class="mph">${pinHtml(st)}<b>${esc(st.name)}</b></div>${esc(b[2] || "")}${b[3] ? `, ${esc(b[3])}` : ""}${d != null ? `<br><span class="sub">a ${kmTxt(d)} de tu ubicación</span>` : ""}
+      ${st.id in tot ? `<div class="mtot">Tu carrito acá: <b>${money(tot[st.id])}</b></div>` : ""}
+      <a class="btn sm" target="_blank" rel="noopener" data-mapa-ir href="https://www.google.com/maps/dir/?api=1${UBIC ? `&origin=${UBIC.lat},${UBIC.lon}` : ""}&destination=${b[0]},${b[1]}">${ic("navigation")} Cómo llegar${UBIC ? "" : " (desde donde estés)"}</a></div>`;
+  };
   for (const st of cadenas) {
     const g = [];
     for (const b of SUC[st.id]) {
       if (!sucValida(b)) continue;
-      const d = UBIC ? dist(UBIC.lat, UBIC.lon, b[0], b[1]) : null;
-      const html = `<div class="mpop"><b>${esc(st.name)}</b><br>${esc(b[2] || "")}${b[3] ? `, ${esc(b[3])}` : ""}${d != null ? `<br><span class="sub">a ${kmTxt(d)}</span>` : ""}
-        ${st.id in tot ? `<div class="mtot">Tu carrito acá: <b>${money(tot[st.id])}</b></div>` : ""}
-        <a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1${UBIC ? `&origin=${UBIC.lat},${UBIC.lon}` : ""}&destination=${b[0]},${b[1]}">📍 Cómo llegar</a></div>`;
-      g.push(L.marker([b[0], b[1]], { title: st.name, icon: L.divIcon({ className: "mpin", html: `<i style="background:${st.color || "#16a34a"}"></i>`, iconSize: [18, 18] }) }).bindPopup(html));
+      const mk = L.marker([b[0], b[1]], { title: `${st.name} · ${b[2] || ""}`, riseOnHover: true, icon: L.divIcon({ className: "mpin", html: pinHtml(st), iconSize: [30, 38], iconAnchor: [15, 37], popupAnchor: [0, -34] }) })
+        .bindPopup(() => popup(st, b), { maxWidth: 260 });   // se arma al abrir: así usa tu ubicación actual
+      mk._suc = { st, b }; g.push(mk); todas.push(mk);
     }
     capas[st.id] = g; if (!MAPA.off.has(st.id)) grupo.addLayers(g);
   }
-  const chips = () => { $("#mchips").innerHTML = cadenas.map(st => `<button type="button" class="chip${MAPA.off.has(st.id) ? "" : " on"}" data-mcad="${st.id}" aria-pressed="${!MAPA.off.has(st.id)}"><span class="mdot" style="background:${st.color || "#16a34a"}"></span>${esc(st.name)}${st.id in tot ? ` · ${money(tot[st.id])}` : ""}</button>`).join(""); };
+  const chips = () => { $("#mchips").innerHTML = cadenas.map(st => `<button type="button" class="chip${MAPA.off.has(st.id) ? "" : " on"}" data-mcad="${st.id}" aria-pressed="${!MAPA.off.has(st.id)}">${pinHtml(st)}${esc(st.name)}${st.id in tot ? ` · ${money(tot[st.id])}` : ""}</button>`).join(""); };
   chips();
-  $("#mchips").onclick = e => { const c = e.target.closest("[data-mcad]"); if (!c) return; const id = c.dataset.mcad; if (MAPA.off.has(id)) { MAPA.off.delete(id); grupo.addLayers ? grupo.addLayers(capas[id]) : capas[id].forEach(x => x.addTo(grupo)); } else { MAPA.off.add(id); grupo.removeLayers ? grupo.removeLayers(capas[id]) : capas[id].forEach(x => grupo.removeLayer(x)); } chips(); };
-  setTimeout(() => m.invalidateSize(), 100);
+  $("#mchips").onclick = e => { const c = e.target.closest("[data-mcad]"); if (!c) return; const id = c.dataset.mcad; if (MAPA.off.has(id)) { MAPA.off.delete(id); grupo.addLayers ? grupo.addLayers(capas[id]) : capas[id].forEach(x => x.addTo(grupo)); } else { MAPA.off.add(id); grupo.removeLayers ? grupo.removeLayers(capas[id]) : capas[id].forEach(x => grupo.removeLayer(x)); } chips(); buscarZona(); };
+
+  // ---- "Buscar en esta zona": la sucursal más cercana de cada cadena en lo que se ve del mapa ----
+  const buscarZona = () => {
+    $("#mzona").hidden = true;
+    const bz = m.getBounds(), c = m.getCenter(), ref = UBIC && bz.contains([UBIC.lat, UBIC.lon]) ? [UBIC.lat, UBIC.lon] : [c.lat, c.lng];
+    const porCad = {};
+    for (const mk of todas) {
+      const { st, b } = mk._suc; if (MAPA.off.has(st.id) || !bz.contains(mk.getLatLng())) continue;
+      const d = dist(ref[0], ref[1], b[0], b[1]), x = porCad[st.id] || (porCad[st.id] = { st, n: 0, best: null });
+      x.n++; if (!x.best || d < x.best.d) x.best = { d, b, mk };
+    }
+    const filas = Object.values(porCad).sort((a, b2) => items.length && (a.st.id in tot) !== (b2.st.id in tot) ? ((b2.st.id in tot) - (a.st.id in tot)) : items.length && a.st.id in tot ? tot[a.st.id] - tot[b2.st.id] : a.best.d - b2.best.d);
+    const n = filas.reduce((a, f) => a + f.n, 0);
+    $("#mlista").innerHTML = !filas.length ? `<div class="empty" style="padding:18px">No hay sucursales en esta parte del mapa. Alejá el mapa o movelo.</div>`
+      : `<h3 class="mlh">${n} ${n === 1 ? "sucursal" : "sucursales"} en esta zona${items.length ? " · ordenadas por lo que te sale tu carrito" : ""}</h3>` + filas.map((f, i) => `<div class="mfila">
+        ${pinHtml(f.st)}<div class="mfi"><b>${esc(f.st.name)}</b>${f.n > 1 ? ` <span class="sub">· ${f.n} en la zona</span>` : ""}<br><span class="sub">La más cercana: ${esc(f.best.b[2] || "")}${f.best.b[3] ? `, ${esc(f.best.b[3])}` : ""} · a ${kmTxt(f.best.d)}${UBIC && ref[0] === UBIC.lat ? "" : " del centro del mapa"}</span></div>
+        ${f.st.id in tot ? `<div class="mft"><b>${money(tot[f.st.id])}</b><span class="sub">tu carrito</span></div>` : ""}
+        <div class="mfb"><button type="button" class="btn sec sm" data-mver="${i}">Ver</button><a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1${UBIC ? `&origin=${UBIC.lat},${UBIC.lon}` : ""}&destination=${f.best.b[0]},${f.best.b[1]}">${ic("navigation")} Cómo llegar</a></div></div>`).join("");
+    $$("[data-mver]").forEach(bt => bt.onclick = () => { const mk = filas[+bt.dataset.mver].best.mk; $("#mapa").scrollIntoView({ behavior: "smooth", block: "center" }); grupo.zoomToShowLayer ? grupo.zoomToShowLayer(mk, () => mk.openPopup()) : (m.setView(mk.getLatLng(), 16), mk.openPopup()); });
+  };
+  let auto = true;
+  m.on("movestart", () => { if (!auto) $("#mzona").hidden = false; });
+  $("#mzona").onclick = buscarZona;
+  setTimeout(() => { m.invalidateSize(); buscarZona(); auto = false; }, 150);
+  if (marcar) toast("Tocá el mapa en el lugar donde estás y elegí «Marcar mi ubicación acá»", 6000);
+}
+/* por qué no se pudo obtener la ubicación, en criollo */
+function geoError(code) {
+  if (code === 1) return "El navegador no deja usar tu ubicación. Activá el permiso del sitio (el candado al lado de la dirección) o marcala tocando el mapa.";
+  if (code === 3) return "Tardó demasiado en encontrar tu ubicación. Probá de nuevo al aire libre o marcala tocando el mapa.";
+  return "Tu dispositivo no pudo saber dónde estás. En la compu, revisá que la ubicación de Windows o Mac esté activada; si no, marcala tocando el mapa.";
+}
+/* pide la ubicación: primero rápida (Wi-Fi), y si falla, con GPS y más tiempo */
+function pedirUbicacion(ok, mal) {
+  if (!navigator.geolocation) return mal(2);
+  navigator.geolocation.getCurrentPosition(ok, e1 => {
+    if (e1.code === 1) return mal(1);
+    navigator.geolocation.getCurrentPosition(ok, e2 => mal(e2.code), { enableHighAccuracy: true, timeout: 20000, maximumAge: 0 });
+  }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 });
 }
 
 /* ---------- CONOCENOS / ACERCA DE ---------- */
@@ -1944,6 +2022,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-close]")) { closeModal(); return; }
   if (e.target.closest("[data-medios]")) { e.preventDefault(); modalMedios(); return; }
   if (e.target.closest("[data-news]")) { e.preventDefault(); modalNews(); return; }
+  if (e.target.closest("[data-marcarmapa]")) { e.preventDefault(); MAPA.marcar = true; closeModal(); if (location.hash === "#mapa") vMapa(); else irA("mapa"); return; }
   const zb = e.target.closest("[data-zoom]"); if (zb) { e.preventDefault(); zoomFoto(BY[zb.dataset.zoom]); return; }
   if (e.target.closest("[data-pegar]")) { e.preventDefault(); modalLista(""); return; }
   if (e.target.closest("[data-ticket]")) { e.preventDefault(); scanStop(); if (!$("#bsheet").hidden) masShow(false); modalTicket(); return; }
@@ -2251,10 +2330,9 @@ async function wizard(paso) {
     const fijar = u => { UBIC = u; LS.set(PK("cs_ubic"), UBIC); loadSuc().then(() => { calcCerca(); updUbic(); ubicCambio(false); }); };
     $("#wback").onclick = () => wizard(1);
     $("#wgps").onclick = () => {
-      if (!navigator.geolocation) { $("#wmsg").textContent = "Tu navegador no permite usar la ubicación. Escribí tu barrio."; return; }
-      $("#wmsg").textContent = "Buscando tu ubicación…";
-      navigator.geolocation.getCurrentPosition(pos => { if (!Z.enProv(pos.coords.latitude, pos.coords.longitude)) { $("#wmsg").innerHTML = `Tu ubicación actual está fuera de <b>${esc(provNombre(PROV))}</b>. Elegí una localidad de la lista (o cambiá de provincia con el botón 🗺️ de arriba).`; return; } fijar({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "tu ubicación actual", km: 3, gps: true }); $("#wmsg").innerHTML = `✓ Listo: ${Object.keys(CERCA || {}).length} comercios a menos de 3 km.`; },
-        () => { $("#wmsg").textContent = "No pudimos obtener tu ubicación. Escribí tu barrio o localidad."; }, { timeout: 10000, maximumAge: 600000 });
+      $("#wmsg").textContent = "Buscando tu ubicación… (puede tardar unos segundos)";
+      pedirUbicacion(pos => { if (!Z.enProv(pos.coords.latitude, pos.coords.longitude)) { $("#wmsg").innerHTML = `Tu ubicación actual está fuera de <b>${esc(provNombre(PROV))}</b>. Elegí una localidad de la lista (o cambiá de provincia con el botón 🗺️ de arriba).`; return; } fijar({ lat: pos.coords.latitude, lon: pos.coords.longitude, label: "tu ubicación actual", km: 3, gps: true }); $("#wmsg").innerHTML = `✓ Listo: ${Object.keys(CERCA || {}).length} comercios a menos de 3 km.`; },
+        code => { $("#wmsg").textContent = geoError(code) + " También podés escribir tu barrio o localidad."; });
     };
     $("#wnext").onclick = () => {
       const v = $("#wzona").value.trim();
