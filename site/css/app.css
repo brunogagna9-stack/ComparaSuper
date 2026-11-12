@@ -1061,3 +1061,8 @@ footer.site{padding-bottom:90px}
   .bnav a,.bnav button{font-size:12px}
   input[type=checkbox]{min-width:20px;min-height:20px}
 }
+/* ficha en el celular: "Ver en la tienda" y "Cómo llegar" en una fila, y "Agregar" debajo a todo el ancho */
+@media (max-width:640px){
+  .srow .sa{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center}
+  .srow .sa .btn{flex:1 1 100%;justify-content:center}
+}

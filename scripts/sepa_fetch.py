@@ -106,7 +106,7 @@ def sucursal_info(r):
         lat, lon = float(r.get("sucursales_latitud") or 0), float(r.get("sucursales_longitud") or 0)
     except ValueError:
         return None
-    if not (-35.5 < lat < -33.5 and -59.6 < lon < -57.5):   # fuera de CABA y GBA (o coordenadas mal cargadas)
+    if not (-41.2 < lat < -33.2 and -63.5 < lon < -56.5):   # fuera de CABA y provincia de Buenos Aires (o coordenadas mal cargadas)
         return None
     calle = " ".join(x for x in (r.get("sucursales_calle", "").strip().title(), r.get("sucursales_numero", "").strip()) if x)
     zona = (r.get("sucursales_barrio") or r.get("sucursales_localidad") or "").strip().title()

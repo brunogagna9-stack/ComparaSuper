@@ -46,7 +46,21 @@ let D, P, BY = {}, ST = {}, HIST, CFG = {};
    1) meta.json + descuentos (pocos KB) → se muestra el inicio;
    2) products.json (los ~25.000 productos) en segundo plano; links.json (enlaces a las tiendas) cuando hace falta. */
 let READY = false, PROD_P = null, LINKS_P = null, LINKS_DONE = false;
+/* CABA: se quitan las cadenas que no tienen ninguna sucursal cerca (por ejemplo Toledo, que está en Mar del Plata).
+   La base oficial de precios viene junta para CABA y toda la provincia de Buenos Aires. */
+let FUERA = new Set();
+const OBELISCO = [-34.6037, -58.3816], RADIO_CABA = 45;   // km: CABA y el conurbano
+const LEJOS_SIN_DATOS = new Set(["toledo", "unicoop", "comodin", "california", "marianomax"]);   // sin ubicación cargada: se sabe que están lejos
+function calcFuera(stores) {
+  FUERA = new Set();
+  if (PROV !== "AR-C" || !SUC) return;
+  for (const st of stores) {
+    const l = SUC[st.id];
+    if (l && l.length ? !l.some(b => dist(OBELISCO[0], OBELISCO[1], b[0], b[1]) <= RADIO_CABA) : LEJOS_SIN_DATOS.has(st.id)) FUERA.add(st.id);
+  }
+}
 function prepProducts(d) {
+  if (FUERA.size) d.products = d.products.filter(x => (x.offers = x.offers.filter(o => !FUERA.has(o.s))).length);
   for (const x of d.products) {   // datos comprimidos por build_data.py
     if (x.img && !/^https?:/.test(x.img) && d.imghosts) { const [h, id, f] = x.img.split("/"); x.img = `https://${d.imghosts[+h]}/arquivos/ids/${id}-300-300/${f}`; }
     for (const o of x.offers) if (o.pon && o.po) o.promoo = { txt: `${Math.round((1 - o.pon / o.po) * 100)}% menos comprando online`, pu: o.pon, n: 1 };
@@ -69,18 +83,20 @@ function ensureLinks() {
 }
 async function load() {
   const [m, p, c] = await Promise.all([
+    PROV === "AR-C" ? loadSuc().then(() => fetch(DIR() + "meta.json")).then(r => (r.ok ? r.json() : null)).catch(() => null) :
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : fetch("data/promos.json").then(r => r.json()))),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
-  if (m) { D = { ...m, products: [] }; loadProducts(); }
+  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts(); }
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
   ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
-  for (const [id, c] of Object.entries(P.comercios || {})) if (!ST[id]) ST[id] = { id, name: c.name, tipo: "super", color: "#64748b", comercio: true, lista: c.lista || null };
+  for (const [id, c] of Object.entries(P.comercios || {})) if (!ST[id] && !FUERA.has(id)) ST[id] = { id, name: c.name, tipo: "super", color: "#64748b", comercio: true, lista: c.lista || null };
   P.medioBy = Object.fromEntries(P.medios.map(m => [m.id, m]));
   const hoyIso = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);   // fecha de Argentina
   P.vencidas = P.promos.filter(pr => pr.hasta && pr.hasta < hoyIso).length;
   P.promos = P.promos.filter(pr => !pr.hasta || (pr.desde || "") <= hoyIso && hoyIso <= pr.hasta);
+  if (FUERA.size) P.promos = P.promos.filter(pr => (pr.stores = pr.stores.filter(x => !FUERA.has(x))).length);
   if (MEDIOS) MEDIOS = MEDIOS.filter(id => P.medioBy[id]);
   if (UBIC) { await loadSuc(); calcCerca(); }
 }
@@ -176,7 +192,29 @@ function storeChip(sid, c = null) {
   const extra = c === "online" && !isApp(sid) ? ' <span class="tag b sm">online</span>' : "";
   return `<span class="store">${badge("s", sid, s.name, s.color, s.sigla)}${esc(s.name)}${extra}</span>`;
 }
-const goUrl = (sid, p) => { const s = ST[sid]; const u = s.buscar || s.web; return u ? u.replaceAll("{q}", encodeURIComponent(p.name.replace(/\s\d.*$/, ""))) : null; };
+/* búsqueda en la tienda: cada cadena carga el producto con otro nombre ("Deo REXONA v8 250ml" en una es
+   "Antitranspirante masculino Rexona V8 250 ml" en otra), así que se busca por marca + 1 o 2 palabras clave */
+const PAL_GEN = new Set("de del la las el los con sin para y en x por deo desod ant antitransp alim bot bli fl cep dent shamp acond pack un uni ud unid unidades u ml cc gr grs g kg l lt lts cm mm cm3 c".split(" "));
+const MARCA_NO = new Set(["generico", "sin marca", "s/d", "sd", "varios", "otros", ""]);
+function claveBusqueda(p) {
+  const n = t => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const marca = MARCA_NO.has(n(p.brand).trim()) ? "" : n(p.brand).trim();
+  const mt = new Set(marca.split(/\s+/));
+  const pal = n(p.name).replace(/[,()]/g, " ").split(/\s+/).filter(w => w.length >= 2 && !w.includes(".") && !w.includes("/") && !PAL_GEN.has(w) && !mt.has(w)
+    && !/^x?\d+([.,]\d+)?(x\d+)?(ml|cc|cm3|l|lt|lts|g|gr|grs|kg|kgs|cm|mm|m|un|uni|unid|u|ud|uds|mts)?$/.test(w));
+  return [marca, ...pal.slice(0, marca ? 2 : 3)].filter(Boolean).join(" ") || p.name.replace(/\s\d.*$/, "");
+}
+const goUrl = (sid, p) => { const s = ST[sid]; const u = s.buscar || s.web; return u ? u.replaceAll("{q}", encodeURIComponent(claveBusqueda(p))) : null; };
+/* Google Maps: la sucursal más cercana a tu ubicación (o las cercanas a donde estés, si no cargaste ubicación) */
+function mapaUrl(sid) {
+  const s = ST[sid], l = SUC && SUC[sid];
+  if (UBIC && l && l.length) {
+    let m = null; for (const b of l) { const d = dist(UBIC.lat, UBIC.lon, b[0], b[1]); if (!m || d < m.d) m = { d, b }; }
+    return `https://www.google.com/maps/dir/?api=1&origin=${UBIC.lat},${UBIC.lon}&destination=${m.b[0]},${m.b[1]}`;
+  }
+  const zona = UBIC && UBIC.label ? " " + UBIC.label : PROV ? " " + provNombre(PROV) : "";
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((s ? s.name : sid) + " supermercado" + zona)}`;
+}
 function shipping(sid, c, sub) {
   if (c !== "online") return 0;
   const on = ST[sid].online || {};
@@ -1162,6 +1200,7 @@ function alternativas(p) {
 }
 async function openProduct(id) {
   const p = BY[id]; if (!p) return;
+  if (!SUC) loadSuc();   // para "Cómo llegar" a la sucursal más cercana
   const dr = $("#drawer"), sc = $("#scrim");
   if (openProduct.id !== id) openProduct.mas = false;
   openProduct.id = id;
@@ -1189,14 +1228,14 @@ async function openProduct(id) {
     const mine = PREF[id] === o.s && q;
     return `<div class="srow${mine ? " mine" : ""}"><div class="sh">${storeChip(o.s)}${FAV.has(o.s) ? '<span class="tag y sm">⭐ tu súper</span>' : ""}${CERCA && CERCA[o.s] ? `<span class="sub">📍 a ${kmTxt(CERCA[o.s].d)}</span>` : ""}${o.anom ? '<span class="tag r sm">⚠️ precio inusual</span>' : ""}</div>
       <div class="sp">${chanLine(o, "tienda")}${chanLine(o, "online")}</div>
-      <div class="sa">${link(o)}<button class="btn sm${mine ? " sec" : ""}" data-inc="${id}" data-sid="${o.s}">${mine ? `✓ Elegido · sumar otro` : `🛒 Agregar desde ${esc(ST[o.s].name)}`}</button></div></div>`;
+      <div class="sa">${link(o)}${o.p ? `<a class="go sec" data-mapa="${o.s}" href="${esc(mapaUrl(o.s))}" target="_blank" rel="noopener" title="Ver en Google Maps la sucursal más cercana y cómo llegar">📍 Cómo llegar</a>` : ""}<button class="btn sm${mine ? " sec" : ""}" data-inc="${id}" data-sid="${o.s}">${mine ? `✓ Elegido · sumar otro` : `🛒 Agregar desde ${esc(ST[o.s].name)}`}</button></div></div>`;
   };
   dr.innerHTML = `<div class="dh">${prodImg(p, "ph")}<div><h2 id="dtitle">${esc(p.name)}</h2>
       <div class="sub">${esc(p.brand)} · en ${p.offers.length} ${p.offers.length === 1 ? "comercio" : "comercios"}</div></div>
       <button class="x" id="dclose" aria-label="Cerrar">✕</button></div>
     <div class="db">
       <div class="box best">
-        <div><div class="sub">Más barato sin descuentos ${tip("sindto")}</div><div class="big">${money(b.v)}</div><div class="sub">${where(b)}${b.c === "online" ? " · más envío" : ""}</div><div class="sub">${unitTxt(p, b.v)} ${unitTxt(p, b.v) ? tip("kg") : ""}</div></div>
+        <div><div class="sub">Más barato sin descuentos ${tip("sindto")}</div><div class="big">${money(b.v)}</div><div class="sub">${where(b)}${b.c === "online" ? " · más envío" : ` · <a data-mapa="${b.o.s}" href="${esc(mapaUrl(b.o.s))}" target="_blank" rel="noopener" title="Sucursal más cercana en Google Maps">📍 Cómo llegar</a>`}</div><div class="sub">${unitTxt(p, b.v)} ${unitTxt(p, b.v) ? tip("kg") : ""}</div></div>
         ${bp && bp.v < b.v ? `<div class="bestpay"><div class="sub">Pagando hoy con descuento ${tip("condto")}</div><div class="big">${money(bp.v)}</div><div class="sub">${storeChip(bp.o.s, bp.c)} con <b>${esc(medioName(bp.pay.promo))}</b></div><div class="sub">${pagoIcon(bp.pay.promo)} ${esc(pagoTxt(bp.pay.promo))}</div></div>` : ""}
         ${pq.length ? `<div class="qnote">🏷️ ${esc(hint || qtyHint(p, 1))}</div>` : ""}
         <div class="bbtn">
@@ -1854,6 +1893,7 @@ async function instalar() {
       : `<ol class="steps"><li>Abrí el menú del navegador (los tres puntitos <b>⋮</b>).</li><li>Tocá <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.</li><li>Confirmá con <b>Instalar</b>.</li></ol>`}
     <div class="mfoot"><span></span><button class="btn" data-close>Entendido</button></div>`);
 }
+document.addEventListener("click", e => { const mp = e.target.closest("a[data-mapa]"); if (mp) { mp.href = mapaUrl(mp.dataset.mapa); evento("mapa-" + mp.dataset.mapa, "Cómo llegar a " + mp.dataset.mapa); } }, true);
 document.addEventListener("click", e => { if (e.target.closest("[data-instalar]")) { e.preventDefault(); instalar(); } });
 if ("serviceWorker" in navigator && location.protocol === "https:") addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
