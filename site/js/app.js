@@ -77,13 +77,9 @@ function ubicCambio(ahora = true) {
   if (n.size === FUERA.size && [...n].every(x => FUERA.has(x))) return;
   if (ahora) setTimeout(() => location.reload(), 900); else FUERA_PEND = true;
 }
-function prepList(d) {
-  if (FUERA.size) d.products = d.products.filter(x => (x.offers = x.offers.filter(o => !FUERA.has(o.s))).length);
-  for (const x of d.products) {   // datos comprimidos por build_data.py
-    if (x.img && !/^https?:/.test(x.img) && d.imghosts) { const [h, id, f] = x.img.split("/"); x.img = `https://${d.imghosts[+h]}/arquivos/ids/${id}-300-300/${f}`; }
-    for (const o of x.offers) if (o.pon && o.po) o.promoo = { txt: `${Math.round((1 - o.pon / o.po) * 100)}% menos comprando online`, pu: o.pon, n: 1 };
-  }
-}
+/* esqueleto de carga: tarjetas grises con la forma del contenido, en vez de una rueda girando */
+const esqueleto = (n = 8) => `<div class="grid v-g esq" aria-busy="true" aria-label="Cargando">${Array.from({ length: n }, () => `<div class="sk-card"><div class="sk sk-img"></div><div class="sk sk-l"></div><div class="sk sk-l c"></div><div class="sk sk-p"></div></div>`).join("")}</div>`;
+function prepList(d) { if (!d.listo) { d.products = decodificar(d, [...FUERA]); d.listo = true; } }   // ver js/datos.js
 function prepProducts(d) {
   prepList(d);
   D.products = d.products;
@@ -96,15 +92,47 @@ function prepProducts(d) {
 /* Para que el buscador ande enseguida (sobre todo con datos móviles), primero se bajan los ~5.000 productos
    más comparados (archivo chico) y después el resto. Mientras tanto, Productos y las sugerencias usan esos. */
 let TOPR = false;
+function usarTop(d) {
+  if (!d || READY) return;
+  prepList(d); D.products = d.products; BY = Object.fromEntries(d.products.map(x => [x.id, x])); TOPR = true;
+  if (/^#(buscar|c-)/.test(location.hash) && $("#view .loading")) route();
+  if (document.activeElement === $("#q")) qsugDraw();
+}
 function loadTop() {
-  return fetch(DIR() + "products-top.json").then(r => (r.ok ? r.json() : null)).then(d => {
-    if (!d || READY) return;
-    prepList(d); D.products = d.products; BY = Object.fromEntries(d.products.map(x => [x.id, x])); TOPR = true;
-    if (/^#(buscar|c-)/.test(location.hash) && $("#view .loading")) route();
-    if (document.activeElement === $("#q")) qsugDraw();
-  }).catch(() => {});
+  if (BUSC.w) return Promise.resolve();   // lo baja el proceso de fondo
+  return fetch(DIR() + "products-top.json").then(r => (r.ok ? r.json() : null)).then(usarTop).catch(() => {});
+}
+/* ---------- PROCESO DE FONDO: baja los productos y busca sin trabar la pantalla (js/buscador.js) ---------- */
+const BUSC = { w: null, ok: false, cache: new Map(), esp: new Map(), n: 0 };
+function iniciarFondo() {
+  if (BUSC.w !== null || !window.Worker) return false;
+  try { BUSC.w = new Worker("js/buscador.js"); } catch { BUSC.w = false; return false; }
+  const abs = f => new URL(DIR() + f, location.href).href;
+  PROD_P = new Promise(ok => {
+    BUSC.w.onmessage = e => {
+      const m = e.data;
+      if (m.t === "top") usarTop({ products: m.products, listo: true });
+      else if (m.t === "parte") (BUSC.partes = BUSC.partes || []).push(m.products);
+      else if (m.t === "full") { const L = [].concat(...BUSC.partes); BUSC.partes = null; prepProducts({ products: L, listo: true }); ok(); }
+      else if (m.t === "indice") { BUSC.ok = true; if (document.activeElement === $("#q")) qsugDraw(); }
+      else if (m.t === "ticket") { const f = BUSC.tk && BUSC.tk[m.id]; if (f) { delete BUSC.tk[m.id]; f(m.res); } }
+      else if (m.t === "res") { BUSC.cache.set(m.q, m); const f = BUSC.esp.get(m.q); if (f) { BUSC.esp.delete(m.q); f(m); } }
+      else if (m.t === "error") { BUSC.w.terminate(); BUSC.w = false; PROD_P = null; loadProducts().then(ok); }   // si falla, como siempre
+    };
+    BUSC.w.onerror = () => { if (READY) return; BUSC.w = false; PROD_P = null; loadProducts().then(ok); };
+  });
+  BUSC.w.postMessage({ t: "cargar", full: abs("products.json"), top: abs("products-top.json"), fuera: [...FUERA] });
+  return true;
+}
+/* pregunta al proceso de fondo qué productos coinciden; devuelve lo guardado si ya se preguntó */
+function buscarFondo(q, cb) {
+  const k = nrm(q).trim(); if (BUSC.cache.has(k)) return BUSC.cache.get(k);
+  if (!BUSC.esp.has(k)) { BUSC.esp.set(k, cb); BUSC.w.postMessage({ t: "buscar", id: ++BUSC.n, q: k }); } else BUSC.esp.set(k, cb);
+  if (BUSC.cache.size > 60) BUSC.cache.delete(BUSC.cache.keys().next().value);
+  return null;
 }
 function loadProducts() {
+  if (!PROD_P && BUSC.w === null) iniciarFondo();
   if (!PROD_P) PROD_P = fetch(DIR() + "products.json").then(r => r.json()).then(prepProducts);
   return PROD_P;
 }
@@ -121,7 +149,7 @@ async function load() {
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : fetch("data/promos.json").then(r => r.json()))),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
-  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadTop(); loadProducts(); }
+  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts(); loadTop(); }
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
   ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
@@ -402,7 +430,7 @@ function ubicBar(where) {
   if (!UBIC) return `<div class="ubic"><span>📍 Marcá tu ubicación y te mostramos las promos de los comercios que tenés cerca.</span><button class="btn sm" data-ubic>Marcar mi ubicación</button></div>`;
   const ids = Object.keys(CERCA || {}).sort((a, b) => CERCA[a].d - CERCA[b].d);
   return `<div class="ubic on"><div><b>📍 Cerca de ${esc(UBIC.label)}</b> <span class="sub">· hasta ${UBIC.km} km · ${ids.length} ${ids.length === 1 ? "comercio" : "comercios"}${where === "pagos" || where === "inicio" ? " · mostramos solo sus promos y las online" : ""}</span>
-      <div class="unear">${ids.slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir + (CERCA[id].zona ? ", " + CERCA[id].zona : ""))}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No encontramos sucursales en ese radio. Probá con más kilómetros.</span>'}</div></div>
+      <div class="unear"><a class="uchip" href="#mapa">🗺️ Ver en el mapa</a>${ids.slice(0, 12).map(id => `<span class="uchip" title="${esc(CERCA[id].dir + (CERCA[id].zona ? ", " + CERCA[id].zona : ""))}">${badge("s", id, ST[id].name, ST[id].color, ST[id].sigla)} ${esc(ST[id].name)} <small>${kmTxt(CERCA[id].d)}</small></span>`).join("") || '<span class="sub">No encontramos sucursales en ese radio. Probá con más kilómetros.</span>'}</div></div>
     <div class="ubtn"><button class="btn sec sm" data-ubic>Cambiar</button><button class="btn sec sm" data-noubic>Quitar</button></div></div>`;
 }
 /* barrios y localidades de la provincia elegida (en AMBA, cada sucursal dice si es de CABA o de Buenos Aires) */
@@ -579,6 +607,132 @@ function anuncio(lugar) {
       ${a.imagen ? `<img src="${esc(a.imagen)}" alt="${esc(a.titulo || a.anunciante || "Publicidad")}" loading="lazy">` : ""}
       ${a.titulo ? `<span class="adt"><b>${esc(a.titulo)}</b>${a.texto ? `<span>${esc(a.texto)}</span>` : ""}</span>` : ""}</a></aside>`;
 }
+/* ---------- ESCANEAR EL TICKET DEL SÚPER (Tesseract.js, lector de texto en fotos, licencia Apache 2.0) ----------
+   Se baja solo cuando lo usás (unos 4 MB la primera vez). Lee el ticket en tu celular: la foto no se manda a ningún lado. */
+let TS_P = null;
+const loadTS = () => TS_P || (TS_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"; s.onload = () => ok(window.Tesseract); s.onerror = () => { TS_P = null; ko(); }; document.head.appendChild(s); }));
+const NO_PROD = /total|subtotal|iva\b|efectivo|tarjeta|vuelto|cambio|cuit|ticket|factura|fecha|hora|cajer|caja\b|descuento|bonif|redondeo|pago|saldo|debito|credito|qr\b|mercado ?pago|gracias|cliente|consumidor|items?\b|art[ií]culos|domicilio|ing\.? ?br|p\.?v\.?|nro|n[º°]/i;
+function leerTicket(txt) {
+  const out = [];
+  for (let l of txt.split(/\n+/)) {
+    l = l.replace(/\s+/g, " ").trim();
+    const m = l.match(/^(.*?)[\s$]*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*[A-Z%]{0,3}$/);   // termina en un precio: "LECHE SERENIS 1L 1.234,50"
+    if (!m || NO_PROD.test(m[1]) || m[1].replace(/[^a-záéíóúñ]/gi, "").length < 4) continue;
+    let nombre = m[1], cant = 1;
+    const q = nombre.match(/^(\d+(?:[.,]\d+)?)\s*[xX*]\s*/); if (q) { cant = Math.round(parseFloat(q[1].replace(",", "."))) || 1; nombre = nombre.slice(q[0].length); }
+    const precio = parseFloat(m[2].replace(/[.,](?=\d{3}\b)/g, "").replace(",", "."));
+    if (precio > 0 && precio < 1e7) out.push({ txt: nombre.trim(), cant, precio });
+  }
+  return out;
+}
+const matchTicket = lineas => new Promise(ok => {
+  if (!BUSC.w || !BUSC.ok) return ok(null);
+  const id = ++BUSC.n; (BUSC.tk = BUSC.tk || {})[id] = ok;
+  BUSC.w.postMessage({ t: "ticket", id, lineas: lineas.map(l => l.txt) });
+});
+function modalTicket() {
+  openModal(`<h2>🧾 ¿Cuánto te hubieras ahorrado?</h2>
+    <p class="sub">Sacale una foto al ticket del súper y te decimos cuánto te hubiera salido lo mismo comprando cada cosa donde está más barato. La foto se lee en tu celular y no se manda a ningún lado.</p>
+    <label class="btn" style="display:inline-flex;gap:8px;cursor:pointer;margin:6px 0">📷 Sacar o elegir foto del ticket<input type="file" id="tkfile" accept="image/*" capture="environment" hidden></label>
+    <p class="sub">Consejo: el ticket estirado, derecho, con buena luz y que se lea entero.</p>
+    <div id="tkres" role="status"></div>`);
+  $("#tkfile").onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    const box = $("#tkres"), est = t => { box.innerHTML = `<div class="tkprog"><div class="spin"></div>${t}</div>`; };
+    est("Preparando el lector de tickets… (la primera vez tarda un poco más)");
+    try {
+      await loadProducts();
+      const T = await loadTS();
+      const w = await T.createWorker("spa", 1, { logger: m => { if (m.status === "recognizing text" && $("#tkres")) est(`Leyendo el ticket… ${Math.round(m.progress * 100)}%`); } });
+      const { data } = await w.recognize(f); await w.terminate();
+      const lineas = leerTicket(data.text || "");
+      if (!lineas.length) { box.innerHTML = `<div class="warn">No pudimos leer productos con precio en la foto. Probá con más luz, el ticket derecho y más cerca.</div>`; return; }
+      est("Buscando cada producto…");
+      const res = await matchTicket(lineas);
+      if (!$("#tkres")) return;
+      ticketTabla(lineas, res || []);
+    } catch { box.innerHTML = `<div class="warn">No se pudo leer el ticket. Revisá tu conexión (la primera vez se baja el lector) y probá de nuevo.</div>`; }
+  };
+}
+/* tamaño escrito en el renglón del ticket ("1KG", "750CC", "500 GR") en kg o litros, para elegir la presentación correcta */
+function tamTicket(t) {
+  const m = nrm(t).match(/(\d+(?:[.,]\d+)?)\s*(kgs?|k|grs?|g|lts?|l|ml|cc|cm3)\b/); if (!m) return null;
+  const n = parseFloat(m[1].replace(",", ".")), u = m[2];
+  return /^(kgs?|k)$/.test(u) ? { q: n, u: "kg" } : /^(grs?|g)$/.test(u) ? { q: n / 1000, u: "kg" } : /^(lts?|l)$/.test(u) ? { q: n, u: "l" } : { q: n / 1000, u: "l" };
+}
+function ticketTabla(lineas, res) {
+  const orden = (l, ids) => { const t = tamTicket(l.txt); if (!t) return ids; const d = id => { const p = BY[id]; return p.bq && p.bu === t.u ? Math.abs(p.bq - t.q) / t.q : 9; }; return [...ids].sort((a, b) => d(a) - d(b)); };
+  const filas = lineas.map((l, i) => ({ ...l, ids: orden(l, (res[i] && res[i].ids.filter(id => BY[id])) || []), sel: 0, on: !!(res[i] && res[i].ids.length) }));
+  const draw = () => {
+    let pag = 0, mej = 0, n = 0;
+    const html = filas.map((f, i) => {
+      const p = f.on && BY[f.ids[f.sel]], b = p && best(p);
+      if (p) { pag += f.precio; mej += Math.min(f.precio, b.v * f.cant); n++; }
+      return `<div class="tkrow${p ? "" : " off"}"><div class="tkl"><span class="sub">«${esc(f.txt)}»${f.cant > 1 ? ` × ${f.cant}` : ""} · pagaste ${money(f.precio)}</span>
+        ${f.ids.length ? `<select class="sel" data-tksel="${i}" aria-label="Producto">${f.ids.map((id, k) => `<option value="${k}" ${k === f.sel && f.on ? "selected" : ""}>${esc(BY[id].name)}</option>`).join("")}<option value="-1" ${f.on ? "" : "selected"}>No es ninguno</option></select>` : `<span class="sub">No lo reconocimos</span>`}</div>
+        <div class="tkp">${p ? `<b>${money(b.v * f.cant)}</b><br><span class="sub">en ${esc(ST[b.o.s].name)}</span>` : ""}</div></div>`;
+    }).join("");
+    const ah = pag - mej;
+    $("#tkres").innerHTML = `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos. Pagaste <b>${money(pag)}</b> por ellos.</div>
+        <div class="big">${ah > 0 ? `Podrías ahorrar ${money(ah)}` : "¡Compraste bien!"}</div><div class="sub">comprando cada uno donde está más barato (${money(mej)}), sin contar descuentos con tu banco.</div>` : "No reconocimos productos. Elegilos de la lista si alguno aparece."}</div>
+      <p class="sub">Los tickets abrevian los nombres: revisá que cada producto sea el correcto.</p>${html}
+      <div class="mfoot"><span></span>${n ? `<button class="btn" id="tkplan">📊 Ver dónde conviene esta compra</button>` : ""}</div>`;
+    $$("[data-tksel]").forEach(s => s.onchange = () => { const f = filas[+s.dataset.tksel], v = +s.value; f.on = v >= 0; if (v >= 0) f.sel = v; draw(); });
+    const pb = $("#tkplan"); if (pb) pb.onclick = () => { PLAN = {}; for (const f of filas) if (f.on && BY[f.ids[f.sel]]) PLAN[f.ids[f.sel]] = (PLAN[f.ids[f.sel]] || 0) + f.cant; savePlan(); closeModal(); irA("conviene"); };
+  };
+  draw();
+}
+
+/* ---------- MAPA DE SUCURSALES (Leaflet + OpenStreetMap, gratis y sin clave) ---------- */
+let LF_P = null;
+function cargarLeaflet() {
+  if (!LF_P) LF_P = new Promise((ok, ko) => {
+    const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "js/vendor/leaflet/leaflet.css"; document.head.appendChild(l);
+    const sc = document.createElement("script"); sc.src = "js/vendor/leaflet/leaflet.js"; sc.onload = () => ok(window.L); sc.onerror = () => { LF_P = null; ko(); }; document.head.appendChild(sc);
+  });
+  return LF_P;
+}
+const MAPA = { off: new Set() };
+async function vMapa() {
+  setTab("");
+  $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>🗺️ Sucursales cerca</h1>
+      <button class="btn sec sm" data-ubic>📍 ${UBIC ? "Cambiar ubicación" : "Marcar mi ubicación"}</button></div>
+    <p class="sub" style="margin:-4px 0 10px">${UBIC ? `Alrededor de <b>${esc(UBIC.label)}</b>.` : "Marcá tu ubicación para ver las más cercanas."}${Object.keys(LISTA).length ? " Tocá una sucursal para ver cuánto te sale tu carrito ahí." : ""}</p>
+    <div class="chips mchips" id="mchips"></div>
+    <div id="mapa" class="mapa" role="region" aria-label="Mapa de sucursales"><div class="loading" style="padding:40px">Cargando el mapa…</div></div>
+    <p class="sub" style="margin-top:8px">Mapa: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Ubicaciones de la base oficial de precios; algunas son aproximadas.</p>
+  </section></div>`;
+  let L;
+  try { [L] = await Promise.all([cargarLeaflet(), loadSuc(), loadProducts()]); } catch { $("#mapa").innerHTML = '<div class="empty">No se pudo cargar el mapa. Revisá tu conexión.</div>'; return; }
+  if (!$("#mapa")) return;   // te fuiste mientras cargaba
+  // cuánto sale el carrito en cada cadena (en el local, hoy)
+  const items = itemsOf(LISTA), tot = {};
+  if (items.length) for (const b of rankAll(items, HOY)) if (b.c === "tienda" && !b.miss.length && !(b.sid in tot)) tot[b.sid] = b.total;
+  const cadenas = D.stores.filter(st => (SUC[st.id] || []).some(sucValida));
+  const centro = UBIC ? [UBIC.lat, UBIC.lon] : (() => { const all = cadenas.flatMap(st => SUC[st.id].filter(sucValida)); if (!all.length) return OBELISCO; return [all.reduce((a, b) => a + b[0], 0) / all.length, all.reduce((a, b) => a + b[1], 0) / all.length]; })();
+  $("#mapa").innerHTML = "";
+  const m = L.map("mapa", { preferCanvas: true, zoomControl: true }).setView(centro, UBIC ? 14 : PROV === "AR-C" ? 12 : 9);
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+  if (UBIC) L.circleMarker([UBIC.lat, UBIC.lon], { radius: 11, color: "#fff", weight: 4, fillColor: "#111827", fillOpacity: 1 }).addTo(m).bindTooltip("Vos estás acá", { permanent: true, direction: "top", offset: [0, -10] });
+  const capas = {};
+  for (const st of cadenas) {
+    const g = L.layerGroup();
+    for (const b of SUC[st.id]) {
+      if (!sucValida(b)) continue;
+      const d = UBIC ? dist(UBIC.lat, UBIC.lon, b[0], b[1]) : null;
+      const html = `<div class="mpop"><b>${esc(st.name)}</b><br>${esc(b[2] || "")}${b[3] ? `, ${esc(b[3])}` : ""}${d != null ? `<br><span class="sub">a ${kmTxt(d)}</span>` : ""}
+        ${st.id in tot ? `<div class="mtot">Tu carrito acá: <b>${money(tot[st.id])}</b></div>` : ""}
+        <a class="btn sm" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1${UBIC ? `&origin=${UBIC.lat},${UBIC.lon}` : ""}&destination=${b[0]},${b[1]}">📍 Cómo llegar</a></div>`;
+      L.circleMarker([b[0], b[1]], { radius: 7, color: "#fff", weight: 2, fillColor: st.color || "#16a34a", fillOpacity: 0.95 }).bindPopup(html).addTo(g);
+    }
+    capas[st.id] = g; if (!MAPA.off.has(st.id)) g.addTo(m);
+  }
+  const chips = () => { $("#mchips").innerHTML = cadenas.map(st => `<button type="button" class="chip${MAPA.off.has(st.id) ? "" : " on"}" data-mcad="${st.id}" aria-pressed="${!MAPA.off.has(st.id)}"><span class="mdot" style="background:${st.color || "#16a34a"}"></span>${esc(st.name)}${st.id in tot ? ` · ${money(tot[st.id])}` : ""}</button>`).join(""); };
+  chips();
+  $("#mchips").onclick = e => { const c = e.target.closest("[data-mcad]"); if (!c) return; const id = c.dataset.mcad; if (MAPA.off.has(id)) { MAPA.off.delete(id); capas[id].addTo(m); } else { MAPA.off.add(id); m.removeLayer(capas[id]); } chips(); };
+  setTimeout(() => m.invalidateSize(), 100);
+}
+
 /* ---------- CONOCENOS / ACERCA DE ---------- */
 function vNosotros() {
   setTab("nosotros");
@@ -701,17 +855,23 @@ function corregir(w) {
 const matchW = (p, w) => p._t.includes(w) || p._f.includes(fon(w));
 const MARCA_PROPIA = /^(carrefour|cuisine ?& ?co|dia\b|great value|coto\b|check\b|best choice|jumbo\b|vea\b|disco\b)/;
 function results() {
-  vocab();
-  let words = nrm(S.q).split(/\s+/).filter(Boolean);
-  const base = p => (!S.cat || p.cat === S.cat);
+  let words = nrm(S.q).split(/\s+/).filter(Boolean), ids = null;
   S.qfix = "";
-  if (words.length && !D.products.some(p => base(p) && words.every(w => matchW(p, w)))) {   // sin resultados: probar corrigiendo
-    const fixed = words.map(corregir);
-    if (fixed.join(" ") !== words.join(" ")) { words = fixed; S.qfix = fixed.join(" "); }
+  if (words.length && BUSC.ok && READY) {   // el proceso de fondo ya tiene el índice: le preguntamos
+    const k = nrm(S.q).trim(), res = buscarFondo(S.q, () => { if (nrm(S.q).trim() === k && vBuscar.draw && $("#res")) vBuscar.draw(); });
+    if (!res) return null;   // en camino: se dibuja al llegar
+    ids = new Set(res.ids); if (res.fix) { S.qfix = res.fix; words = res.fix.split(" "); }
+  } else {
+    vocab();
+    const base = p => (!S.cat || p.cat === S.cat);
+    if (words.length && !D.products.some(p => base(p) && words.every(w => matchW(p, w)))) {   // sin resultados: probar corrigiendo
+      const fixed = words.map(corregir);
+      if (fixed.join(" ") !== words.join(" ")) { words = fixed; S.qfix = fixed.join(" "); }
+    }
   }
   const list = D.products.filter(p => {
     if (S.cat && p.cat !== S.cat) return false;
-    if (!words.every(w => matchW(p, w))) return false;
+    if (ids ? !ids.has(p.id) : !words.every(w => matchW(p, w))) return false;
     const sf = stFilter(); if (sf && !p.offers.some(o => sf.has(o.s))) return false;
     if (S.onlyPromo && !hasPromo(p)) return false;
     if (S.sintacc && !/tacc|sin gluten|libre de gluten/.test(nrm(p.name))) return false;
@@ -780,8 +940,9 @@ function vBuscar() {
         .filter(Boolean).map(([k, t, on]) => `<button type="button" class="qchip${on ? " on" : ""}" data-qchip="${k}" aria-pressed="${!!on}">${t}</button>`).join("")}</div>
       <div id="res"></div>
     </div></div>`;
-  const draw = () => {
+  const draw = vBuscar.draw = () => {
     const r = results();
+    if (!r) { $("#res").innerHTML = esqueleto(8); return; }
     $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">Mostramos resultados para <b>«${esc(S.qfix)}»</b> (buscaste «${esc(S.q)}»)</span>` : ""}`;
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
     const pg = S.bpage || 1, slice = r.slice((pg - 1) * per, pg * per);
@@ -1005,7 +1166,8 @@ function vCarrito() {
           <a class="btn wa" href="https://wa.me/?text=${encodeURIComponent(txt + "\n\nAbrir el carrito: " + link)}" target="_blank" rel="noopener">WhatsApp</a>
           <a class="btn sec" href="mailto:?subject=${encodeURIComponent("Mi carrito del súper")}&body=${encodeURIComponent(txt + "\n\nAbrir el carrito: " + link)}">✉️ Correo electrónico</a>
           <button class="btn sec" id="shcopy">📋 Copiar texto</button>
-          <button class="btn sec" id="shlink">🔗 Copiar enlace</button></div>
+          <button class="btn sec" id="shlink">🔗 Copiar enlace</button>
+          <button class="btn sec" id="shqr">📱 Código QR</button></div>
         <details class="sub" style="margin-top:10px"><summary>Ver el mensaje</summary><pre class="msg">${esc(txt + "\n\nAbrir el carrito: " + link)}</pre></details></section>
       ${listasBox()}
     </aside></div>`;
@@ -1014,6 +1176,16 @@ function vCarrito() {
   $("#tocalc").onclick = () => { PLAN = { ...LISTA }; savePlan(); location.hash = "conviene"; };
   $("#shcopy").onclick = () => copy(txt + "\n\nAbrir el carrito: " + link, "Texto copiado: pegalo donde quieras");
   $("#shlink").onclick = () => copy(link, "Enlace copiado");
+  $("#shqr").onclick = () => modalQR(link);
+}
+/* código QR del carrito (qrcode-generator, licencia MIT): para pasarlo de la compu al celular con la cámara */
+let QR_P = null;
+const loadQR = () => QR_P || (QR_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "js/vendor/qrcode.js"; s.onload = () => ok(window.qrcode); s.onerror = () => { QR_P = null; ko(); }; document.head.appendChild(s); }));
+async function modalQR(link) {
+  let svg = "";
+  try { const qr = (await loadQR())(0, "L"); qr.addData(link); qr.make(); svg = qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true }); }
+  catch { openModal(`<h2>📱 Código QR</h2><p>Tu carrito tiene demasiados productos para un código QR. Usá «Copiar enlace» o WhatsApp.</p>`); return; }
+  openModal(`<h2>📱 Abrí tu carrito en otro celular</h2><p class="sub">Apuntá la cámara del otro teléfono a este código y tocá el enlace que aparece.</p><div class="qrbox">${svg}</div><div class="mfoot"><span></span><button class="btn sec" data-close>Cerrar</button></div>`);
 }
 function shareText(items, bst, day) {
   let t = `🛒 Mi carrito del súper (${items.length} productos)\n${items.map(({ p, qty }) => `• ${qty} × ${p.name}${PREF[p.id] && ST[PREF[p.id]] ? ` (en ${ST[PREF[p.id]].name})` : ""}`).join("\n")}`;
@@ -1302,6 +1474,9 @@ async function openProduct(id) {
         <div class="pbueno" id="pbueno"></div>
       </div>
       ${(() => { const alt = alternativas(p); return alt.length ? `<div class="alts"><h3>💡 Parecidos y más baratos ${p.bu === "kg" ? "por kilo" : p.bu === "l" ? "por litro" : "por unidad"}</h3>${alt.map(({ q, b, ah }) => `<div class="alt" data-open="${q.id}" role="button" tabindex="0">${prodImg(q, "li")}<div class="an"><b>${esc(q.name)}</b><span class="sub">${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · ${unitTxt(q, b.v)}</span></div><span class="tag g sm">−${ah}%</span>${addCtl(q.id)}</div>`).join("")}</div>` : ""; })()}
+      <details class="hist" id="phist" ${openProduct.hist ? "open" : ""}><summary>📈 Historial de precios</summary>
+        <div class="chips hper" role="group" aria-label="Período">${[[7, "7 días"], [30, "30 días"], [0, "Todo"]].map(([d, t]) => `<button type="button" class="chip${(openProduct.dias ?? 30) === d ? " on" : ""}" data-hdias="${d}">${t}</button>`).join("")}</div>
+        <div id="chart" class="chart"></div></details>
       ${anuncio("ficha")}
       <button class="btn sec vermas" id="vermas" aria-expanded="${openProduct.mas}">${openProduct.mas ? "Ocultar supermercados ▲" : `Ver más supermercados (${p.offers.length}) ▼`}</button>
       <div class="slist" id="slist" ${openProduct.mas ? "" : "hidden"}>
@@ -1314,6 +1489,9 @@ async function openProduct(id) {
   $("#dclose").onclick = closeDrawer;
   $("#pmasb").onclick = e => { e.stopPropagation(); openProduct.menu = !openProduct.menu; $("#pmenu").hidden = !openProduct.menu; $("#pmasb").setAttribute("aria-expanded", openProduct.menu); };
   buenPrecio(p, b.v);
+  $("#phist").ontoggle = () => { openProduct.hist = $("#phist").open; if (openProduct.hist) chartU(p, openProduct.dias ?? 30); };
+  if (openProduct.hist) chartU(p, openProduct.dias ?? 30);
+  $$("[data-hdias]").forEach(bt => bt.onclick = () => { openProduct.dias = +bt.dataset.hdias; $$("[data-hdias]").forEach(x => x.classList.toggle("on", x === bt)); chartU(p, openProduct.dias); });
   $("#pshare").onclick = async () => {
     const site = (CFG.sitio_url || location.href.split("#")[0]).replace(/\/?$/, "/");
     const url = p.offers.length >= 6 ? `${site}p/${id}.html` : `${site}#p-${id}`;   // con 6+ comercios hay página con vista previa
@@ -1355,6 +1533,38 @@ async function buenPrecio(p, ahora) {
   else if (pct >= 3) { t = `📈 Subió ${pct}% ${dias}` + (min < ahora ? ` · llegó a estar a ${money(min)}` : ""); c = "up"; }
   else { t = `➖ Precio estable ${dias}`; c = ""; }
   el.innerHTML = `<span class="chg ${c}">${t}</span>`;
+}
+/* historial de precios con uPlot (licencia MIT): liviano, se puede tocar para ver el precio de cada día */
+let UP_P = null;
+const loadUP = () => UP_P || (UP_P = new Promise((ok, ko) => {
+  const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "js/vendor/uplot/uPlot.min.css"; document.head.appendChild(l);
+  const s = document.createElement("script"); s.src = "js/vendor/uplot/uPlot.iife.min.js"; s.onload = () => ok(window.uPlot); s.onerror = () => { UP_P = null; ko(); }; document.head.appendChild(s);
+}));
+async function chartU(p, dias) {
+  const el = $("#chart"); if (!el) return;
+  let h, U;
+  try { [h, U] = await Promise.all([hist(), loadUP()]); } catch { return chart(p); }   // sin la librería: el gráfico simple
+  if (!$("#chart") || openProduct.id !== p.id) return;
+  const ser = h.series[p.id] || {}, n = h.dates.length, desde = dias ? Math.max(0, n - dias) : 0;
+  const sids = D.stores.map(s => s.id).filter(s => ser[s] && ser[s].slice(desde).some(Boolean));
+  if (n - desde < 2 || !sids.length) { el.innerHTML = '<div class="sub">Todavía no hay historial suficiente. Se completa día a día.</div>'; return; }
+  const xs = h.dates.slice(desde).map(d => Date.parse(d + "T12:00:00-03:00") / 1000);
+  const css = getComputedStyle(document.documentElement), mut = css.getPropertyValue("--mut").trim() || "#888", line = css.getPropertyValue("--line").trim() || "#ddd";
+  const eje = { stroke: mut, grid: { stroke: line, width: 1 }, ticks: { stroke: line, width: 1 }, font: "11px " + getComputedStyle(document.body).fontFamily };
+  el.innerHTML = `<div class="ugraf"></div><div class="uinfo sub" aria-live="polite">Tocá o pasá el mouse por el gráfico para ver el precio de cada día.</div>
+    <div class="uley">${sids.map(sd => `<span><i style="background:${ST[sd].color || "#16a34a"}"></i>${esc(ST[sd].name)}</span>`).join("")}</div>`;
+  const info = $(".uinfo", el), fecha = t => new Date(t * 1000).toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "numeric" });
+  const datos = [xs, ...sids.map(s => ser[s].slice(desde).map(v => v || null))];
+  new U({
+    width: el.clientWidth || 600, height: 220, cursor: { drag: { x: false, y: false }, points: { size: 8 } }, legend: { show: false },
+    scales: { x: { time: true } },
+    hooks: { setCursor: [u => { const i = u.cursor.idx; if (i == null) return; const filas = sids.map((sd, k) => [sd, datos[k + 1][i]]).filter(x => x[1]).sort((a, b) => a[1] - b[1]);
+      info.innerHTML = `<b>${fecha(xs[i])}</b>: ` + filas.map(([sd, v]) => `${esc(ST[sd].name)} ${money(v)}`).join(" · "); }] },
+    axes: [{ ...eje, splits: () => xs.length <= 10 ? xs : xs.filter((_, i) => i % Math.ceil(xs.length / 8) === 0), values: (u, v) => v.map(t => { const d = new Date(t * 1000); return `${d.getDate()}/${d.getMonth() + 1}`; }) },
+      { ...eje, size: 64, values: (u, v) => v.map(x => money(x)) }],
+    series: [{ value: (u, t) => (t == null ? "" : new Date(t * 1000).toLocaleDateString("es-AR", { day: "numeric", month: "numeric" })) },
+      ...sids.map(s => ({ label: ST[s].name, stroke: ST[s].color || "#16a34a", width: 2.2, spanGaps: true, points: { show: n - desde <= 15, size: 6 }, value: (u, v) => (v == null ? "—" : money(v)) }))],
+  }, datos, $(".ugraf", el));
 }
 async function chart(p) {
   const h = await hist(), el = $("#chart"); if (!el) return;
@@ -1538,6 +1748,8 @@ addEventListener("popstate", e => {
   if (e.state && e.state.ov && e.state.ov !== "drawer") { OV.saltar++; history.back(); }   // entrada vieja de una ventana ya cerrada
 });
 if (history.state && history.state.ov && history.state.ov !== "drawer") { OV.saltar++; history.back(); }   // recargaste con una ventana abierta
+/* ir a otra sección justo después de cerrar una ventana (espera a que termine el "atrás" de la ventana) */
+function irA(h) { if (OV.saltar) OV.ir = "#" + h; else location.hash = h; }
 function setHash(h) { history.replaceState(history.state, "", h); OV.h = location.hash; }
 
 /* ---------- navegación ---------- */
@@ -1548,7 +1760,7 @@ function route() {
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
   if (!READY && !/^(inicio|pagos|como|legal|sugerencias|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
-    $("#view").innerHTML = `<div class="loading"><div class="spin"></div>Cargando productos…</div>`;
+    $("#view").innerHTML = `<div class="wrap loading"><div class="sk sk-h"></div>${esqueleto(8)}<span class="sr">Cargando productos…</span></div>`;
     loadProducts().then(() => route()); return;
   }
   if (!LINKS_DONE && /^(conviene|carrito)/.test(h)) ensureLinks().then(() => { if (location.hash.slice(1) === h) route(); });   // vuelve a dibujar con los botones de carrito online
@@ -1561,7 +1773,7 @@ function route() {
   const [v0, sec] = v.split("-");
   if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
   if (!READY && TOPR && v === "buscar") setTimeout(() => { const h1 = $("#view h1"); if (h1 && !READY && !$("#cargando")) h1.insertAdjacentHTML("afterend", '<div class="sub" id="cargando">⏳ Mostrando los más comparados mientras cargamos el resto…</div>'); });
-  ({ inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
+  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
 }
@@ -1581,6 +1793,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-close]")) { closeModal(); return; }
   if (e.target.closest("[data-medios]")) { e.preventDefault(); modalMedios(); return; }
   if (e.target.closest("[data-news]")) { e.preventDefault(); modalNews(); return; }
+  if (e.target.closest("[data-ticket]")) { e.preventDefault(); scanStop(); if (!$("#bsheet").hidden) masShow(false); modalTicket(); return; }
   const cn = e.target.closest("[data-canal]"); if (cn) { S.canal = cn.dataset.canal; route(); return; }
   if (e.target.closest("[data-canasta]")) { e.preventDefault(); canasta().forEach(({ p }) => (PLAN[p.id] = PLAN[p.id] || 1)); savePlan(); toast("Canasta básica cargada para comparar"); location.hash === "#conviene" ? route() : (location.hash = "conviene"); return; }
   const pl = e.target.closest("[data-plan]"); if (pl) { const id = pl.dataset.plan; PLAN[id] = (PLAN[id] || 0) + 1; savePlan(); if (pl.hasAttribute("data-replan")) vConviene(); const h = qtyHint(BY[id], PLAN[id]); toast(`Sumado a ¿Dónde conviene mi compra? 📊 (${PLAN[id]})${h ? " · " + h : ""}`, h ? 4500 : 2400); return; }
@@ -1594,11 +1807,16 @@ document.addEventListener("keydown", e => {
 $("#scrim").onclick = () => { if (!$("#modal").hidden) closeModal(); else closeDrawer(); };
 $("#mbtn").onclick = modalMedios;
 $("#abtn").onclick = modalAvisos;
-$("#themebtn").onclick = () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; LS.set("cs_tema", t); applyTheme(t); if (!$("#drawer").hidden && location.hash.startsWith("#p-")) chart(BY[location.hash.slice(3)]); };
+$("#themebtn").onclick = () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; LS.set("cs_tema", t); applyTheme(t); if (!$("#drawer").hidden && location.hash.startsWith("#p-")) openProduct.hist && chartU(BY[location.hash.slice(3)], openProduct.dias ?? 30); };
 $("#hform").onsubmit = e => { e.preventDefault(); clearTimeout(qsugDraw.t); qsugShow(false); guardarBusq($("#q").value); $("#q").blur(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
 $("#q").addEventListener("input", () => { clearTimeout(route.t); if (location.hash !== "#buscar") return;   // fuera de Productos: solo se abre la lista; se pasa con Enter o al elegir
   route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; vBuscar(); }, 250); });
-window.addEventListener("hashchange", route);
+/* cambio de sección con una transición suave (función nativa del navegador; si no la tiene, cambia como siempre) */
+const SUAVE = !!document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+window.addEventListener("hashchange", () => {
+  if (SUAVE && !location.hash.startsWith("#p-") && $("#drawer").hidden && $("#modal").hidden && !OV.quieto && D) document.startViewTransition(() => route());
+  else route();
+});
 applyTheme(document.documentElement.dataset.theme);
 
 
@@ -1621,13 +1839,20 @@ function qsugDraw() {
   if (document.activeElement !== $("#q")) { qsugShow(false); return; }
   if (q.length < 2) { recientesDraw(); return; }   // buscador vacío: búsquedas recientes y vistos hace poco
   if (!READY && !TOPR) { qsugShow(false); return; }
-  vocab();
   const ws = nrm(q).split(/\s+/).filter(Boolean), last = ws[ws.length - 1], head = ws.slice(0, -1);
-  // palabras que completan lo que estás escribiendo
-  const comp = [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" "));
-  let wsx = ws, fix = "";
-  let prods = D.products.filter(p => ws.every(w => matchW(p, w)));
-  if (!prods.length) { wsx = ws.map(corregir); fix = wsx.join(" ") !== ws.join(" ") ? wsx.join(" ") : ""; prods = fix ? D.products.filter(p => wsx.every(w => matchW(p, w))) : []; }
+  let comp, wsx = ws, fix = "", prods;
+  if (BUSC.ok && READY) {   // lo resuelve el proceso de fondo (no traba mientras escribís)
+    const res = buscarFondo(q, () => { if ($("#q").value.trim() === q) qsugDraw(); });
+    if (!res) return;
+    comp = res.comp; fix = res.fix; if (fix) wsx = fix.split(" ");
+    const ids = res.ids.slice(0, 400); prods = ids.map(id => BY[id]).filter(Boolean);
+  } else {
+    vocab();
+    // palabras que completan lo que estás escribiendo
+    comp = [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" "));
+    prods = D.products.filter(p => ws.every(w => matchW(p, w)));
+    if (!prods.length) { wsx = ws.map(corregir); fix = wsx.join(" ") !== ws.join(" ") ? wsx.join(" ") : ""; prods = fix ? D.products.filter(p => wsx.every(w => matchW(p, w))) : []; }
+  }
   prods = prods.sort((a, b) => (matchScore(a, wsx) - matchScore(b, wsx)) || (b.offers.length - a.offers.length)).slice(0, 6);
   const cats = D.cats.filter(c => nrm(c.name).includes(last)).slice(0, 2);
   if (!prods.length && !comp.length && !cats.length) { box.innerHTML = `<div class="qs-none">No encontramos «${esc(q)}». Probá con otra palabra o <button type="button" class="linkbtn" data-scan>escaneá el código</button>.</div>`; qsugShow(true); return; }
@@ -1682,6 +1907,21 @@ function findEan(code) {
 }
 let ZX_P = null;
 const loadZX = () => ZX_P || (ZX_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "js/vendor/zxing.min.js"; s.onload = () => ok(window.ZXing); s.onerror = ko; document.head.appendChild(s); }));
+/* lector de códigos de barras rápido para los navegadores que no traen uno (iPhone, Firefox):
+   zxing-wasm (licencia MIT), en js/vendor/zxing-wasm/. Se baja solo la primera vez que escaneás. */
+let ZW_P = null;
+const loadZW = () => ZW_P || (ZW_P = new Promise((ok, ko) => {
+  const s = document.createElement("script"); s.src = "js/vendor/zxing-wasm/zxing-reader.js";
+  s.onload = async () => {
+    try {
+      await window.ZXingWASM.prepareZXingModule({ overrides: { locateFile: (path, pre) => (path.endsWith(".wasm") ? new URL("js/vendor/zxing-wasm/" + path, location.href).href : pre + path) }, fireImmediately: true });
+      ok(window.ZXingWASM);
+    } catch (e) { ZW_P = null; ko(e); }
+  };
+  s.onerror = () => { ZW_P = null; ko(); }; document.head.appendChild(s);
+}));
+const ZW_OPC = { formats: ["EAN13", "EAN8", "UPCA", "UPCE"], tryHarder: true, maxNumberOfSymbols: 1 };
+async function leerZW(img) { const ZW = await loadZW(); const r = await ZW.readBarcodes(img, ZW_OPC); return r && r[0] && r[0].isValid !== false ? r[0].text : null; }
 async function nativeDetector() {
   if (!("BarcodeDetector" in window)) return null;
   try { const f = await BarcodeDetector.getSupportedFormats(); const want = ["ean_13", "ean_8", "upc_a", "upc_e"].filter(x => f.includes(x)); return want.length ? new BarcodeDetector({ formats: want }) : null; } catch { return null; }
@@ -1706,7 +1946,8 @@ async function modalScan() {
       <label class="btn sec sm" for="scanfile">🖼️ Usar una foto del código</label>
       <input id="scanfile" type="file" accept="image/*" capture="environment" hidden>
       <form id="scanman" class="scanman"><input class="inp" id="scancode" inputmode="numeric" pattern="[0-9]*" placeholder="o escribí los números" aria-label="Número del código de barras"><button class="btn sm">Buscar</button></form>
-    </div>`);
+    </div>
+    <p class="sub" style="margin:12px 0 0">🧾 ¿Tenés el ticket de tu última compra? <a href="#" data-ticket>Calculá cuánto te hubieras ahorrado</a></p>`);
   const v = $("#scanv"), msg = $("#scanmsg");
   $("#scanman").onsubmit = e => { e.preventDefault(); const c = $("#scancode").value.replace(/\D/g, ""); if (c.length >= 8) scanFound(c); else msg.textContent = "El código tiene que tener al menos 8 números."; };
   $("#scanfile").onchange = async e => {
@@ -1715,7 +1956,10 @@ async function modalScan() {
     try {
       const det = await nativeDetector();
       if (det) { const r = await det.detect(await createImageBitmap(f)); if (r[0]) return scanFound(r[0].rawValue); }
-      const ZX = await loadZX(), url = URL.createObjectURL(f);
+      let t = null;
+      try { t = await leerZW(f); } catch {}
+      if (t) return scanFound(t);
+      const ZX = await loadZX(), url = URL.createObjectURL(f);   // respaldo: el lector anterior
       try { const r = await new ZX.BrowserMultiFormatReader().decodeFromImageUrl(url); return scanFound(r.getText()); } finally { URL.revokeObjectURL(url); }
     } catch { msg.textContent = "No encontramos un código de barras en la foto. Sacala de cerca, derecha y con buena luz, que se vean las rayitas y los números."; }
   };
@@ -1728,6 +1972,20 @@ async function modalScan() {
     const det = await nativeDetector();
     if (det) {
       SCAN.timer = setInterval(async () => { if ($("#modal").hidden) return scanStop(); try { const r = await det.detect(v); if (r[0]) scanFound(r[0].rawValue); } catch {} }, 250);
+    } else if (await loadZW().then(() => true, () => false)) {
+      // cuadro por cuadro de la cámara, ~6 veces por segundo, recortando el centro (donde está el recuadro)
+      const cv = document.createElement("canvas"), cx = cv.getContext("2d", { willReadFrequently: true });
+      let ocupado = false;
+      SCAN.timer = setInterval(async () => {
+        if ($("#modal").hidden) return scanStop();
+        if (ocupado || !v.videoWidth) return; ocupado = true;
+        try {
+          const w = v.videoWidth, h = v.videoHeight, cw = Math.round(w * 0.8), ch = Math.round(h * 0.5);
+          cv.width = cw; cv.height = ch; cx.drawImage(v, (w - cw) / 2, (h - ch) / 2, cw, ch, 0, 0, cw, ch);
+          const t = await leerZW(cx.getImageData(0, 0, cw, ch));
+          if (t) scanFound(t);
+        } catch {} finally { ocupado = false; }
+      }, 160);
     } else {
       const ZX = await loadZX();
       const hints = new Map(); hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]);
@@ -2037,7 +2295,7 @@ async function instalar() {
 }
 document.addEventListener("click", e => { const mp = e.target.closest("a[data-mapa]"); if (mp) { mp.href = mapaUrl(mp.dataset.mapa); evento("mapa-" + mp.dataset.mapa, "Cómo llegar a " + mp.dataset.mapa); } }, true);
 document.addEventListener("click", e => { if (e.target.closest("[data-instalar]")) { e.preventDefault(); instalar(); } });
-if ("serviceWorker" in navigator && location.protocol === "https:") addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
 /* ---------- ASISTENTE VIRTUAL ----------
    Funciona dentro de la página, sin servicios externos: entiende preguntas sobre precios, descuentos,

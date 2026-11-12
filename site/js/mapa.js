@@ -33,7 +33,7 @@
 @keyframes pmIn{from{opacity:0}}
 #pmapa .pm-in{max-width:1080px;margin:0 auto;padding:18px 16px 40px}
 #pmapa .pm-top{display:flex;align-items:center;gap:12px;justify-content:space-between;margin-bottom:6px}
-#pmapa .pm-logo{font-weight:800;font-size:20px;color:var(--g)}#pmapa .pm-logo span{color:var(--y)}
+#pmapa .pm-logo{font-weight:800;font-size:20px;color:var(--g)}#pmapa .pm-logo span{color:#a16207}
 #pmapa .pm-x{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-weight:700}
 #pmapa h1{font-size:26px;margin:6px 0 4px;line-height:1.2}
 #pmapa .pm-sub{color:var(--mut);margin:0 0 14px;font-size:15px;line-height:1.45}

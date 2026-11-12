@@ -4,7 +4,7 @@
   --g:#0e7a55; --g2:#0b6346; --gl:#e7f5ee; --gll:#f3faf6; --gtx:#0b6346;
   --hdr:#0e7a55; --hdr2:#11916a;
   --y:#ffb81c; --yl:#fff4d6; --ytx:#6b4b00; --r:#d93c3c; --rl:#fde9e9; --rtx:#8a1c1c; --bl:#e8efff; --btx:#1e46b0;
-  --ink:#14201b; --ink2:#43524b; --mut:#6d7b74; --line:#e3e9e6; --bg:#f5f7f6; --card:#fff; --soft:#eef2f0;
+  --ink:#14201b; --ink2:#43524b; --mut:#5c6a63; --line:#e3e9e6; --bg:#f5f7f6; --card:#fff; --soft:#eef2f0;
   --tip:#14201b; --tiptx:#fff;
   --rad:16px; --sh:0 1px 2px rgba(16,40,30,.06),0 4px 16px rgba(16,40,30,.06); --sh2:0 12px 40px rgba(16,40,30,.18);
   font-family:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -1105,3 +1105,50 @@ footer.site{padding-bottom:90px}
 .pbueno{flex-basis:100%;width:100%}
 .abaja{width:min(440px,calc(100vw - 24px))}
 .abaja span{flex:1;min-width:0}
+/* esqueletos de carga */
+.sk{background:linear-gradient(90deg,var(--soft) 0%,var(--line) 40%,var(--soft) 80%);background-size:300% 100%;animation:skb 1.3s ease-in-out infinite;border-radius:8px}
+@keyframes skb{from{background-position:100% 0}to{background-position:0 0}}
+.sk-card{background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:14px;display:flex;flex-direction:column;gap:10px;min-height:250px}
+.sk-img{height:110px}.sk-l{height:13px}.sk-l.c{width:60%}.sk-p{height:24px;width:45%;margin-top:auto}
+.sk-h{height:30px;width:260px;max-width:70%;margin:6px 0 18px}
+.loading.wrap{padding:22px 20px;text-align:left}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:reduce){.sk{animation:none}}
+/* mapa de sucursales */
+.mapa{height:min(68vh,620px);border-radius:var(--rad);border:1px solid var(--line);overflow:hidden;background:var(--soft);z-index:0;position:relative}
+.mchips{margin:0 0 10px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+.mchips .chip{flex:none;display:inline-flex;align-items:center;gap:6px}
+.mchips .chip:not(.on){opacity:.55}
+.mdot{width:10px;height:10px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.15)}
+.mpop{font:14px/1.4 inherit;min-width:180px}
+.mpop .btn{margin-top:8px;color:#fff}
+.mtot{margin-top:6px;padding:6px 8px;background:var(--gll);border-radius:8px;color:var(--gtx)}
+.leaflet-container{font-family:inherit}
+@media (max-width:640px){.mapa{height:62vh}}
+/* ticket */
+.tkprog{display:flex;align-items:center;gap:12px;padding:16px 0;color:var(--mut)}.tkprog .spin{margin:0;width:26px;height:26px;border-width:3px}
+.tksum{background:var(--gll);border-radius:12px;padding:12px 14px;margin:10px 0}.tksum .big{font-size:22px;font-weight:800;color:var(--gtx);margin:4px 0}
+.tkrow{display:flex;gap:10px;align-items:center;justify-content:space-between;border-top:1px solid var(--line);padding:10px 0}
+.tkrow.off{opacity:.6}.tkl{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}.tkl .sel{max-width:100%}.tkp{text-align:right;flex:none}
+/* historial y QR */
+.hist{margin:12px 0;border:1px solid var(--line);border-radius:14px;background:var(--card);padding:10px 14px}
+.hist summary{cursor:pointer;font-weight:700;padding:4px 0}
+.hist .hper{margin:8px 0}.chart{min-height:60px;position:relative}
+.chart .u-legend{font-size:12.5px;text-align:left}.chart .u-legend th{font-weight:600}
+.qrbox{background:#fff;padding:14px;border-radius:14px;width:min(320px,80vw);margin:10px auto}.qrbox svg{width:100%;height:auto;display:block}
+/* transición suave entre secciones (View Transitions) */
+header.site{view-transition-name:encabezado}
+.bnav{view-transition-name:barra}
+::view-transition-old(root){animation:vt-sale .14s ease-in both}
+::view-transition-new(root){animation:vt-entra .2s ease-out both}
+@keyframes vt-sale{to{opacity:0;transform:translateY(-6px)}}
+@keyframes vt-entra{from{opacity:0;transform:translateY(8px)}}
+@media (prefers-reduced-motion:reduce){::view-transition-old(root),::view-transition-new(root){animation:none}}
+/* contraste suficiente (Lighthouse / WCAG AA) en los botones del encabezado */
+.hbtn:not(.cart):not(.theme),.uloc,.hmini{background:rgba(0,0,0,.2)}
+.uloc{border-color:rgba(255,255,255,.6)}
+.uinfo{margin:6px 0;min-height:20px;font-size:13px}
+.uley{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12.5px;color:var(--ink2)}
+.uley span{display:inline-flex;align-items:center;gap:5px}.uley i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.db>*{flex-shrink:0}
+.hist .chart{height:auto}

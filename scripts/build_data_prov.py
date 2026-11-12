@@ -62,8 +62,8 @@ def main():
                 for k in ("lk", "url", "sku", "seller"):
                     o.pop(k, None)
         write(out / "meta.json", meta)
-        write(out / "products.json", dict(meta, products=products))
-        write(out / "products-top.json", dict(meta, products=sorted(products, key=lambda p: -len(p["offers"]))[:5000]))   # para buscar mientras baja el resto
+        write(out / "products.json", B.columnas(meta, products))
+        write(out / "products-top.json", B.columnas(meta, sorted(products, key=lambda p: -len(p["offers"]))[:5000]))   # para buscar mientras baja el resto
         write(out / "links.json", {})
         used = {p["id"] for p in products}
         write(out / "history.json", {"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}})

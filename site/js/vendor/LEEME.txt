@@ -1,0 +1,9 @@
+Librerías de código abierto usadas por ComparáSúper (copias locales, sin servidores de terceros):
+- MiniSearch 7.2.0 (MIT) – buscador tolerante a errores: minisearch.js
+- Leaflet 1.9.4 (BSD-2) – mapa de sucursales; mapas de © colaboradores de OpenStreetMap: leaflet/
+- zxing-wasm 3.1.6 (MIT) – lector de códigos de barras: zxing-wasm/
+- uPlot 1.6.32 (MIT) – gráfico del historial de precios: uplot/
+- qrcode-generator 2.0.4 (MIT) – código QR del carrito: qrcode.js
+- Workbox 7.4.1 (MIT) – funcionamiento sin internet: workbox/
+- ZXing (Apache 2.0) – lector anterior, de respaldo: zxing.min.js
+- Tesseract.js 7.0.0 (Apache 2.0) – lector de tickets; se baja de cdn.jsdelivr.net solo al usarlo.

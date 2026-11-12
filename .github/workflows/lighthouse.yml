@@ -1,0 +1,22 @@
+# Control de calidad automático: cada cambio en la web se mide con Lighthouse (de Google, código abierto):
+# velocidad, accesibilidad, buenas prácticas y SEO, en celular. Si algo baja de los mínimos de
+# lighthouserc.json, esta verificación queda en rojo en GitHub (pestaña "Actions") para revisarlo.
+name: Control de calidad (Lighthouse)
+on:
+  push:
+    branches: [main]
+    paths: ["site/js/**", "site/css/**", "site/index.html", "site/sw.js", "lighthouserc.json"]
+  workflow_dispatch:
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Medir con Lighthouse
+        run: npx --yes @lhci/cli@0.14.x autorun
+        env:
+          LHCI_BUILD_CONTEXT__CURRENT_BRANCH: main
