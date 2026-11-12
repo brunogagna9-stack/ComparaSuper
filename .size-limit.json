@@ -1,0 +1,7 @@
+[
+  { "name": "Código principal (app.js, achicado y comprimido)", "path": "site/js/app.js", "limit": "85 kB", "gzip": true },
+  { "name": "Estilos (app.css)", "path": "site/css/app.css", "limit": "22 kB", "gzip": true },
+  { "name": "Mapa de provincias (mapa.js)", "path": "site/js/mapa.js", "limit": "10 kB", "gzip": true },
+  { "name": "Buscador y lector de datos", "path": ["site/js/buscador.js", "site/js/datos.js"], "limit": "4 kB", "gzip": true },
+  { "name": "Lo que se baja al entrar (página, código, estilos, librerías chicas y tipografía)", "path": ["site/index.html", "site/js/app.js", "site/css/app.css", "site/js/mapa.js", "site/js/datos.js", "site/js/vendor/floating-ui.js", "site/js/vendor/auto-animate.js", "site/fonts/plus-jakarta-sans-latin-wght-normal.woff2"], "limit": "160 kB", "gzip": true }
+]

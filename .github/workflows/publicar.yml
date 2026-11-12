@@ -42,6 +42,8 @@ jobs:
         run: npm ci || npm install --no-audit --no-fund
       - name: Instalar el navegador de prueba
         run: npx playwright install --with-deps chromium
+      - name: Revisar el código (Biome)
+        run: npx --yes @biomejs/biome@2 lint
       - name: Probar la web (PC y celular)
         run: npx playwright test
       - name: Guardar el informe si algo falló
@@ -51,6 +53,49 @@ jobs:
           name: informe-pruebas
           path: test-results
           retention-days: 7
+
+  # Revisión visual (capturas de pantalla): avisa si algo se ve distinto, sin frenar la publicación.
+  # Si el cambio de diseño es a propósito, poner [visual] en el mensaje del cambio para aceptar las capturas nuevas.
+  visual:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Precios del día
+        run: |
+          if git fetch --depth=1 origin datos 2>/dev/null; then git worktree add ../datos FETCH_HEAD && cp -r ../datos/site/data/. site/data/; fi
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci || npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Capturas anteriores
+        uses: actions/cache/restore@v6
+        with:
+          path: tests/capturas
+          key: capturas-${{ github.run_id }}
+          restore-keys: capturas-
+      - name: Comparar capturas
+        id: comparar
+        run: |
+          if [ ! -d tests/capturas ] || ${{ contains(github.event.head_commit.message, '[visual]') }}; then
+            echo "Se guardan capturas nuevas de referencia"; VISUAL=1 npx playwright test --update-snapshots
+          else VISUAL=1 npx playwright test; fi
+      - name: Guardar las capturas de referencia
+        if: success()
+        uses: actions/cache/save@v6
+        with:
+          path: tests/capturas
+          key: capturas-${{ github.run_id }}
+      - name: Diferencias encontradas
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: diferencias-visuales
+          path: test-results
+          retention-days: 14
 
   publicar:
     needs: pruebas
@@ -98,11 +143,25 @@ jobs:
         with:
           node-version: 22
       - name: Achicar el código (esbuild y Lightning CSS)
+        id: achicar
         continue-on-error: true
         run: |
           npx --yes esbuild@0.25 site/js/app.js site/js/mapa.js site/js/datos.js site/js/buscador.js --minify --target=es2020 --outdir=site/js --allow-overwrite
           npx --yes --package=lightningcss-cli@1 lightningcss --minify --targets '>= 0.25%' site/css/app.css -o site/css/app.css
           ls -la site/js/app.js site/css/app.css
+      # Imagen propia para compartir de los 1.000 productos más comparados (Satori + resvg, de código abierto).
+      - name: Imágenes para compartir
+        continue-on-error: true
+        run: |
+          npm ci --no-audit --no-fund || npm install --no-audit --no-fund
+          node scripts/og.mjs || true
+          # si algo falló, la imagen general en lugar de una que no existe
+          python3 -c "import json,shutil,os;[os.path.exists(f'site/og/{p[\"id\"]}.jpg') or shutil.copy('site/img/og.jpg',f'site/og/{p[\"id\"]}.jpg') for p in json.load(open('site/og/lista.json'))]"
+          echo "Imágenes: $(ls site/og/*.jpg | wc -l) ($(du -sh site/og | cut -f1))"
+      # Si un cambio hace la web más pesada de lo permitido (.size-limit.json), no se publica.
+      - name: Controlar el peso de la web (size-limit)
+        if: steps.achicar.outcome == 'success'
+        run: npx size-limit
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

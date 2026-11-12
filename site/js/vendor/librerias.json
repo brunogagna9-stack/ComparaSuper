@@ -1,0 +1,22 @@
+{
+  "_nota": "Versiones de las librerías copiadas en site/js/vendor. Las revisa cada mes .github/workflows/revisar_librerias.yml.",
+  "minisearch": "7.2.0",
+  "leaflet": "1.9.4",
+  "leaflet.markercluster": "1.5.3",
+  "leaflet.locatecontrol": "0.90.1",
+  "leaflet-gesture-handling": "1.2.2",
+  "maplibre-gl": "6.18.0",
+  "@maplibre/maplibre-gl-leaflet": "0.1.4",
+  "zxing-wasm": "3.1.6",
+  "uplot": "1.6.32",
+  "qrcode-generator": "2.0.4",
+  "workbox-sw": "7.4.1",
+  "idb-keyval": "6.3.0",
+  "@formkit/auto-animate": "0.10.2",
+  "driver.js": "1.12.1",
+  "@floating-ui/dom": "1.8.0",
+  "embla-carousel": "8.6.0",
+  "embla-carousel-autoplay": "8.6.0",
+  "photoswipe": "5.4.4",
+  "fuzzball": "2.2.6"
+}

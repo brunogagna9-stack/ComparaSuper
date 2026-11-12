@@ -51,6 +51,7 @@ jobs:
           mkdir -p ../nuevos/data/raw ../nuevos/site/data
           ls data/raw/*.json | sort | tail -n 2 | xargs -I{} cp {} ../nuevos/data/raw/
           cp data/history.json data/imagenes.json data/sucursales.json ../nuevos/data/
+          cp data/fotos_no.json ../nuevos/data/ 2>/dev/null || true
           cp site/data/*.json ../nuevos/site/data/
           cd ../nuevos
           git init -q -b datos

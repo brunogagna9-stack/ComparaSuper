@@ -7,14 +7,14 @@
 importScripts("js/vendor/workbox/workbox-sw.js");
 workbox.setConfig({ modulePathPrefix: "js/vendor/workbox/", debug: false });
 
-const VERSION = "cs-v9";
+const VERSION = "cs-v10";
 const { registerRoute, setCatchHandler } = workbox.routing;
 const { NetworkFirst, CacheFirst, StaleWhileRevalidate } = workbox.strategies;
 const { ExpirationPlugin } = workbox.expiration;
 const { CacheableResponsePlugin } = workbox.cacheableResponse;
 
 const APP = `${VERSION}-app`, DATOS = `${VERSION}-datos`;
-const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/buscador.js", "js/mapa.js", "js/vendor/minisearch.js", "js/vendor/floating-ui.js", "js/vendor/auto-animate.js", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
+const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/buscador.js", "js/mapa.js", "fonts/plus-jakarta-sans-latin-wght-normal.woff2", "js/vendor/minisearch.js", "js/vendor/floating-ui.js", "js/vendor/auto-animate.js", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
 
 self.addEventListener("install", e => { e.waitUntil(caches.open(APP).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => {
@@ -36,7 +36,7 @@ registerRoute(({ url, request }) => mismo(url) && (request.mode === "navigate" |
 registerRoute(({ request, url }) => request.destination === "image" && !/tile\.openstreetmap/.test(url.host),
   new StaleWhileRevalidate({ cacheName: "cs-fotos", plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), new ExpirationPlugin({ maxEntries: 600, maxAgeSeconds: 30 * 24 * 3600, purgeOnQuotaError: true })] }));
 // pedazos del mapa de OpenStreetMap
-registerRoute(({ url }) => /tile\.openstreetmap\.org$/.test(url.host),
+registerRoute(({ url }) => /tile\.openstreetmap\.org$/.test(url.host) || (/tiles\.openfreemap\.org$/.test(url.host) && /\.(pbf|png|webp)$/.test(url.pathname)),
   new CacheFirst({ cacheName: "cs-mapas", plugins: [new CacheableResponsePlugin({ statuses: [0, 200] }), new ExpirationPlugin({ maxEntries: 400, maxAgeSeconds: 14 * 24 * 3600, purgeOnQuotaError: true })] }));
 
 // sin señal y sin nada guardado para esa dirección: se muestra la página principal guardada

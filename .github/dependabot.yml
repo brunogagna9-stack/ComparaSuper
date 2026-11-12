@@ -1,0 +1,19 @@
+# Dependabot (de GitHub): propone actualizar las herramientas de GitHub Actions y las de prueba/publicación.
+# Las librerías de la web (site/js/vendor) las revisa "Revisar librerías" una vez por mes.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      acciones:
+        patterns: ["*"]
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+    groups:
+      herramientas:
+        patterns: ["*"]
+    open-pull-requests-limit: 2

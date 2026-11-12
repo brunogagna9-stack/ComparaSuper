@@ -11,6 +11,10 @@ module.exports = defineConfig({
   reporter: process.env.CI ? [["list"], ["github"]] : "list",
   use: { baseURL: "http://localhost:8765/", serviceWorkers: "allow", locale: "es-AR", ...(process.env.PW_CHROME ? { channel: "chrome" } : {}) },
   webServer: { command: "python3 -m http.server 8765 -d site", port: 8765, reuseExistingServer: true },
+  // las capturas (@visual) corren aparte, con "npm run visual"
+  grepInvert: process.env.VISUAL ? undefined : /@visual/,
+  grep: process.env.VISUAL ? /@visual/ : undefined,
+  snapshotPathTemplate: "tests/capturas/{projectName}/{arg}{ext}",
   projects: [
     { name: "pc", use: { ...devices["Desktop Chrome"], viewport: { width: 1366, height: 900 } } },
     { name: "celular", use: { ...devices["Pixel 7"] } },

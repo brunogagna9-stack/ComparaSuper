@@ -11,3 +11,6 @@ test-results/
 playwright-report/
 revision_promos.md
 data/fuentes_estado.json
+site/og/
+revision_librerias.md
+tests/capturas/

@@ -38,7 +38,10 @@ const OPC_MS = {
   searchOptions: { boost: { name: 2 }, combineWith: "AND", prefix: t => t.length >= 2, fuzzy: t => (t.length >= 6 ? 0.2 : t.length >= 4 ? 1 : 0) },
 };
 function vocabular(L) { VOC = new Map(); for (const p of L) for (const w of new Set(partir(p.name + " " + p.brand))) if (w.length > 2 && !/\d/.test(w)) VOC.set(w, (VOC.get(w) || 0) + 1); }
+const NOM = new Map(), POP = new Map();   // nombre de cada producto y en cuántos comercios está (para desempatar)
+const nombres = L => { for (const p of L) { NOM.set(p.id, `${p.name} ${p.brand || ""}`); POP.set(p.id, p.offers.length); } };
 function indexar(L) {
+  nombres(L);
   vocabular(L);
   const ms = new MiniSearch(OPC_MS);
   ms.addAll(L.map(p => ({ id: p.id, name: p.name, brand: p.brand })));
@@ -59,14 +62,30 @@ function buscar(q) {
 }
 
 /* los tickets abrevian mucho ("LECH SERENIS ENT"): se buscan las palabras de a una menos hasta encontrar algo */
+/* los tickets abrevian mucho ("LECH SERENIS ENT"): MiniSearch junta candidatos y fuzzball (licencia MIT) los ordena
+   por parecido real del texto, como RapidFuzz ("token set ratio"). */
+let FZ = null;
 function matchLinea(txt) {
-  let ws = partir(txt).filter(w => w.length >= 3 && !/\d/.test(w)).slice(0, 5);
+  const ws = partir(txt).filter(w => w.length >= 3 && !/\d/.test(w)).slice(0, 5);
   if (!ws.length) return null;
-  for (let n = ws.length; n >= Math.min(2, ws.length); n--) {
+  const cand = new Map();
+  for (let n = ws.length; n >= Math.min(2, ws.length); n--) {   // primero con todas las palabras, después con menos
     const r = MS.search(ws.slice(0, n).join(" "), { combineWith: "AND", prefix: true, fuzzy: t => (t.length >= 5 ? 0.25 : 0) });
-    if (r.length) return { ids: r.slice(0, 15).map(x => x.id), conf: n / ws.length };
+    r.slice(0, 40).forEach((x, i) => { if (!cand.has(x.id)) cand.set(x.id, 10 * n / ws.length - i / 40); });
+    if (cand.size >= 25) break;
   }
-  return null;
+  if (cand.size < 10) MS.search(ws.join(" "), { combineWith: "OR", prefix: true, fuzzy: 0.2 }).slice(0, 40).forEach(x => { if (!cand.has(x.id)) cand.set(x.id, 0); });
+  if (!cand.size) return null;
+  if (FZ === null) { try { importScripts("vendor/fuzzball.js"); FZ = self.fuzzball || false; } catch { FZ = false; } }
+  const qs = partir(txt);
+  const pts = [...cand].map(([id, b]) => {
+    const nom = nrm(NOM.get(id) || ""), toks = partir(nom);
+    // "tirabuz" → "tirabuzon", "serenis" → "serenisima": cada palabra cortada se completa con la del producto
+    const t = qs.map(w => (w.length >= 3 && !/\d/.test(w) && toks.find(x => x.startsWith(w))) || w).join(" ");
+    return [id, (FZ ? FZ.token_set_ratio(t, nom) : 0) + b + Math.min(POP.get(id) || 0, 20) * 0.4];   // a igual parecido, el más común
+  });
+  pts.sort((a, b) => b[1] - a[1]);
+  return { ids: pts.slice(0, 15).map(x => x[0]), conf: pts[0][1] / 110 };
 }
 
 /* lo guardado en el celular (IndexedDB): si los precios son los mismos de la última visita, no se baja nada */
@@ -99,7 +118,7 @@ onmessage = async e => {
       for (let i = 0; i < L.length; i += 2500) { postMessage({ t: "parte", products: L.slice(i, i + 2500) }); await new Promise(r => setTimeout(r, 0)); }
       postMessage({ t: "full" });
       const gi = m.clave ? await guardado(kI) : null;
-      if (gi && gi.clave === m.clave) { try { MS = MiniSearch.loadJSON(gi.json, OPC_MS); vocabular(L); } catch { MS = null; } }
+      if (gi && gi.clave === m.clave) { try { MS = MiniSearch.loadJSON(gi.json, OPC_MS); vocabular(L); nombres(L); } catch { MS = null; } }
       if (!MS) { indexar(L); if (m.clave) guardar(kI, { clave: m.clave, json: JSON.stringify(MS) }); }
       postMessage({ t: "indice" });
     } catch (err) {

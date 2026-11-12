@@ -199,9 +199,17 @@ async function hist() {
 const EMO = [["leche", "🥛"], ["yogur", "🥛"], ["queso", "🧀"], ["manteca", "🧈"], ["dulce de leche", "🍯"], ["huevo", "🥚"], ["yerba", "🧉"], ["café", "☕"], ["azúcar", "🍬"], ["harina", "🌾"], ["aceite", "🫒"], ["arroz", "🍚"], ["fideo", "🍝"], ["puré", "🍅"], ["atún", "🐟"], ["galletita", "🍪"], ["mayonesa", "🥚"], ["sal ", "🧂"], ["pan ", "🍞"], ["gaseosa", "🥤"], ["agua", "💧"], ["jugo", "🧃"], ["cerveza", "🍺"], ["vino", "🍷"], ["detergente", "🧽"], ["lavandina", "🧴"], ["jabón líquido", "🧺"], ["jabón en polvo", "🧺"], ["suavizante", "🧺"], ["papel", "🧻"], ["rollo", "🧻"], ["shampoo", "🧴"], ["pasta dental", "🪥"], ["jabón de tocador", "🧼"], ["desodorante", "🧴"], ["pañal", "👶"], ["perro", "🐶"], ["gato", "🐱"]];
 const emoji = p => { const n = p.name.toLowerCase() + " "; const f = EMO.find(([k]) => n.includes(k)); return f ? f[1] : (D.cats.find(c => c.id === p.cat) || {}).emoji || "🛒"; };
 /* foto del producto (de la tienda online); si no hay o no carga, un dibujito según el tipo */
+/* fotos más livianas: wsrv.nl (código abierto, gratis) las entrega en WebP al tamaño justo (unos 60% menos de datos).
+   Si ese servicio falla, se usa la foto original de la tienda; y si tampoco carga, el emoji del producto. */
+const fotoChica = (src, w = 200) => `https://wsrv.nl/?url=${encodeURIComponent(src)}&w=${w}&h=${w}&fit=contain&cbg=white&output=webp&q=78&we`;
+function fotoFalla(img, e) {
+  if (img.dataset.orig && img.src !== img.dataset.orig) { img.src = img.dataset.orig; img.removeAttribute("data-orig"); return; }
+  img.parentNode.classList.remove("hasimg"); img.replaceWith(document.createTextNode(e));
+}
+window.fotoFalla = fotoFalla;   // la usa el onerror de cada foto (no se renombra al achicar el código)
 function prodImg(p, cls) {
   const e = emoji(p);
-  return p.img ? `<div class="${cls} hasimg"><img src="${esc(p.img)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.parentNode.classList.remove('hasimg');this.replaceWith(document.createTextNode('${e}'))"></div>`
+  return p.img ? `<div class="${cls} hasimg"><img src="${esc(fotoChica(p.img))}" data-orig="${esc(p.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="fotoFalla(this,'${e}')"></div>`
     : `<div class="${cls}" aria-hidden="true">${e}</div>`;
 }
 const perUnit = (p, price) => p.bq ? price / p.bq : null;
@@ -728,9 +736,9 @@ function tamTicket(t) {
   return /^(kgs?|k)$/.test(u) ? { q: n, u: "kg" } : /^(grs?|g)$/.test(u) ? { q: n / 1000, u: "kg" } : /^(lts?|l)$/.test(u) ? { q: n, u: "l" } : { q: n / 1000, u: "l" };
 }
 function ticketTabla(lineas, res, esLista) {
-  // primero el tamaño que dice el renglón (si lo dice) y después el producto que más comercios venden (el más común)
+  // primero el tamaño que dice el renglón (si lo dice); después, el más parecido al texto (lo ordena el proceso de fondo)
   const orden = (l, ids) => { const t = tamTicket(l.txt); const d = id => { const p = BY[id]; return !t ? 0 : p.bq && p.bu === t.u ? Math.round(Math.abs(p.bq - t.q) / t.q * 10) : 99; };
-    return [...ids].sort((a, b) => d(a) - d(b) || BY[b].offers.length - BY[a].offers.length).slice(0, 6); };
+    return [...ids].sort((a, b) => d(a) - d(b)).slice(0, 6); };   // a igual tamaño, se respeta el orden por parecido del texto
   const filas = lineas.map((l, i) => ({ ...l, ids: orden(l, (res[i] && res[i].ids.filter(id => BY[id])) || []), sel: 0, on: !!(res[i] && res[i].ids.length) }));
   const draw = () => {
     let pag = 0, mej = 0, n = 0;
@@ -814,6 +822,32 @@ function cargarLeaflet() {
   return LF_P;
 }
 const MAPA = { off: new Set() };
+/* fondo del mapa: OpenFreeMap (gratis, sin límites, código abierto) con MapLibre: calles en tonos suaves para que
+   resalten los pines, y versión oscura en el modo oscuro. Si el celular no puede dibujarlo (sin WebGL), el de OpenStreetMap. */
+let ML_P = null;
+const OSM_ATR = '© <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> · © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>';
+function webgl() { try { const c = document.createElement("canvas"); return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl"))); } catch { return false; } }
+async function fondoMapa(L, m) {
+  const raster = () => L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+  if (!webgl()) return raster();
+  try {
+    // MapLibre 6 viene como módulo: se importa y se deja a mano para el puente con Leaflet
+    if (!ML_P) ML_P = (async () => {
+      const css = document.createElement("link"); css.rel = "stylesheet"; css.href = "js/vendor/leaflet/maplibre-gl.css"; document.head.appendChild(css);
+      const mod = await import(new URL("js/vendor/leaflet/maplibre-gl.mjs", location.href).href);
+      window.maplibregl = mod.default && mod.default.Map ? mod.default : mod;
+      return lib("js/vendor/leaflet/leaflet-maplibre-gl.js", null, () => L.maplibreGL);
+    })().catch(e => { ML_P = null; throw e; });
+    const mk = await ML_P;
+    if (!mk) return raster();
+    const oscuro = document.documentElement.dataset.theme === "dark";
+    const capa = mk({ style: `https://tiles.openfreemap.org/styles/${oscuro ? "dark" : "positron"}`, attribution: OSM_ATR, interactive: false });
+    let ok = false; capa.addTo(m);
+    const gl = capa.getMaplibreMap && capa.getMaplibreMap();
+    if (gl) { gl.on("load", () => { ok = true; }); gl.on("error", e => { if (!ok && e && e.error && /style|Failed to fetch/i.test(String(e.error.message || e.error))) { m.removeLayer(capa); raster(); ok = true; } }); }
+    setTimeout(() => { if (!ok && m._container && m._container.isConnected) { m.removeLayer(capa); raster(); } }, 9000);   // si no cargó en 9 s
+  } catch { raster(); }
+}
 /* pin de una sucursal: gota con la sigla de la cadena (en vez de un puntito de color) */
 const pinHtml = (st, grande) => `<span class="pin${grande ? " g" : ""}" style="--c:${st.color || "#0e7a55"}"><b>${esc(st.sigla || st.name.slice(0, 2))}</b></span>`;
 async function vMapa() {
@@ -826,7 +860,7 @@ async function vMapa() {
     <div class="mapw"><div id="mapa" class="mapa" role="region" aria-label="Mapa de sucursales"><div class="loading" style="padding:40px">Cargando el mapa…</div></div>
       <button type="button" class="btn sm mzona" id="mzona" hidden>${ic("search")} Buscar en esta zona</button></div>
     <div id="mlista" class="mlista" aria-live="polite"></div>
-    <p class="sub" style="margin-top:8px">Mapa: © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Ubicaciones de la base oficial de precios; algunas son aproximadas.</p>
+    <p class="sub" style="margin-top:8px">Mapa: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> · © colaboradores de <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>. Ubicaciones de la base oficial de precios; algunas son aproximadas.</p>
   </section></div>`;
   let L;
   try { [L] = await Promise.all([cargarLeaflet(), loadSuc(), loadProducts()]); } catch { $("#mapa").innerHTML = '<div class="empty">No se pudo cargar el mapa. Revisá tu conexión.</div>'; return; }
@@ -840,9 +874,9 @@ async function vMapa() {
   intro();
   const centro = UBIC ? [UBIC.lat, UBIC.lon] : (() => { const all = cadenas.flatMap(st => SUC[st.id].filter(sucValida)); if (!all.length) return OBELISCO; return [all.reduce((a, b) => a + b[0], 0) / all.length, all.reduce((a, b) => a + b[1], 0) / all.length]; })();
   $("#mapa").innerHTML = "";
-  const m = L.map("mapa", { zoomControl: true, tap: true, gestureHandling: !!window.leafletGestureHandling,
+  const m = L.map("mapa", { zoomControl: true, tap: true, maxZoom: 19, minZoom: 4, gestureHandling: !!window.leafletGestureHandling,
     gestureHandlingOptions: { duration: 1400, text: { touch: "Usá dos dedos para mover el mapa", scroll: "Usá Ctrl + rueda del mouse para acercar o alejar", scrollMac: "Usá ⌘ + rueda del mouse para acercar o alejar" } } }).setView(centro, UBIC ? 15 : PROV === "AR-C" ? 12 : 9);
-  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' }).addTo(m);
+  fondoMapa(L, m);
 
   // ---- tu ubicación: punto azul que se puede arrastrar ----
   let yo = null;

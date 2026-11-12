@@ -1,0 +1,34 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.3.0/schema.json",
+  "files": { "includes": ["site/js/*.js", "scripts/*.mjs", "tests/*.js"] },
+  "formatter": { "enabled": false },
+  "assist": { "enabled": false },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": false,
+      "correctness": {
+        "noUndeclaredVariables": "error",
+        "noUnusedVariables": "warn",
+        "noUnreachable": "error",
+        "noConstAssign": "error",
+        "noInvalidUseBeforeDeclaration": "error",
+        "noSelfAssign": "error",
+        "noUnsafeFinally": "error",
+        "noSwitchDeclarations": "error"
+      },
+      "suspicious": {
+        "noDoubleEquals": "off",
+        "noDuplicateObjectKeys": "error",
+        "noDuplicateCase": "error",
+        "noRedeclare": "error",
+        "noFallthroughSwitchClause": "error",
+        "noSelfCompare": "error",
+        "noDuplicateParameters": "error",
+        "noShadowRestrictedNames": "error",
+        "noFunctionAssign": "error"
+      }
+    }
+  },
+  "javascript": { "globals": ["BarcodeDetector", "READY", "BUSC", "D", "modalScan", "L", "maplibregl", "autoAnimate", "FloatingUIDOM", "EmblaCarousel", "EmblaCarouselAutoplay", "PhotoSwipe", "ZXing", "ZXingWASM", "Tesseract", "uPlot", "qrcode", "MiniSearch", "idbKeyval", "importScripts", "decodificar", "driver", "leafletGestureHandling", "abrirMapa", "provNombre", "provCorto", "PROVINCIAS", "cerrarMapa"] }
+}

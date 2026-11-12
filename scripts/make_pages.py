@@ -10,6 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
 MIN_COMERCIOS = 6   # solo los productos que están en muchos comercios (los más buscados), para que la publicación no sea pesada
+OG_N = 1000         # los más comparados tienen además una imagen propia para compartir (la arma scripts/og.mjs)
 
 
 def money(v):
@@ -27,10 +28,12 @@ def main():
     urls = [url]
     n = 0
     from build_data import descolumnar   # products.json puede venir "por columnas" (ver build_data.py)
-    for p in descolumnar(d):
-        if len(p["offers"]) < MIN_COMERCIOS:
-            continue
-        precios = sorted((min(x for x in (o.get("p"), o.get("po")) if x), o["s"]) for o in p["offers"] if o.get("p") or o.get("po"))
+    todos = [p for p in descolumnar(d) if len(p["offers"]) >= MIN_COMERCIOS]
+    con_og = {p["id"] for p in sorted(todos, key=lambda p: -len(p["offers"]))[:OG_N]}
+    og = []
+    for p in todos:
+        sanas = [o for o in p["offers"] if not o.get("anom")] or p["offers"]   # sin precios mal cargados
+        precios = sorted((min(x for x in (o.get("p"), o.get("po")) if x), o["s"]) for o in sanas if o.get("p") or o.get("po"))
         if not precios:
             continue
         v, s = precios[0]
@@ -41,12 +44,15 @@ def main():
         t = html.escape(f"{p['name']}: desde {money(v)} en {stores.get(s, s)}")
         desc = html.escape(f"Compará el precio en {len(p['offers'])} supermercados de CABA y GBA, con ofertas y descuentos por banco y billetera. ComparáSúper.")
         dest = f"../#p-{p['id']}"
+        if p["id"] in con_og:
+            og.append({"id": p["id"], "name": p["name"], "precio": money(v), "store": stores.get(s, s), "n": len(p["offers"]), "img": img})
+            img = f"{url}og/{p['id']}.jpg"
         page = f"""<!DOCTYPE html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{t} · ComparáSúper</title><meta name="description" content="{desc}">
 <link rel="canonical" href="{url}p/{p['id']}.html">
 <meta property="og:type" content="product"><meta property="og:site_name" content="ComparáSúper"><meta property="og:title" content="{t}">
 <meta property="og:description" content="{desc}"><meta property="og:url" content="{url}p/{p['id']}.html">{f'<meta property="og:image" content="{html.escape(img)}">' if img else ""}
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="{'summary_large_image' if p['id'] in con_og else 'summary'}">{'<meta property="og:image:width" content="800"><meta property="og:image:height" content="420">' if p['id'] in con_og else ""}
 <meta http-equiv="refresh" content="0;url={dest}"><script>location.replace("{dest}")</script></head>
 <body><p><a href="{dest}">{t}</a></p></body></html>"""
         (out / f"{p['id']}.html").write_text(page, encoding="utf-8")
@@ -55,7 +61,9 @@ def main():
     (SITE / "sitemap.xml").write_text('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
                                       + "".join(f"<url><loc>{html.escape(u)}</loc></url>\n" for u in urls) + "</urlset>\n", encoding="utf-8")
     (SITE / "robots.txt").write_text(f"User-agent: *\nAllow: /\nSitemap: {url}sitemap.xml\n", encoding="utf-8")
-    print(f"Páginas de productos para compartir: {n}")
+    (SITE / "og").mkdir(exist_ok=True)
+    (SITE / "og" / "lista.json").write_text(json.dumps(og, ensure_ascii=False), encoding="utf-8")
+    print(f"Páginas de productos para compartir: {n} (con imagen propia: {len(og)})")
 
 
 if __name__ == "__main__":

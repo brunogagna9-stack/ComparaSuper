@@ -17,3 +17,8 @@ Librerías de código abierto usadas por ComparáSúper (copias locales, sin ser
 - PhotoSwipe 5.4 (MIT) – foto ampliada: photoswipe/
 Herramientas de desarrollo (no van en la web): Playwright y axe-core (pruebas), esbuild y Lightning CSS (achicar el código), Lighthouse CI (calidad).
 - Leaflet.GestureHandling 1.2.2 (MIT) – en el celular un dedo desplaza la página y dos mueven el mapa: leaflet/gesture.*
+- MapLibre GL JS 6.18 (BSD-3) + maplibre-gl-leaflet 0.1.4 (ISC) – mapa con estilo OpenFreeMap: leaflet/maplibre-gl.*
+- fuzzball 2.2.6 (MIT) – parecido entre textos para tickets y listas: fuzzball.js
+- Tipografía Plus Jakarta Sans (OFL), en site/fonts/
+Las versiones están en librerias.json; "Revisar librerías" avisa cada mes si hay nuevas o problemas de seguridad.
+Herramientas que no van en la web: Satori y resvg (imágenes para compartir), Biome (revisión del código), size-limit (peso).

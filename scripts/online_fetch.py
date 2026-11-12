@@ -232,7 +232,16 @@ def main():
                 it["promo_online"] = {"txt": f"{off}% off online (antes {d['list']:,})".replace(",", "."), "pu": d["price"], "n": 1, "list": d["list"]}
                 it["price_online"] = d["list"]
     faltan = [e for e in eans if info.get(ean_key(e)) and info[ean_key(e)]["ean"] not in imgs]
-    print(f"Faltan fotos de {len(faltan)} productos: se buscan de otras formas")
+    # las fotos que no se encontraron se vuelven a buscar recién a las 2 semanas (casi nunca aparecen de un día para otro)
+    import datetime as _dt
+    np_ = ROOT / "data" / "fotos_no.json"
+    no = json.loads(np_.read_text(encoding="utf-8")) if np_.exists() else {}
+    hoy = _dt.date.today()
+    limite = (hoy - _dt.timedelta(days=14)).isoformat()
+    no = {e: d for e, d in no.items() if d >= limite}
+    total_faltan = len(faltan)
+    faltan = [e for e in faltan if info[ean_key(e)]["ean"] not in no]
+    print(f"Faltan fotos de {total_faltan} productos: se buscan {len(faltan)} (el resto se buscó hace menos de 2 semanas)")
     fotos_extra(list(vtex.values()) + SOLO_FOTOS, faltan, info, imgs)
     faltan = [e for e in faltan if info[ean_key(e)]["ean"] not in imgs]
     for host in SOLO_FOTOS:
@@ -245,6 +254,10 @@ def main():
                 imgs[info[ean]["ean"]] = d["img"]; n += 1
         print(f"  fotos extra de {host}: {n}")
         faltan = [e for e in faltan if info[ean_key(e)]["ean"] not in imgs]
+    for e in faltan:
+        if info[ean_key(e)]["ean"] not in imgs:
+            no[info[ean_key(e)]["ean"]] = hoy.isoformat()
+    np_.write_text(json.dumps(no, separators=(",", ":")), encoding="utf-8")
     raw[-1].write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
     ip.write_text(json.dumps(imgs, separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(imgs)} fotos de productos guardadas")
