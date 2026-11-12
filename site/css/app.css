@@ -1066,3 +1066,42 @@ footer.site{padding-bottom:90px}
   .srow .sa{flex-direction:row;flex-wrap:wrap;justify-content:flex-start;align-items:center}
   .srow .sa .btn{flex:1 1 100%;justify-content:center}
 }
+
+/* ---- mejoras nov 2026 (2) ---- */
+/* encabezado que se achica al bajar, en el celular */
+@media (max-width:640px){
+  header.site{position:fixed;left:0;right:0;top:0}
+  body{padding-top:var(--hh,190px)}
+  header.site.min .logo,header.site.min .hbtn,header.site.min .hrow2{display:none}
+  header.site.min .hsearch{margin:0}
+  header.site.min .hin{padding-top:8px;padding-bottom:8px}
+  header.site .hsearch{transition:margin .15s}
+}
+/* filas que se deslizan: borde desvanecido del lado donde hay más */
+.fd-r{-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 44px),transparent)}
+.fd-l{-webkit-mask-image:linear-gradient(to left,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to left,#000 calc(100% - 44px),transparent)}
+.fd-l.fd-r{-webkit-mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent);mask-image:linear-gradient(to right,transparent,#000 44px,#000 calc(100% - 44px),transparent)}
+/* ficha: menú "Más opciones" */
+.pmas{position:relative}
+.pmenu{position:absolute;z-index:6;top:calc(100% + 6px);left:0;min-width:260px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:6px;display:flex;flex-direction:column}
+.pmenu[hidden]{display:none}
+.pmenu button{all:unset;cursor:pointer;padding:11px 12px;border-radius:10px;font-weight:600;font-size:14.5px;color:var(--ink)}
+.pmenu button:hover,.pmenu button:focus-visible{background:var(--soft)}
+.pbueno{margin-top:10px;font-size:14px}.pbueno:empty{display:none}
+.pbueno .chg{font-size:14px}
+/* desplegable del buscador: títulos de recientes */
+.qs-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px 4px;font-size:12.5px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.03em}
+.qsug .qs-h .linkbtn{display:inline;width:auto;padding:0;font-weight:700;color:var(--gtx);text-transform:none;letter-spacing:0;font-size:13px}
+/* aviso de bajas de precio al entrar */
+.abaja{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--hh,120px) + 10px);z-index:40;display:flex;align-items:center;gap:10px;background:var(--card);color:var(--ink);border:1px solid var(--g);border-radius:14px;padding:10px 12px 10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.18);max-width:calc(100vw - 24px);font-size:14px;animation:fabin .2s ease-out;transition:opacity .5s}
+.abaja.fuera{opacity:0}
+.abaja .ax{border:0;background:none;color:var(--mut);font-size:16px;cursor:pointer;min-width:32px;min-height:32px}
+@media (min-width:641px){.abaja{top:auto;bottom:24px}}
+/* páginas vacías: panel "Para empezar" */
+.ayudav .alt{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.ayudav .alt .li{flex:none}
+@media (max-width:900px){.cv{grid-template-columns:1fr}}
+.pmenu{left:auto;right:0}
+.pbueno{flex-basis:100%;width:100%}
+.abaja{width:min(440px,calc(100vw - 24px))}
+.abaja span{flex:1;min-width:0}

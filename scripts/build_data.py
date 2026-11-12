@@ -13,6 +13,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW, OUT = ROOT / "data" / "raw", ROOT / "site" / "data"
+TOP_N = 5000   # productos del archivo chico products-top.json
 HIST_DAYS = 90               # días de historial que se guardan
 ANOM_DOWN, ANOM_UP = -50, 80
 MIN_PRECIO = 50      # pesos: debajo de esto es un error de carga
@@ -368,6 +369,9 @@ def main():
                 links.setdefault(p["id"], {})[o["s"]] = lk
     (OUT / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "products.json").write_text(json.dumps(dict(meta, products=products), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    # los más comparados primero (archivo chico): la web los usa para buscar mientras baja el resto
+    top = sorted(products, key=lambda p: -len(p["offers"]))[:TOP_N]
+    (OUT / "products-top.json").write_text(json.dumps(dict(meta, products=top), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "links.json").write_text(json.dumps(links, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     used = {p["id"] for p in products}
     (OUT / "history.json").write_text(json.dumps({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}},

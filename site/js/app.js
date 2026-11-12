@@ -77,16 +77,32 @@ function ubicCambio(ahora = true) {
   if (n.size === FUERA.size && [...n].every(x => FUERA.has(x))) return;
   if (ahora) setTimeout(() => location.reload(), 900); else FUERA_PEND = true;
 }
-function prepProducts(d) {
+function prepList(d) {
   if (FUERA.size) d.products = d.products.filter(x => (x.offers = x.offers.filter(o => !FUERA.has(o.s))).length);
   for (const x of d.products) {   // datos comprimidos por build_data.py
     if (x.img && !/^https?:/.test(x.img) && d.imghosts) { const [h, id, f] = x.img.split("/"); x.img = `https://${d.imghosts[+h]}/arquivos/ids/${id}-300-300/${f}`; }
     for (const o of x.offers) if (o.pon && o.po) o.promoo = { txt: `${Math.round((1 - o.pon / o.po) * 100)}% menos comprando online`, pu: o.pon, n: 1 };
   }
+}
+function prepProducts(d) {
+  prepList(d);
   D.products = d.products;
   BY = Object.fromEntries(d.products.map(x => [x.id, x]));
   for (const id of Object.keys(LISTA)) if (!BY[id]) delete LISTA[id];
+  VOC = null;   // el vocabulario de sugerencias se rearma con todos los productos
   READY = true;
+  if (TOPR && /^#(buscar|c-)/.test(location.hash) && $("#drawer").hidden && !S.fopen) { const y = scrollY; vBuscar(); scrollTo(0, y); }   // ya están todos: se vuelve a dibujar
+}
+/* Para que el buscador ande enseguida (sobre todo con datos móviles), primero se bajan los ~5.000 productos
+   más comparados (archivo chico) y después el resto. Mientras tanto, Productos y las sugerencias usan esos. */
+let TOPR = false;
+function loadTop() {
+  return fetch(DIR() + "products-top.json").then(r => (r.ok ? r.json() : null)).then(d => {
+    if (!d || READY) return;
+    prepList(d); D.products = d.products; BY = Object.fromEntries(d.products.map(x => [x.id, x])); TOPR = true;
+    if (/^#(buscar|c-)/.test(location.hash) && $("#view .loading")) route();
+    if (document.activeElement === $("#q")) qsugDraw();
+  }).catch(() => {});
 }
 function loadProducts() {
   if (!PROD_P) PROD_P = fetch(DIR() + "products.json").then(r => r.json()).then(prepProducts);
@@ -105,7 +121,7 @@ async function load() {
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : fetch("data/promos.json").then(r => r.json()))),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
-  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts(); }
+  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadTop(); loadProducts(); }
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
   ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
@@ -1037,6 +1053,15 @@ function cartUrl(b) {
 }
 const cartBtn = (b, sm) => { const u = cartUrl(b); return u ? `<a class="btn ${sm ? "sm " : ""}cartbtn" data-salida="carrito|${esc(b.sid)}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la tienda con estos productos ya cargados en el carrito">🛒 Armar el carrito en ${esc(ST[b.sid].name)}</a>` : ""; };
 
+/* panel de al lado cuando la página está vacía: productos vistos hace poco para sumar de un toque */
+function ayudaVacia(modo) {
+  const vis = VISTOS.filter(id => BY[id]).slice(0, 6);
+  const extra = modo === "plan" ? `<p class="sub" style="margin:0 0 10px">¿No sabés por dónde empezar? <a href="#" data-canasta>Probá con la canasta básica</a>: 20 productos de todos los días.</p>` : "";
+  return `<aside class="box ayudav"><h3 style="margin:0 0 8px">💡 Para empezar</h3>${extra}
+    ${vis.length ? `<div class="sub" style="margin-bottom:6px">Vistos hace poco:</div>${vis.map(id => { const p = BY[id]; return `<div class="alt">${prodImg(p, "li")}<span class="an" data-open="${id}" role="button" tabindex="0" style="cursor:pointer;flex:1">${esc(p.name)}<br><span class="sub">${money(best(p).v)}</span></span>
+      <button class="btn sec sm" type="button" ${modo === "plan" ? `data-plan="${id}" data-replan` : `data-cmp="${id}"`}>${modo === "plan" ? "+ Sumar" : "⚖️ Sumar"}</button></div>`; }).join("")}`
+      : `<p class="sub" style="margin:0">Los productos que abras van a aparecer acá para sumarlos de un toque.</p>`}</aside>`;
+}
 function vConviene() {
   setTab("conviene");
   const items = itemsOf(PLAN);
@@ -1047,7 +1072,7 @@ function vConviene() {
     <div class="psearch"><input id="pq" type="search" placeholder="Sumá un producto: leche, yerba, aceite…" autocomplete="off" aria-label="Buscar producto para sumar"><div class="pres" id="pres" hidden></div></div>
     ${items.map(({ p, qty }) => qtyRow(p, qty, "p")).join("") || `<p class="sub" style="margin:14px 0 4px">Buscá productos arriba, traé tu carrito o <a href="#" data-canasta>probá con la canasta básica</a>.</p>`}
   </section>`;
-  if (!items.length) { $("#view").innerHTML = `<div class="wrap">${head}<div class="cv">${editor}</div></div>`; bindPlanner(); return; }
+  if (!items.length) { $("#view").innerHTML = `<div class="wrap">${head}<div class="cv">${editor}${ayudaVacia("plan")}</div></div>`; bindPlanner(); return; }
 
   const rk = rankAll(items, day), full = rk.filter(b => !b.miss.length), bst = full[0], worst = full[full.length - 1];
   const split = bestSplit(items, day);
@@ -1228,8 +1253,9 @@ function alternativas(p) {
 async function openProduct(id) {
   const p = BY[id]; if (!p) return;
   if (!SUC) loadSuc();   // para "Cómo llegar" a la sucursal más cercana
+  guardarVisto(id);
   const dr = $("#drawer"), sc = $("#scrim");
-  if (openProduct.id !== id) openProduct.mas = false;
+  if (openProduct.id !== id) { openProduct.mas = false; openProduct.menu = false; }
   openProduct.id = id;
   const b = best(p);
   const rows = [...p.offers].sort((x, y) => Math.min(...allChans(x).map(c => price1(x, c))) - Math.min(...allChans(y).map(c => price1(y, c))));
@@ -1267,10 +1293,13 @@ async function openProduct(id) {
         ${pq.length ? `<div class="qnote">🏷️ ${esc(hint || qtyHint(p, 1))}</div>` : ""}
         <div class="bbtn">
           ${q ? `<div class="incart"><span>En tu carrito${PREF[id] ? ` (${esc(ST[PREF[id]].name)})` : ""}:</span> ${addCtl(id)}</div>` : `<button class="btn" data-inc="${id}">🛒 Agregar al carrito</button>`}
-          <button class="btn sec" data-plan="${id}">📊 Sumar a ¿Dónde conviene?</button>
-          <button class="btn sec" id="watch">${watching ? "🔔 Avisando" : "🔔 Avisarme si baja"}</button>
-          <button class="btn sec" data-cmp="${id}">${CMP.includes(id) ? "✓ En comparación" : "⚖️ Comparar"}</button>
-          <button class="btn sec" id="pshare">📤 Compartir</button></div>
+          <div class="pmas"><button class="btn sec" id="pmasb" type="button" aria-expanded="${!!openProduct.menu}" aria-controls="pmenu">⋯ Más opciones</button>
+          <div class="pmenu" id="pmenu" ${openProduct.menu ? "" : "hidden"}>
+          <button type="button" data-plan="${id}">📊 Sumar a ¿Dónde conviene?</button>
+          <button type="button" id="watch">${watching ? "🔔 Avisando si baja (tocá para quitar)" : "🔔 Avisarme si baja"}</button>
+          <button type="button" data-cmp="${id}">${CMP.includes(id) ? "✓ En comparación" : "⚖️ Comparar"}</button>
+          <button type="button" id="pshare">📤 Compartir</button></div></div></div>
+        <div class="pbueno" id="pbueno"></div>
       </div>
       ${(() => { const alt = alternativas(p); return alt.length ? `<div class="alts"><h3>💡 Parecidos y más baratos ${p.bu === "kg" ? "por kilo" : p.bu === "l" ? "por litro" : "por unidad"}</h3>${alt.map(({ q, b, ah }) => `<div class="alt" data-open="${q.id}" role="button" tabindex="0">${prodImg(q, "li")}<div class="an"><b>${esc(q.name)}</b><span class="sub">${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · ${unitTxt(q, b.v)}</span></div><span class="tag g sm">−${ah}%</span>${addCtl(q.id)}</div>`).join("")}</div>` : ""; })()}
       ${anuncio("ficha")}
@@ -1283,6 +1312,8 @@ async function openProduct(id) {
     </div>`;
   if (dr.hidden) { dr.hidden = false; sc.hidden = false; document.body.style.overflow = "hidden"; openProduct.back = document.activeElement; dr.scrollTop = 0; }
   $("#dclose").onclick = closeDrawer;
+  $("#pmasb").onclick = e => { e.stopPropagation(); openProduct.menu = !openProduct.menu; $("#pmenu").hidden = !openProduct.menu; $("#pmasb").setAttribute("aria-expanded", openProduct.menu); };
+  buenPrecio(p, b.v);
   $("#pshare").onclick = async () => {
     const site = (CFG.sitio_url || location.href.split("#")[0]).replace(/\/?$/, "/");
     const url = p.offers.length >= 6 ? `${site}p/${id}.html` : `${site}#p-${id}`;   // con 6+ comercios hay página con vista previa
@@ -1309,6 +1340,22 @@ function closeDrawer() {
   if (openProduct.back) openProduct.back.focus?.();
 }
 
+/* una línea con lo que pasó con el precio más bajo desde que lo seguimos (sin gráficos) */
+async function buenPrecio(p, ahora) {
+  const h = await hist(), el = $("#pbueno"); if (!el || openProduct.id !== p.id) return;
+  const ser = h.series[p.id], n = h.dates.length; if (!ser || n < 3) return;
+  const minDia = i => { let m = null; for (const [s, l] of Object.entries(ser)) if (ST[s] && !FUERA.has(s) && l[i]) m = m == null ? l[i] : Math.min(m, l[i]); return m; };
+  const serie = h.dates.map((_, i) => minDia(i)).filter(v => v), desde = h.dates[0].split("-").reverse().slice(0, 2).join("/");
+  if (serie.length < 3) return;
+  const min = Math.min(...serie), ini = serie[0], dias = n === 1 ? "" : `desde el ${desde}`;
+  const pct = Math.round((ahora - ini) / ini * 100);
+  let t = "", c = "";
+  if (ahora <= min && ahora < Math.max(...serie)) { t = `📉 Es el precio más bajo ${dias}`; c = "dn"; }
+  else if (pct <= -3) { t = `📉 Bajó ${Math.abs(pct)}% ${dias}`; c = "dn"; }
+  else if (pct >= 3) { t = `📈 Subió ${pct}% ${dias}` + (min < ahora ? ` · llegó a estar a ${money(min)}` : ""); c = "up"; }
+  else { t = `➖ Precio estable ${dias}`; c = ""; }
+  el.innerHTML = `<span class="chg ${c}">${t}</span>`;
+}
 async function chart(p) {
   const h = await hist(), el = $("#chart"); if (!el) return;
   const ser = h.series[p.id] || {}, dates = h.dates, sids = D.stores.map(s => s.id).filter(s => ser[s]);
@@ -1359,6 +1406,17 @@ function modalMedios() {
   $("#mall").onclick = () => { MEDIOS = null; LS.set("cs_medios", null); afterMedios(); };
 }
 function afterMedios() { closeModal(); $("#mdot").hidden = !MEDIOS; toast(MEDIOS ? `Listo: ${MEDIOS.length} medios de pago` : "Mostrando todos los descuentos"); const id = location.hash.startsWith("#p-") && location.hash.slice(3); route(); if (id) openProduct(id); }
+function avisoBajas() {
+  const { bajaron } = refreshAvisos(); if (!bajaron.length) return;
+  const visto = LS.get(PK("cs_avisos_vistos"), {}), nuevos = bajaron.filter(id => visto[id] !== best(BY[id]).v);
+  if (!nuevos.length) return;
+  const el = document.createElement("div"); el.className = "abaja"; el.setAttribute("role", "status");
+  el.innerHTML = `<span>🔔 ${nuevos.length === 1 ? `Bajó <b>${esc(BY[nuevos[0]].name)}</b>` : `Bajaron <b>${nuevos.length} productos</b> que seguís`}</span><button class="btn sm" type="button">Ver</button><button class="ax" type="button" aria-label="Cerrar aviso">✕</button>`;
+  const cerrar = () => { el.remove(); for (const id of bajaron) visto[id] = best(BY[id]).v; LS.set(PK("cs_avisos_vistos"), visto); };
+  el.querySelector(".btn").onclick = () => { cerrar(); nuevos.length === 1 ? openProduct(nuevos[0]) : modalAvisos(); };
+  el.querySelector(".ax").onclick = cerrar;
+  document.body.appendChild(el); setTimeout(() => el.isConnected && el.classList.add("fuera"), 12000); setTimeout(() => el.isConnected && el.remove(), 12600);
+}
 function modalAvisos() {
   const { ids, bajaron } = refreshAvisos();
   openModal(`<h2>🔔 Mis avisos</h2><p class="sub">Te marcamos los productos que bajaron desde que pediste el aviso. ¿Lo querés por correo? <a href="#" data-news>Registrate para recibir novedades</a>.</p>
@@ -1403,6 +1461,46 @@ function modalNews() {
     } catch { err.textContent = "No pudimos enviar el registro. Revisá tu conexión y probá de nuevo."; }
   };
 }
+
+/* menú "⋯ Más opciones" de la ficha: se cierra al tocar afuera o al elegir algo */
+document.addEventListener("click", e => {
+  if (!openProduct.menu || e.target.closest("#pmasb")) return;
+  const m = $("#pmenu"); openProduct.menu = false;
+  if (m) { m.hidden = true; const b = $("#pmasb"); b && b.setAttribute("aria-expanded", false); }
+}, true);
+
+/* ---------- FILAS QUE SE DESLIZAN: borde desvanecido si hay más para ver al costado ---------- */
+const DESLIZ = ".qchips,.hscroll,.cmpgrid,.tscroll,.matrix,.chips,.week,.dayrow";
+function fadeUpd(el) {
+  if (el.scrollWidth <= el.clientWidth + 2) { el.classList.remove("fd-r", "fd-l"); return; }
+  el.classList.toggle("fd-l", el.scrollLeft > 4); el.classList.toggle("fd-r", el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+}
+const fadeAll = () => $$(DESLIZ).forEach(fadeUpd);
+document.addEventListener("scroll", e => { if (e.target.matches && e.target.matches(DESLIZ)) fadeUpd(e.target); }, true);
+addEventListener("resize", fadeAll);
+new MutationObserver(() => { clearTimeout(fadeAll.t); fadeAll.t = setTimeout(fadeAll, 80); }).observe(document.getElementById("view"), { childList: true });
+new MutationObserver(() => { clearTimeout(fadeAll.t); fadeAll.t = setTimeout(fadeAll, 80); }).observe(document.getElementById("drawer"), { childList: true });
+
+/* ---------- ENCABEZADO QUE SE ACHICA AL BAJAR (celular) ----------
+   Bajando queda solo el buscador; subiendo un poco vuelve todo. El encabezado queda fijo arriba y la página
+   reserva su alto completo, así nada salta al achicarse. */
+(() => {
+  const hd = $("header.site"), cel = matchMedia("(max-width:640px)");
+  let lastY = scrollY, tick = false;
+  const medir = () => { if (!hd.classList.contains("min")) document.documentElement.style.setProperty("--hh", hd.offsetHeight + "px"); };
+  new ResizeObserver(medir).observe(hd); addEventListener("resize", medir);
+  const set = min => { if (hd.classList.contains("min") !== min) hd.classList.toggle("min", min); };
+  addEventListener("scroll", () => {
+    if (tick) return; tick = true;
+    requestAnimationFrame(() => {
+      tick = false; const y = scrollY;
+      if (!cel.matches || y < 90 || !$("#qsug").hidden || document.activeElement === $("#q")) set(false);
+      else if (y > lastY + 6) set(true);
+      else if (y < lastY - 10) set(false);
+      lastY = y;
+    });
+  }, { passive: true });
+})();
 
 /* ---------- VENTANAS Y BOTÓN "ATRÁS" ----------
    Cada ventana (ficha de producto, ventanas emergentes, asistente, menú "Más", filtros, guía, mapa) deja una
@@ -1449,7 +1547,7 @@ function route() {
   if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; ovForget("filtros"); document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
-  if (!READY && !/^(inicio|pagos|como|legal|sugerencias)?$/.test(h)) {   // super, comparar, buscar… esperan los productos
+  if (!READY && !/^(inicio|pagos|como|legal|sugerencias|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
     $("#view").innerHTML = `<div class="loading"><div class="spin"></div>Cargando productos…</div>`;
     loadProducts().then(() => route()); return;
   }
@@ -1462,6 +1560,7 @@ function route() {
   if (v === "lista") v = "carrito";   // enlaces viejos
   const [v0, sec] = v.split("-");
   if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
+  if (!READY && TOPR && v === "buscar") setTimeout(() => { const h1 = $("#view h1"); if (h1 && !READY && !$("#cargando")) h1.insertAdjacentHTML("afterend", '<div class="sub" id="cargando">⏳ Mostrando los más comparados mientras cargamos el resto…</div>'); });
   ({ inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
@@ -1484,7 +1583,7 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-news]")) { e.preventDefault(); modalNews(); return; }
   const cn = e.target.closest("[data-canal]"); if (cn) { S.canal = cn.dataset.canal; route(); return; }
   if (e.target.closest("[data-canasta]")) { e.preventDefault(); canasta().forEach(({ p }) => (PLAN[p.id] = PLAN[p.id] || 1)); savePlan(); toast("Canasta básica cargada para comparar"); location.hash === "#conviene" ? route() : (location.hash = "conviene"); return; }
-  const pl = e.target.closest("[data-plan]"); if (pl) { const id = pl.dataset.plan; PLAN[id] = (PLAN[id] || 0) + 1; savePlan(); const h = qtyHint(BY[id], PLAN[id]); toast(`Sumado a ¿Dónde conviene mi compra? 📊 (${PLAN[id]})${h ? " · " + h : ""}`, h ? 4500 : 2400); return; }
+  const pl = e.target.closest("[data-plan]"); if (pl) { const id = pl.dataset.plan; PLAN[id] = (PLAN[id] || 0) + 1; savePlan(); if (pl.hasAttribute("data-replan")) vConviene(); const h = qtyHint(BY[id], PLAN[id]); toast(`Sumado a ¿Dónde conviene mi compra? 📊 (${PLAN[id]})${h ? " · " + h : ""}`, h ? 4500 : 2400); return; }
   const so = e.target.closest("[data-sort]"); if (so) { S.sort = so.dataset.sort; S.cat = ""; S.q = ""; }
 });
 document.addEventListener("keydown", e => {
@@ -1496,18 +1595,32 @@ $("#scrim").onclick = () => { if (!$("#modal").hidden) closeModal(); else closeD
 $("#mbtn").onclick = modalMedios;
 $("#abtn").onclick = modalAvisos;
 $("#themebtn").onclick = () => { const t = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; LS.set("cs_tema", t); applyTheme(t); if (!$("#drawer").hidden && location.hash.startsWith("#p-")) chart(BY[location.hash.slice(3)]); };
-$("#hform").onsubmit = e => { e.preventDefault(); clearTimeout(qsugDraw.t); qsugShow(false); $("#q").blur(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
+$("#hform").onsubmit = e => { e.preventDefault(); clearTimeout(qsugDraw.t); qsugShow(false); guardarBusq($("#q").value); $("#q").blur(); S.q = $("#q").value.trim(); S.cat = ""; location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); };
 $("#q").addEventListener("input", () => { clearTimeout(route.t); if (location.hash !== "#buscar") return;   // fuera de Productos: solo se abre la lista; se pasa con Enter o al elegir
   route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; vBuscar(); }, 250); });
 window.addEventListener("hashchange", route);
 applyTheme(document.documentElement.dataset.theme);
 
 
+/* ---------- BÚSQUEDAS RECIENTES Y VISTOS HACE POCO (solo en este navegador) ---------- */
+let BUSQ = LS.get("cs_busq", []), VISTOS = LS.get(PK("cs_vistos"), []);
+function guardarBusq(q) { q = (q || "").trim(); if (q.length < 2) return; BUSQ = [q, ...BUSQ.filter(x => nrm(x) !== nrm(q))].slice(0, 5); LS.set("cs_busq", BUSQ); }
+function guardarVisto(id) { VISTOS = [id, ...VISTOS.filter(x => x !== id)].slice(0, 8); LS.set(PK("cs_vistos"), VISTOS); }
+function recientesDraw() {
+  const vis = VISTOS.filter(id => BY && BY[id]).slice(0, 5), box = $("#qsug");
+  if (!BUSQ.length && !vis.length) { qsugShow(false); return; }
+  box.innerHTML = (BUSQ.length ? `<div class="qs-h">Búsquedas recientes <button type="button" class="linkbtn" data-borrarbusq>Borrar</button></div>` + BUSQ.map(t => `<button type="button" class="qs-w" role="option" data-qs="${esc(t)}">🕘 ${esc(t)}</button>`).join("") : "")
+    + (vis.length ? `<div class="qs-h">Vistos hace poco</div>` + vis.map(id => { const p = BY[id], b = best(p); return `<button type="button" class="qs-p" role="option" data-open="${p.id}">${prodImg(p, "li")}<span class="qn">${esc(p.name)}</span><span class="qp">${money(b.v)}<small>${esc(ST[b.o.s] ? ST[b.o.s].name : "")}</small></span></button>`; }).join("") : "");
+  qsugShow(true);
+}
+
 /* ---------- SUGERENCIAS MIENTRAS ESCRIBÍS ---------- */
 function qsugShow(show) { const b = $("#qsug"); b.hidden = !show; $("#q").setAttribute("aria-expanded", show); }
 function qsugDraw() {
   const q = $("#q").value.trim(), box = $("#qsug");
-  if (q.length < 2 || !READY || document.activeElement !== $("#q")) { qsugShow(false); return; }
+  if (document.activeElement !== $("#q")) { qsugShow(false); return; }
+  if (q.length < 2) { recientesDraw(); return; }   // buscador vacío: búsquedas recientes y vistos hace poco
+  if (!READY && !TOPR) { qsugShow(false); return; }
   vocab();
   const ws = nrm(q).split(/\s+/).filter(Boolean), last = ws[ws.length - 1], head = ws.slice(0, -1);
   // palabras que completan lo que estás escribiendo
@@ -1526,7 +1639,8 @@ function qsugDraw() {
   qsugShow(true);
 }
 $("#q").addEventListener("input", () => { clearTimeout(qsugDraw.t); qsugDraw.t = setTimeout(qsugDraw, 120); });
-$("#q").addEventListener("focus", () => { if ($("#q").value.trim().length >= 2) qsugDraw(); });
+$("#q").addEventListener("focus", () => qsugDraw());
+$("#q").addEventListener("click", () => { if ($("#qsug").hidden) qsugDraw(); });
 $("#q").addEventListener("keydown", e => {
   const items = $$("#qsug [role=option], #qsug .qs-all"); if ($("#qsug").hidden || !items.length) return;
   const i = items.indexOf(document.activeElement);
@@ -1541,11 +1655,12 @@ $("#qsug").addEventListener("keydown", e => {
 });
 $("#qsug").addEventListener("click", e => {
   const t = e.target.closest("[data-qs]");
-  if (t) { $("#q").value = t.dataset.qs; S.q = t.dataset.qs; S.cat = ""; S.bpage = 1; qsugShow(false); location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); return; }
+  if (e.target.closest("[data-borrarbusq]")) { e.stopPropagation(); BUSQ = []; LS.set("cs_busq", BUSQ); recientesDraw(); $("#q").focus(); return; }
+  if (t) { guardarBusq(t.dataset.qs); $("#q").value = t.dataset.qs; S.q = t.dataset.qs; S.cat = ""; S.bpage = 1; qsugShow(false); location.hash === "#buscar" ? vBuscar() : (location.hash = "buscar"); return; }
   const op = e.target.closest("[data-open]");
   if (op) {   // producto de la lista: pasa a Productos con esa búsqueda y abre el producto
     e.stopPropagation(); qsugShow(false); $("#q").blur();
-    S.q = $("#q").value.trim(); S.cat = ""; S.bpage = 1;
+    S.q = $("#q").value.trim(); S.cat = ""; S.bpage = 1; guardarBusq(S.q);
     if (location.hash !== "#buscar") { location.hash = "buscar"; setTimeout(() => openProduct(op.dataset.open), 60); } else { vBuscar(); openProduct(op.dataset.open); }
     return;
   }
@@ -1870,7 +1985,7 @@ function cmpBar() {
 function vComparar() {
   setTab("");
   const ps = CMP.map(id => BY[id]).filter(Boolean);
-  if (!ps.length) { $("#view").innerHTML = `<div class="wrap"><section class="blk first"><h1>⚖️ Comparar productos</h1><div class="empty" style="padding:40px">Abrí un producto y tocá <b>«⚖️ Comparar»</b> para sumarlo acá (hasta 4).<br><br><a class="btn" href="#buscar">Buscar productos</a></div></section></div>`; cmpBar(); return; }
+  if (!ps.length) { $("#view").innerHTML = `<div class="wrap"><section class="blk first"><h1>⚖️ Comparar productos</h1><div class="cv"><div class="empty" style="padding:40px">Abrí un producto y tocá <b>«⚖️ Comparar»</b> (en «⋯ Más opciones») para sumarlo acá (hasta 4).<br><br><a class="btn" href="#buscar">Buscar productos</a></div>${ayudaVacia("cmp")}</div></section></div>`; cmpBar(); return; }
   const rows = ps.map(p => { const b = best(p); let bp = null; for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; } return { p, b, bp, u: perUnit(p, b.v), of: p.offers.find(o => o.promo || o.promoo) }; });
   const minU = Math.min(...rows.filter(r => r.u).map(r => r.u)), minV = Math.min(...rows.map(r => r.b.v));
   $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>⚖️ Comparar productos</h1><button class="btn sec sm" id="cmpclr">Vaciar</button></div>
@@ -2028,7 +2143,7 @@ $("#pbtn").onclick = async () => {
 })().then(() => {
   const pocas = !enAMBA() && D.stores.length <= 3;
   if (pocas) { $("#pocos").hidden = false; $("#pocos").innerHTML = `📍 En <b>${esc(provNombre(PROV))}</b> todavía tenemos precios de pocas cadenas (${D.stores.map(s => esc(s.name)).join(", ")}). Los descuentos con bancos y billeteras sí están completos. <button type="button" class="lnk" data-pcambiar>Cambiar provincia</button>`; $("[data-pcambiar]").onclick = () => $("#pbtn").click(); }
-  loadProducts().then(() => { saveLista(); refreshAvisos(); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
+  loadProducts().then(() => { saveLista(); refreshAvisos(); setTimeout(avisoBajas, 1500); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;
