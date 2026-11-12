@@ -289,6 +289,7 @@
     if (!primera) $(".elegido .txt").textContent = "👆 Tocá la provincia nueva en el mapa.";
     const ini = actual && POR_COD[actual] ? POR_COD[actual][1] : null;
     if (ini) elegir(ini); else zoomVista("ins");
+    window.cerrarMapa = primera ? null : () => { if (root.isConnected) cerrar(null); };
     return new Promise(r => { resolver = r; });
   };
 })();

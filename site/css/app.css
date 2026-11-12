@@ -1028,3 +1028,36 @@ footer.site{padding-bottom:90px}
 .nosotros .faq details{border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin:0 0 8px;background:var(--card)}
 .nosotros .faq summary{font-weight:700;cursor:pointer}
 .nosotros .faq p{margin:8px 0 2px}
+
+/* ---- revisión de pantallas (nov 2026) ---- */
+/* globos: en el celular se agrupan en uno solo */
+.fab.fmas{display:none;background:var(--g);color:#fff}
+@media (max-width:640px){
+  .fab.fmas{display:flex}
+  .fabs .fab:not(.fmas){display:none}
+  .fabs.abierto .fab:not(.fmas){display:flex;animation:fabin .16s ease-out}
+  .fabs.abierto .fab:not(.fmas) .ft{display:inline;padding-right:16px}
+  .fabs.abierto .fab:not(.fmas){padding-left:14px}
+  .fabs{flex-direction:column-reverse}
+  .fabs.abierto .fab.fmas{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+}
+@keyframes fabin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+/* letras chicas: mínimo 12px para leer cómodo */
+.tag.sm{font-size:11.5px}
+.pcard .pct small{font-size:12px}
+.day .hoy{font-size:11px}
+/* botones chicos: área de toque más grande sin cambiar cómo se ven */
+.ibtn{position:relative}
+.ibtn::after{content:"";position:absolute;inset:-10px}
+.agl{display:inline-block;padding:6px 0}
+.bdots button{position:relative}
+.bdots button::after{content:"";position:absolute;inset:-12px -4px}
+.rm{min-width:36px;min-height:36px}
+@media (max-width:640px){
+  .uloc{min-height:36px}
+  .lrow .add,.bprod .add,.alt .add{width:36px;height:36px}
+  .lrow .qmini,.bprod .qmini,.alt .qmini{height:36px}
+  .grid.v-s .add{width:34px;height:34px}
+  .bnav a,.bnav button{font-size:12px}
+  input[type=checkbox]{min-width:20px;min-height:20px}
+}

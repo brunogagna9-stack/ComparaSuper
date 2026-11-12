@@ -714,7 +714,7 @@ function vBuscar() {
     $("#fopen").textContent = nf ? `Filtros (${nf})` : "Filtros";
     $("#fclose").textContent = r.length ? `Ver ${r.length} ${r.length === 1 ? "producto" : "productos"}` : "Sin resultados";
   };
-  $$("input[name=cat]").forEach(i => i.onchange = () => { S.bpage = 1; S.cat = i.value; history.replaceState(null, "", S.cat ? "#c-" + S.cat : "#buscar"); const st = $("#filters").scrollTop; vBuscar(); $("#filters").scrollTop = st; });
+  $$("input[name=cat]").forEach(i => i.onchange = () => { S.bpage = 1; S.cat = i.value; setHash(S.cat ? "#c-" + S.cat : "#buscar"); const st = $("#filters").scrollTop; vBuscar(); $("#filters").scrollTop = st; });
   $$("input[name=can]").forEach(i => i.onchange = () => { S.bpage = 1; S.canal = i.value; draw(); });
   $$("input[name=st]").forEach(i => i.onchange = () => { S.bpage = 1; i.checked ? S.stores.add(i.value) : S.stores.delete(i.value); draw(); });
   $("#stall").onclick = () => { S.stores.clear(); $$("input[name=st]").forEach(i => (i.checked = false)); draw(); };
@@ -728,12 +728,12 @@ function vBuscar() {
   });
   $("#sort").onchange = e => { S.bpage = 1; S.sort = e.target.value; draw(); };
   $$("[data-vista]").forEach(b => b.onclick = () => { const first = ((S.bpage || 1) - 1) * VISTAS[S.vista].per; S.vista = b.dataset.vista; LS.set("cs_vista", S.vista); S.bpage = Math.floor(first / VISTAS[S.vista].per) + 1; vBuscar(); });
-  const setF = open => { S.fopen = open; $("#filters").classList.toggle("open", open); $("#fback").classList.toggle("open", open); document.body.classList.toggle("noscroll", open); };
+  const setF = open => { if (open) ovOpen("filtros", () => setF(false)); else ovDone("filtros"); S.fopen = open; $("#filters").classList.toggle("open", open); $("#fback").classList.toggle("open", open); document.body.classList.toggle("noscroll", open); };
   $("#fopen").onclick = () => setF(true);
   $("#fclose").onclick = () => { setF(false); $("#view").scrollIntoView(); };
   $("#fx").onclick = () => setF(false);
   $("#fback").onclick = () => setF(false);
-  $("#freset").onclick = () => { S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.favf = S.sintacc = S.propia = S.cerca = false; S.canal = "ambos"; S.bpage = 1; history.replaceState(null, "", "#buscar"); vBuscar(); };
+  $("#freset").onclick = () => { S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.favf = S.sintacc = S.propia = S.cerca = false; S.canal = "ambos"; S.bpage = 1; setHash("#buscar"); vBuscar(); };
   document.body.classList.toggle("noscroll", !!S.fopen);
   draw();
 }
@@ -953,7 +953,7 @@ function importList(code) {
   const parts = code.split("-"), got = {};
   for (let i = 0; i + 1 < parts.length; i += 2) { const id = parts[i], q = parseInt(parts[i + 1], 10); if (BY[id] && q > 0) got[id] = Math.min(99, q); }
   const n = Object.keys(got).length;
-  history.replaceState(null, "", "#carrito");
+  setHash("#carrito");
   if (!n) { toast("El enlace del carrito no es válido"); route(); return; }
   const has = Object.keys(LISTA).length;
   const apply = mode => { if (mode === "rep") LISTA = {}; for (const [id, q] of Object.entries(got)) LISTA[id] = mode === "rep" ? q : Math.max(LISTA[id] || 0, q); saveLista(); closeModal(); route(); toast("Carrito cargado 🛒"); };
@@ -1105,6 +1105,7 @@ async function vSugerencias() {
         <div id="slist"><div class="sub">Cargando…</div></div></div>
     </div></section></div>`;
   const data = await loadSug();
+  if (!$("#ssort")) return;   // te fuiste de la página mientras cargaba
   const draw = () => {
     const list = [...data.list].sort($("#ssort").value === "nuevas" ? (a, b) => b.fecha.localeCompare(a.fecha) : (a, b) => (b.pos - b.neg) - (a.pos - a.neg));
     $("#slist").innerHTML = (data.demo ? `<div class="note" style="margin-bottom:10px">Ejemplos de cómo se van a ver. Las sugerencias reales aparecen cuando conectes la planilla (ver README).</div>` : "")
@@ -1226,12 +1227,19 @@ async function openProduct(id) {
   };
   $("#vermas").onclick = () => { openProduct.mas = !openProduct.mas; const st = dr.scrollTop; openProduct(id); dr.scrollTop = st; };
   $("#watch").onclick = () => { if (id in AVISOS) { delete AVISOS[id]; toast("Ya no te avisamos"); } else { AVISOS[id] = b.v; toast("Te avisamos con la 🔔 cuando baje"); } LS.set(PK("cs_avisos"), AVISOS); refreshAvisos(); openProduct(id); };
-  if (location.hash !== "#p-" + id) history.replaceState(null, "", "#p-" + id);
+  const url = "#p-" + id;
+  if (!ovEsta("drawer")) {
+    if (location.hash !== url) ovOpen("drawer", closeDrawer, url);
+    else if (history.state && history.state.ov === "drawer") ovReg("drawer", closeDrawer);
+    else if (openProduct.fresh) { history.replaceState(null, "", "#" + (closeDrawer.under || "inicio")); ovOpen("drawer", closeDrawer, url); }   // llegaste por un link compartido
+    else { history.replaceState({ ov: "drawer" }, "", url); ovReg("drawer", closeDrawer); OV.h = url; }
+  } else if (location.hash !== url) ovHist(() => setHash(url));
+  openProduct.fresh = false;
   if (!LINKS_DONE) ensureLinks().then(() => { if (!dr.hidden && openProduct.id === id) { const st = dr.scrollTop; openProduct(id); dr.scrollTop = st; } });
 }
 function closeDrawer() {
   $("#drawer").hidden = true; if ($("#modal").hidden) $("#scrim").hidden = true; document.body.style.overflow = "";
-  if (location.hash.startsWith("#p-")) history.replaceState(null, "", "#" + (closeDrawer.under || "inicio"));
+  if (!ovDone("drawer") && location.hash.startsWith("#p-")) setHash("#" + (closeDrawer.under || "inicio"));
   if (openProduct.back) openProduct.back.focus?.();
 }
 
@@ -1273,8 +1281,8 @@ async function chart(p) {
 }
 
 /* ---------- ventanas ---------- */
-function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; const f = m.querySelector("input, button"); f && f.focus(); }
-function closeModal() { if (typeof scanStop === "function") scanStop(); $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; }
+function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; ovOpen("modal", closeModal); const f = m.querySelector("input, button"); f && f.focus(); }
+function closeModal() { if (typeof scanStop === "function") scanStop(); const was = !$("#modal").hidden; $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; if (was || ovEsta("modal")) ovDone("modal"); }
 function modalMedios() {
   const sel = new Set(MEDIOS || []);
   const groups = Object.entries(P.tipos).filter(([k]) => k !== "general").map(([k, v]) => [k, v, P.medios.filter(m => m.tipo === k).sort((a, b) => a.name.localeCompare(b.name, "es"))]).filter(g => g[2].length);
@@ -1330,9 +1338,49 @@ function modalNews() {
   };
 }
 
+/* ---------- VENTANAS Y BOTÓN "ATRÁS" ----------
+   Cada ventana (ficha de producto, ventanas emergentes, asistente, menú "Más", filtros, guía, mapa) deja una
+   entrada en el historial al abrirse. Así el botón "atrás" del celular la cierra a ella sola, en vez de salir de la web. */
+const OV = { pila: [], saltar: 0, cola: [], ir: null, ev: null, quieto: false, h: location.hash };
+const ovEsta = n => OV.pila.some(o => o.n === n);
+function ovHist(fn) { OV.saltar ? OV.cola.push(fn) : fn(); }          // espera si hay un "atrás" en camino
+function ovOpen(n, cerrar, url) {
+  if (ovEsta(n)) return; OV.pila.push({ n, cerrar });
+  ovHist(() => { history.pushState({ ov: n }, "", url || location.href); OV.h = location.hash; });
+}
+function ovReg(n, cerrar) { if (!ovEsta(n)) OV.pila.push({ n, cerrar }); }   // la entrada ya existe (recarga o enlace)
+function ovForget(n) { OV.pila = OV.pila.filter(o => o.n !== n); }
+function ovDone(n) {   // la ventana se cerró con su ✕ o tocando afuera: quitamos su entrada del historial
+  if (!ovEsta(n)) return false; ovForget(n);
+  if (OV.ev) { OV.ev.preventDefault(); OV.ir = OV.ev.target.closest("a").getAttribute("href"); OV.ev = null; }   // se cerró por un enlace: navegamos después
+  if (history.state && history.state.ov === n) { if (n === "drawer") OV.quieto = true; OV.saltar++; history.back(); return true; }
+  if (OV.ir) { const h = OV.ir; OV.ir = null; location.hash === h ? route() : (location.hash = h); }
+  return false;
+}
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest('a[href^="#"]'); OV.ev = a && a.getAttribute("href").length > 1 ? e : null; setTimeout(() => { OV.ev = null; }); }, true);
+addEventListener("popstate", e => {
+  if (OV.saltar) {
+    OV.saltar--;
+    if (!OV.saltar) { const c = OV.cola.splice(0); c.forEach(f => f()); if (OV.ir) { const h = OV.ir; OV.ir = null; setTimeout(() => { location.hash === h ? route() : (location.hash = h); }); } }
+    OV.h = location.hash; return;
+  }
+  const top = OV.pila.pop();
+  if (top) {
+    if (top.n === "drawer") { if (location.hash !== OV.h) OV.quieto = true; }
+    else if (location.hash !== OV.h) { history.replaceState(history.state, "", OV.h); OV.quieto = true; }   // la página de abajo queda igual
+    top.cerrar(); OV.h = location.hash; return;
+  }
+  OV.h = location.hash;
+  if (e.state && e.state.ov && e.state.ov !== "drawer") { OV.saltar++; history.back(); }   // entrada vieja de una ventana ya cerrada
+});
+if (history.state && history.state.ov && history.state.ov !== "drawer") { OV.saltar++; history.back(); }   // recargaste con una ventana abierta
+function setHash(h) { history.replaceState(history.state, "", h); OV.h = location.hash; }
+
 /* ---------- navegación ---------- */
 function route() {
-  if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; document.body.classList.remove("noscroll"); }
+  if (OV.quieto) { OV.quieto = false; OV.h = location.hash; if (!location.hash.startsWith("#p-")) return; }
+  OV.h = location.hash;
+  if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; ovForget("filtros"); document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
   if (!READY && !/^(inicio|pagos|como|legal|sugerencias)?$/.test(h)) {   // super, comparar, buscar… esperan los productos
@@ -1341,8 +1389,8 @@ function route() {
   }
   if (!LINKS_DONE && /^(conviene|carrito)/.test(h)) ensureLinks().then(() => { if (location.hash.slice(1) === h) route(); });   // vuelve a dibujar con los botones de carrito online
   if (h.startsWith("l-")) { importList(h.slice(2)); return; }
-  if (h.startsWith("p-")) { if (!$("#view").dataset.v) { closeDrawer.under = "inicio"; vInicio(); $("#view").dataset.v = "inicio"; } openProduct(h.slice(2)); return; }
-  if (!$("#drawer").hidden) { $("#drawer").hidden = true; $("#scrim").hidden = $("#modal").hidden; document.body.style.overflow = ""; }
+  if (h.startsWith("p-")) { if (!$("#view").dataset.v) { closeDrawer.under = "inicio"; vInicio(); $("#view").dataset.v = "inicio"; openProduct.fresh = true; } openProduct(h.slice(2)); return; }
+  if (!$("#drawer").hidden) { $("#drawer").hidden = true; $("#scrim").hidden = $("#modal").hidden; document.body.style.overflow = ""; ovForget("drawer"); }
   let v = h;
   if (h.startsWith("c-")) { S.cat = h.slice(2); S.q = ""; $("#q").value = ""; v = "buscar"; }
   if (v === "lista") v = "carrito";   // enlaces viejos
@@ -1357,7 +1405,7 @@ document.addEventListener("click", e => {
   const vm = $("#vmenu"); if (vm && vm.open && !vm.contains(e.target)) vm.open = false;
   if (e.target.closest("[data-ubic]")) { e.preventDefault(); modalUbic(); return; }
   if (e.target.closest("[data-scan]")) { e.preventDefault(); modalScan(); return; }
-  if (e.target.closest("[data-tour]")) { e.preventDefault(); const sh = $("#bsheet"); if (sh) sh.hidden = true; startTour(); return; }
+  if (e.target.closest("[data-tour]")) { e.preventDefault(); if (!$("#bsheet").hidden) masShow(false); startTour(); return; }
   const ag = e.target.closest("[data-agendar]"); if (ag) { e.preventDefault(); modalAgendar(ag.dataset.agendar); return; }
   const cm = e.target.closest("[data-cmp]"); if (cm) { e.preventDefault(); cmpToggle(cm.dataset.cmp); if (!$("#drawer").hidden && openProduct.id) { const st = $("#drawer").scrollTop; openProduct(openProduct.id); $("#drawer").scrollTop = st; } return; }
   if (e.target.closest("[data-noubic]")) { UBIC = null; LS.set(PK("cs_ubic"), null); S.cerca = false; calcCerca(); updUbic(); closeModal(); route(); toast("Ubicación quitada"); return; }
@@ -1440,8 +1488,9 @@ $("#qsug").addEventListener("click", e => {
 document.addEventListener("click", e => { if (!e.target.closest(".hsearch")) qsugShow(false); });
 
 /* ---------- MENÚ DE ABAJO (celular) ---------- */
-$("#bmore").onclick = e => { e.stopPropagation(); const sh = $("#bsheet"), open = sh.hidden; sh.hidden = !open; $("#bmore").setAttribute("aria-expanded", open); };
-document.addEventListener("click", e => { const sh = $("#bsheet"); if (!sh.hidden && !e.target.closest("#bsheet")) { sh.hidden = true; $("#bmore").setAttribute("aria-expanded", false); } });
+function masShow(open) { const sh = $("#bsheet"); sh.hidden = !open; $("#bmore").setAttribute("aria-expanded", open); if (open) ovOpen("mas", () => masShow(false)); else ovDone("mas"); }
+$("#bmore").onclick = e => { e.stopPropagation(); masShow($("#bsheet").hidden); };
+document.addEventListener("click", e => { const sh = $("#bsheet"); if (!sh.hidden && (!e.target.closest("#bsheet") || e.target.closest("a, button"))) masShow(false); });
 
 /* ---------- ESCANEAR CÓDIGO DE BARRAS (cámara o foto) ---------- */
 const SCAN = { stream: null, timer: null, reader: null };
@@ -1619,15 +1668,16 @@ const TOUR = [
   [".tabs a[data-v=conviene]", "📊 ¿Dónde conviene mi compra?", "Te dice en qué súper, qué día y con qué medio de pago sale menos toda tu compra.", "desk"],
   ["#bmore", "☰ Más opciones", "Acá están Descuentos por día, ¿Dónde conviene?, tu carrito y más.", "mob"],
   ["#hsize", "Aa Tamaño de letra", "Si te cuesta leer, agrandá la letra de toda la página."],
+  ["#fmas", "🙋 Ayuda", "Tocá acá para ver esta guía otra vez, dejarnos una sugerencia o hablar con el asistente.", "mob"],
   [".fab.guia", "❓ Guía rápida", "Si te perdés, tocá este botón y te volvemos a mostrar esta guía."],
   ["#botbtn", "🤖 Asistente", "¿Dudas? Preguntale al asistente: precios, descuentos del día o cómo usar la página."],
 ];
 let TOURI = 0;
-function startTour() { closeModal(); closeDrawer && !$("#drawer").hidden && closeDrawer(); TOURI = 0; if (!$("#tour")) document.body.insertAdjacentHTML("beforeend", `<div id="tour" class="tour" role="dialog" aria-live="polite"><div class="tspot"></div><div class="tbub"></div></div>`); tourGo(0); }
+function startTour() { closeModal(); closeDrawer && !$("#drawer").hidden && closeDrawer(); TOURI = 0; if (!$("#tour")) document.body.insertAdjacentHTML("beforeend", `<div id="tour" class="tour" role="dialog" aria-live="polite"><div class="tspot"></div><div class="tbub"></div></div>`); ovOpen("tour", () => tourGo(1e3)); tourGo(0); }
 function tourSteps() { const mob = innerWidth <= 640; return TOUR.filter(s => !s[3] || (s[3] === "mob") === mob).filter(s => { const el = $(s[0]); return el && el.getBoundingClientRect().width > 0; }); }
 function tourGo(i) {
   const steps = tourSteps(); if (i < 0) i = 0;
-  if (i >= steps.length) { $("#tour").remove(); LS.set("cs_tour", 1); toast("¡Listo! La guía la podés volver a ver con el botón ❓ de abajo a la derecha"); return; }
+  if (i >= steps.length) { if (!$("#tour")) return; $("#tour").remove(); ovDone("tour"); LS.set("cs_tour", 1); toast("¡Listo! La guía la podés volver a ver con el botón ❓ de abajo a la derecha"); return; }
   TOURI = i;
   const [sel, t, d] = steps[i], el = $(sel);
   el.scrollIntoView({ block: "nearest" });
@@ -1876,10 +1926,15 @@ function botRender() {
 async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(); await loadProducts(); BOT.msgs.push({ who: "b", html: botResponder(q) }); botRender(); }
 function botOpen(open) {
   $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
+  if (open) ovOpen("chat", () => botOpen(false)); else ovDone("chat");
   if (open && !BOT.msgs.length) { BOT.msgs.push({ who: "b", html: "¡Hola! Soy el asistente de ComparáSúper. Te ayudo a encontrar precios, descuentos por día y banco, y a usar la página. ¿Qué necesitás?" }); botRender(); }
   if (open) $("#chq").focus();
 }
 $("#botbtn").onclick = () => botOpen($("#chat").hidden);
+/* celular: los tres globos se juntan en uno ("Ayuda") para no tapar precios ni botones */
+function fabsShow(open) { $("#fabs").classList.toggle("abierto", open); $("#fmas").setAttribute("aria-expanded", open); $("#fmas .fi").textContent = open ? "✕" : "🙋"; $("#fmas .ft").textContent = open ? "Cerrar" : "Ayuda"; if (open) ovOpen("fabs", () => fabsShow(false)); else ovDone("fabs"); }
+$("#fmas").onclick = e => { e.stopPropagation(); fabsShow(!$("#fabs").classList.contains("abierto")); };
+document.addEventListener("click", e => { if ($("#fabs").classList.contains("abierto") && !e.target.closest("#fmas")) fabsShow(false); }, true);
 $("#chatx").onclick = () => botOpen(false);
 $("#chf").onsubmit = e => { e.preventDefault(); const q = $("#chq").value.trim(); if (!q || !D) return; $("#chq").value = ""; botAsk(q); };
 $("#chm").addEventListener("click", e => {
@@ -1890,8 +1945,9 @@ $("#chm").addEventListener("click", e => {
 
 $("#pbtn").onclick = async () => {
   if (document.getElementById("pmapa")) return;
-  const v = await abrirMapa({ actual: PROV });
-  if (v && v !== PROV) { LS.set("cs_prov", v); location.reload(); }
+  const pr = abrirMapa({ actual: PROV }); ovOpen("mapa", () => window.cerrarMapa && window.cerrarMapa());
+  const v = await pr; ovDone("mapa");
+  if (v && v !== PROV) { LS.set("cs_prov", v); setTimeout(() => location.reload(), 150); }
 };
 (async () => {
   if (!PROV) {                         // primera visita: elegir la provincia antes de cargar precios
