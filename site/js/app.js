@@ -262,8 +262,16 @@ function promosFor(sid, day, c, { mine = true, withCuotas = false } = {}) {
    y si no, lo deduce de la nota. Devuelve "si", "no", "parcial" (depende del comercio) o "?" (no lo informa). */
 const sinTilde = t => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 function acumDe(pr, sid) {
-  if (pr.acumulable === true) return "si";
-  if (pr.acumulable === false) return "no";
+  const a = pr.acumulable;
+  if (a === true) return "si";
+  if (a === false) return "no";
+  if (a === "banco") return "banco";
+  if (a && typeof a === "object") {
+    const v = sid ? [a[sid]] : Object.values(a);
+    if (v.every(x => x === true)) return "si";
+    if (v.every(x => x === false)) return "no";
+    return v.some(x => typeof x === "boolean") ? (sid ? "?" : "parcial") : "?";
+  }
   const t = sinTilde(pr.nota);
   if (/no (es |son )?acumulable|no se (acumula|combina|suma)|no acumula/.test(t)) {
     const m = t.match(/en ([a-z0-9 ]+?) no se (acumula|combina|suma)/);
@@ -271,21 +279,29 @@ function acumDe(pr, sid) {
     if (s) return sid ? (sid === s ? "no" : "?") : "parcial";
     return "no";
   }
-  if (/acumulable|se acumula|se suma a las ofertas/.test(t)) return "si";
+  if (/acumulable|se acumula|se suma a (las|otras)/.test(t)) return "si";
   return "?";
 }
-const acumSoloEn = pr => { const m = sinTilde(pr.nota).match(/en ([a-z0-9 ]+?) no se (acumula|combina|suma)/); const s = m && pr.stores.find(x => ST[x] && sinTilde(ST[x].name) === m[1].trim()); return s ? ST[s].name : ""; };
+const acumPorComercio = pr => {
+  const a = pr.acumulable;
+  if (a && typeof a === "object") return Object.entries(a).filter(([k]) => ST[k]).map(([k, v]) => `${ST[k].name}: ${v ? "sí" : "no"}`).join(" · ");
+  const m = sinTilde(pr.nota).match(/en ([a-z0-9 ]+?) no se (acumula|combina|suma)/), s = m && pr.stores.find(x => ST[x] && sinTilde(ST[x].name) === m[1].trim());
+  return s ? `${ST[s].name}: no · los demás: no informado` : "";
+};
 const ACUM = {
   si: ["si", "check", "Se acumula", "con las ofertas del súper (2x1, 2.ª unidad, precios rebajados): el descuento se aplica sobre el precio ya rebajado."],
   no: ["no", "x", "No se acumula", "con otras promociones: si el producto ya tiene una oferta del súper, el descuento del banco o billetera no se suma."],
+  banco: ["ban", "info", "Se suma a otros descuentos bancarios", "pero no aclara si también se suma a las ofertas del propio súper."],
   "?": ["nd", "circle-help", "Acumulación no informada:", "la fuente no dice si se suma a las ofertas del súper. Revisá las bases antes de pagar."],
 };
+const ACUM_CORTO = { si: "Se acumula", no: "No se acumula", banco: "Se suma a otros descuentos de bancos", "?": "¿Se acumula? Sin datos", parcial: "Se acumula según el comercio" };
 function acumBadge(pr, corto) {
   const k = acumDe(pr);
-  if (k === "parcial") return `<div class="acum parcial"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><b>Se acumula según el comercio:</b> en ${esc(acumSoloEn(pr))} no se suma a otras promociones.</div></div>`;
+  if (corto) { const c = { si: "si", no: "no", banco: "ban", "?": "nd", parcial: "parcial" }[k]; return `<span class="acum sm ${c}" title="${esc(acumPorComercio(pr))}">${ACUM_CORTO[k]}</span>`; }
+  const ev = pr.acum_texto ? `<div class="acx">«${esc(pr.acum_texto.length > 200 ? pr.acum_texto.slice(0, 197) + "…" : pr.acum_texto)}»${pr.acum_fuente ? ` <a href="${esc(pr.acum_fuente)}" target="_blank" rel="noopener">ver bases ↗</a>` : ""}</div>` : "";
+  if (k === "parcial") return `<div class="acum parcial"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><b>Se acumula según el comercio:</b> ${esc(acumPorComercio(pr))}.${ev}</div></div>`;
   const [c, i, t, d] = ACUM[k];
-  return corto ? `<span class="acum sm ${c}" title="${esc(t + " " + d)}">${k === "?" ? "¿Se acumula? Sin datos" : t}</span>`
-    : `<div class="acum ${c}"><svg class="ic" aria-hidden="true"><use href="#i-${i}"/></svg><div><b>${t}</b> ${esc(d)}</div></div>`;
+  return `<div class="acum ${c}"><svg class="ic" aria-hidden="true"><use href="#i-${i}"/></svg><div><b>${t}</b> ${esc(d)}${ev}</div></div>`;
 }
 /* reg = lo que costaría sin las ofertas del súper. Si la promo no se acumula, o usás la oferta del súper o el
    descuento sobre el precio de lista: se cuenta solo lo que el descuento ahorra por encima de las ofertas. */
@@ -1396,7 +1412,7 @@ function vPagos() {
       <label class="chip" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="pmine" ${S.pmine ? "checked" : ""} ${MEDIOS ? "" : "disabled"}> Solo mis medios</label>
     </div>
     <h2 style="font-size:18px;margin:18px 0 10px">${DIAS[day]}${day === HOY ? " (hoy)" : ""}: ${list.length} ${list.length === 1 ? "beneficio" : "beneficios"}</h2>
-    ${list.length ? `<details class="acumleg"><summary><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> ¿Qué significa «se acumula»?</summary><p>Indica si el descuento del banco o la billetera <b>se suma a las ofertas del propio súper</b> (2x1, 2.ª unidad al 70%, precios rebajados). Si <b>no se acumula</b>, en los productos que ya están en oferta pagás el precio de oferta o el de lista con el descuento, no las dos cosas. En «¿Dónde conviene mi compra?» ya lo tenemos en cuenta.</p><p>Aparte de eso, <b>dos descuentos por medio de pago nunca se suman</b> en una misma compra: pagás con un solo medio.</p></details>` : ""}
+    ${list.length ? `<details class="acumleg"><summary><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> ¿Qué significa «se acumula»?</summary><p>Indica si el descuento del banco o la billetera <b>se suma a las ofertas del propio súper</b> (2x1, 2.ª unidad al 70%, precios rebajados). Si <b>no se acumula</b>, en los productos que ya están en oferta pagás el precio de oferta o el de lista con el descuento, no las dos cosas. En «¿Dónde conviene mi compra?» ya lo tenemos en cuenta.</p><p>«Se suma a otros descuentos de bancos» quiere decir que las bases solo hablan de otros descuentos bancarios o de MODO, sin aclarar nada sobre las ofertas del súper. Debajo de cada aviso figura la frase de las bases en que nos basamos y el enlace para leerlas. Si dice «sin datos», conviene mirar las bases antes de pagar.</p><p>Aparte de eso, <b>dos descuentos por medio de pago nunca se suman</b> en una misma compra: pagás con un solo medio.</p></details>` : ""}
     <div class="plist">${list.map(promoCard).join("") || `<div class="empty">No hay beneficios para ese día con esos filtros.</div>`}</div>
 
     <h2 style="font-size:18px;margin:30px 0 10px">La semana de un vistazo <span class="sub" style="font-weight:500">· mayor descuento de cada día${S.ptipo ? " (" + esc(P.tipos[S.ptipo]) + ")" : ""}</span></h2>

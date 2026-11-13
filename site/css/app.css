@@ -255,13 +255,16 @@ table.offers .pay{margin-top:4px}
 .acum .ic{flex:none;width:18px;height:18px;margin-top:1px}
 .acum.si{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
 .acum.no{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.acum.ban{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
+.acum .acx{margin-top:4px;font-size:12px;opacity:.9}.acum .acx a{color:inherit;font-weight:700}
 .acum.parcial{background:#fffbeb;border-color:#fde68a;color:#92400e}
 .acum.nd{background:var(--gll);border-color:var(--line);color:var(--mut)}
 .acum.nd b{color:var(--ink)}
 .acum.sm{display:inline-flex;padding:1px 8px;font-size:11.5px;font-weight:700;border-radius:999px;vertical-align:middle;white-space:nowrap}
-.acum.sm.si::before{content:"✓ "}.acum.sm.no::before{content:"✕ "}.acum.sm.nd::before{content:"? "}
+.acum.sm.ban::before{content:"+ "}.acum.sm.parcial::before{content:"≈ "}.acum.sm.si::before{content:"✓ "}.acum.sm.no::before{content:"✕ "}.acum.sm.nd::before{content:"? "}
 [data-theme=dark] .acum.si{background:#052e22;border-color:#065f46;color:#a7f3d0}
 [data-theme=dark] .acum.no{background:#3b0d0d;border-color:#7f1d1d;color:#fecaca}
+[data-theme=dark] .acum.ban{background:#0b1e3d;border-color:#1e3a8a;color:#bfdbfe}
 [data-theme=dark] .acum.parcial{background:#3a2a05;border-color:#78350f;color:#fde68a}
 .acumleg{margin:0 0 14px;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:10px 14px}
 .acumleg summary{cursor:pointer;font-weight:700;display:flex;gap:6px;align-items:center}

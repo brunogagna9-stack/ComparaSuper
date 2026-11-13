@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from provincias import PROVS, AMBA, carpeta
 from modo_fetch import REGIONALES, norm
 import re
+import acumulable
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA, SITE = ROOT / "data", ROOT / "site" / "data"
@@ -72,6 +73,7 @@ def main():
         vistos.setdefault(clave(pr), []).append(set(pr["dias"]))
     todas = [pr for pr in manual if not any(set(pr["dias"]) & d for d in vistos.get(clave(pr), []))] + modo["promos"]
     todas = [pr for pr in todas if (pr.get("hasta") or "9999") >= hoy]
+    acumulable.aplicar(todas, modo["promos"])      # ¿se acumula con otras promos?
     resumen = []
     for code, nombre in PROVS:
         hay = cadenas_de(code)

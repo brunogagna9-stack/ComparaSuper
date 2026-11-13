@@ -1,0 +1,58 @@
+name: Leer bases de descuentos
+
+# Los lunes a las 11:10 (Argentina): entra a las páginas de bases y condiciones de los descuentos (con Scrapling)
+# y junta las frases que dicen si se acumulan con otras promociones. Si algo cambió o una página no responde,
+# abre (o actualiza) un aviso en la pestaña "Issues". Se puede correr a mano desde "Actions".
+on:
+  schedule:
+    - cron: "10 14 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  leer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Lectura anterior
+        uses: actions/cache/restore@v6
+        with:
+          path: data/promos_bases.json
+          key: bases-${{ github.run_id }}
+          restore-keys: bases-
+      - name: Instalar Scrapling
+        run: pip install "scrapling[fetchers]"
+      - name: Leer las páginas
+        id: r
+        run: python scripts/promos_bases.py
+      - name: Guardar la lectura para la próxima vez
+        uses: actions/cache/save@v6
+        with:
+          path: data/promos_bases.json
+          key: bases-${{ github.run_id }}
+      - name: Guardar el resultado
+        uses: actions/upload-artifact@v7
+        with:
+          name: promos_bases
+          path: |
+            data/promos_bases.json
+            revision_bases.md
+      - name: Avisar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create revisar-bases --color 1D76DB --description "Aviso automático de bases y condiciones" 2>/dev/null || true
+          NUM=$(gh issue list --label revisar-bases --state open --json number -q '.[0].number')
+          if [ "${{ steps.r.outputs.avisar }}" = "si" ]; then
+            if [ -n "$NUM" ]; then gh issue comment "$NUM" --body-file revision_bases.md
+            else gh issue create --title "📄 Bases y condiciones para revisar" --label revisar-bases --body-file revision_bases.md; fi
+          elif [ -n "$NUM" ]; then
+            gh issue close "$NUM" --comment "Todo en orden: se cierra solo."
+          fi

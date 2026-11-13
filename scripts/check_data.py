@@ -39,6 +39,18 @@ for pr in promos["promos"]:
     if not pr.get("ejemplo") and pr.get("fuente_tipo") not in ("oficial", "relevamiento", "prensa"):
         errors.append(f"promo {pr['id']}: fuente_tipo debe ser oficial, relevamiento o prensa")
     if pr["canal"] not in ("tienda", "online", "ambos"): errors.append(f"promo {pr['id']}: canal inválido")
+_ap = ROOT / "data/promos_acumulable.json"          # a cuáles descuentos se les aclaró si se acumulan
+if _ap.exists():
+    _ids = {p["id"] for p in promos["promos"]}
+    _rp = ROOT / "data/promos_regionales.json"
+    if _rp.exists():
+        _ids |= {p["id"] for p in json.loads(_rp.read_text(encoding="utf-8")).get("promos", [])}
+    for _i, _x in json.loads(_ap.read_text(encoding="utf-8")).get("promos", {}).items():
+        _a = _x.get("acumulable")
+        if _i not in _ids: errors.append(f"acumulable: el descuento {_i} no existe")
+        if not (isinstance(_a, bool) or _a == "banco" or (isinstance(_a, dict) and all(isinstance(v, bool) for v in _a.values()))):
+            errors.append(f"acumulable {_i}: valor inválido")
+        if not (_x.get("texto") and str(_x.get("fuente", "")).startswith("http")): errors.append(f"acumulable {_i}: falta la frase de las bases o su dirección")
 if errors:
     print("ERRORES:\n- " + "\n- ".join(errors[:50])); sys.exit(1)
 ej = sum(1 for p in promos["promos"] if p.get("ejemplo"))

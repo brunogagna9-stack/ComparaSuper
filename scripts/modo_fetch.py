@@ -19,9 +19,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from provincias import codigo, NOMBRE
+from acumulable import frase_acum
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT = ROOT / "data" / "promos_modo.json"
+import os
+OUT = Path(os.environ.get("MODO_OUT") or ROOT / "data" / "promos_modo.json")
 UA = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36",
       "Accept": "application/json", "Origin": "https://www.modo.com.ar", "Referer": "https://www.modo.com.ar/promos"}
 MODO = "https://www.modo.com.ar/promos/api/rewards"
@@ -259,6 +261,7 @@ def convertir(b, tiendas, bank_names, hoy):
             provincias = bp
         else:
             return None   # comercio desconocido y sin sucursales: no se sabe dónde queda
+    acum, acum_texto = frase_acum(b.get("terms_and_conditions"))      # ¿se suma a otras promociones? lo dicen los términos
     return {
         "id": "modo-" + b.get("slug", ""), "medio": medio, "stores": stores,
         "dias": sorted({DIAS[d] for d in s.get("days_of_week") or [] if d in DIAS}) or list(range(7)),
@@ -267,6 +270,7 @@ def convertir(b, tiendas, bank_names, hoy):
         "cuotas": cuotas, "requiere": [], "desde": s.get("start_date"), "hasta": s.get("stop_date"),
         "fuente": "https://www.modo.com.ar/promos/" + b.get("slug", ""), "fuente_tipo": "oficial",
         "verificado": hoy.isoformat(), "ejemplo": False, "bancos": bancos, "provincias": provincias,
+        **({"acumulable": acum, "acum_texto": acum_texto} if acum is not None else {}),
         **({"comercio": comercio} if comercio else {}),
     }
 

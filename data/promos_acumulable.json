@@ -1,0 +1,87 @@
+{
+ "_leeme": "Si cada descuento se acumula con otras promociones, según las bases oficiales. acumulable: true / false, o {comercio: true/false}. Lo carga a mano quien revisa las evidencias de data/promos_bases.json (scripts/promos_bases.py). Tiene prioridad sobre lo que lea MODO.",
+ "revisado": "2026-11-13",
+ "promos": {
+  "n004": {
+   "acumulable": {
+    "carrefour": true,
+    "carrefourmaxi": false
+   },
+   "texto": "En Carrefour se puede sumar a las demás promociones vigentes. En las tiendas Carrefour Maxi no se acumula con otras promociones ni folletos.",
+   "fuente": "https://calcularsueldo.com.ar/?p=16402",
+   "visto": "2026-11-13"
+  },
+  "n011": {
+   "acumulable": true,
+   "texto": "Acumulable con todas las promos.",
+   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "visto": "2026-11-13"
+  },
+  "n052": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones.",
+   "fuente": "https://www.hipotecario.com.ar/alianzas-bh/changomas/",
+   "visto": "2026-11-13"
+  },
+  "n077": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes.",
+   "fuente": "https://www.nini.com.ar/promociones",
+   "visto": "2026-11-13"
+  },
+  "n082": {
+   "acumulable": false,
+   "texto": "No acumulable con otras ofertas, promociones, beneficios bancarios ni descuentos de otras billeteras virtuales.",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "visto": "2026-11-13"
+  },
+  "n083": {
+   "acumulable": false,
+   "texto": "No acumulable con otras ofertas, promociones, beneficios bancarios ni descuentos de otras billeteras virtuales.",
+   "fuente": "https://www.diarco.com.ar/promociones",
+   "visto": "2026-11-13"
+  },
+  "n089": {
+   "acumulable": false,
+   "texto": "Beneficio no acumulable con otras promociones y/o beneficios vigentes.",
+   "fuente": "https://www.maxiconsumo.com/promociones",
+   "visto": "2026-11-13"
+  },
+  "n093": {
+   "acumulable": true,
+   "texto": "Acumulable con otras promociones vigentes en el supermercado.",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
+   "visto": "2026-11-13"
+  },
+  "r042": {
+   "acumulable": false,
+   "texto": "Esta promoción no es acumulable con otras promociones ni códigos de descuento.",
+   "fuente": "https://www.btf.com.ar/promociones/la-25/",
+   "visto": "2026-11-13"
+  },
+  "r015": {
+   "acumulable": false,
+   "texto": "Beneficios exclusivos para asociados, no acumulables con ofertas, descuentos, promociones y programas del gobierno.",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "visto": "2026-11-13"
+  },
+  "r017": {
+   "acumulable": false,
+   "texto": "Beneficios exclusivos para asociados, no acumulables con ofertas, descuentos, promociones y programas del gobierno.",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "visto": "2026-11-13"
+  },
+  "r018": {
+   "acumulable": false,
+   "texto": "Beneficios exclusivos para asociados, no acumulables con ofertas, descuentos, promociones y programas del gobierno.",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "visto": "2026-11-13"
+  },
+  "r019": {
+   "acumulable": false,
+   "texto": "Beneficios exclusivos para asociados, no acumulables con ofertas, descuentos, promociones y programas del gobierno.",
+   "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
+   "visto": "2026-11-13"
+  }
+ }
+}

@@ -10,6 +10,7 @@ Uso: python scripts/build_data.py
 import json, re, datetime as dt, unicodedata
 from collections import Counter
 from pathlib import Path
+import acumulable
 
 ROOT = Path(__file__).resolve().parent.parent
 RAW, OUT = ROOT / "data" / "raw", ROOT / "site" / "data"
@@ -419,6 +420,8 @@ def main():
         IMGS.update(json.loads(ip.read_text(encoding="utf-8")))
     stores = json.loads((ROOT / "data" / "stores.json").read_text(encoding="utf-8"))["stores"]
     promos = json.loads((ROOT / "data" / "promos_pago.json").read_text(encoding="utf-8"))
+    mp = ROOT / "data" / "promos_modo.json"        # ¿se acumula con otras promos? (data/promos_acumulable.json y términos de MODO)
+    acumulable.aplicar(promos["promos"], json.loads(mp.read_text(encoding="utf-8")).get("promos") if mp.exists() else [])
     hp = ROOT / "data" / "history.json"
     hist = json.loads(hp.read_text(encoding="utf-8")) if hp.exists() else {"dates": [], "series": {}}
     snaps = load_raw()
