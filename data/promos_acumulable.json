@@ -12,9 +12,9 @@
    "visto": "2026-11-13"
   },
   "n011": {
-   "acumulable": true,
-   "texto": "Acumulable con todas las promos.",
-   "fuente": "https://www.convi.ar/promos-bancarias/carrefour",
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: no acumulable; excluye Ofertón por bulto, Pack familiar y Precio Súper Bajo.",
+   "fuente": "https://www.mercadopago.com.ar/",
    "visto": "2026-11-13"
   },
   "n052": {
@@ -135,6 +135,36 @@
    "acumulable": "banco",
    "texto": "Acumulable con la acción de comercios de cercanía.",
    "fuente": "https://www.bancoprovincia.com.ar/cuentadni/buscadores/supermercados",
+   "visto": "2026-11-13"
+  },
+  "n033": {
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: «Beneficio no acumulable con otras promociones y/o beneficios vigentes en los comercios.»",
+   "fuente": "https://www.mercadopago.com.ar/",
+   "visto": "2026-11-13"
+  },
+  "n034": {
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: no acumulable con otras promociones (mismas condiciones que el viernes).",
+   "fuente": "https://www.mercadopago.com.ar/",
+   "visto": "2026-11-13"
+  },
+  "n055": {
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: «No acumulable con otras promociones vigentes.»",
+   "fuente": "https://www.mercadopago.com.ar/",
+   "visto": "2026-11-13"
+  },
+  "n056": {
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: «No acumulable con otras promociones vigentes y/o productos en liquidación.»",
+   "fuente": "https://www.mercadopago.com.ar/",
+   "visto": "2026-11-13"
+  },
+  "n069": {
+   "acumulable": false,
+   "texto": "Bases de la app de Mercado Pago: «Descuento no cumulativo con otras promociones y/o beneficios vigentes en los comercios.»",
+   "fuente": "https://www.mercadopago.com.ar/",
    "visto": "2026-11-13"
   }
  }
