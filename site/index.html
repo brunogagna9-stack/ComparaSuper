@@ -52,8 +52,20 @@
     <a href="#ofertas" data-v="ofertas">Ofertas</a>
     <a href="#pagos" data-v="pagos">Descuentos por día</a>
     <a href="#conviene" data-v="conviene">¿Dónde conviene mi compra?</a>
-    <a href="#como" data-v="como">Cómo funciona</a>
+    <button class="tmenu" id="tmenu" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="hmenu">Herramientas<span class="car" aria-hidden="true"></span></button>
   </nav>
+  <div class="hmenu" id="hmenu" hidden>
+    <div class="hmk">Herramientas</div>
+    <a href="#comparar" data-v="comparar"><svg class="ic" aria-hidden="true"><use href="#i-scale"/></svg><span><b>Comparar productos</b><small>Dos o más productos, lado a lado</small></span></a>
+    <a href="#mapa" data-v="mapa"><svg class="ic" aria-hidden="true"><use href="#i-map"/></svg><span><b>Mapa de sucursales</b><small>Los comercios cerca tuyo</small></span></a>
+    <a href="#" data-ticket><svg class="ic" aria-hidden="true"><use href="#i-receipt"/></svg><span><b>Escanear un ticket</b><small>Cuánto te hubieras ahorrado</small></span></a>
+    <a href="#super" data-v="super"><svg class="ic" aria-hidden="true"><use href="#i-store"/></svg><span><b>Modo en el súper</b><small>Tu lista mientras comprás</small></span></a>
+    <a href="#" data-instalar><svg class="ic" aria-hidden="true"><use href="#i-smartphone"/></svg><span><b>Instalar como app</b><small>Acceso directo en tu teléfono o PC</small></span></a>
+    <div class="hmk">Ayuda</div>
+    <a href="#como" data-v="como"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><span><b>Cómo funciona</b><small>Cómo leer precios y descuentos</small></span></a>
+    <a href="#" data-tour><svg class="ic" aria-hidden="true"><use href="#i-life-buoy"/></svg><span><b>Guía rápida</b><small>Un recorrido de un minuto</small></span></a>
+    <a href="#sugerencias" data-v="sugerencias"><svg class="ic" aria-hidden="true"><use href="#i-message-square-text"/></svg><span><b>Contacto y sugerencias</b><small>Contanos qué mejorar</small></span></a>
+  </div>
   </div>
 </header>
 
@@ -66,10 +78,8 @@
       <p><button class="btn sm" data-news><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg> Recibir novedades por correo</button></p></div>
     <nav aria-label="ComparáSúper"><h4>ComparáSúper</h4>
       <a href="#nosotros">Conocenos</a><a href="#nosotros-acerca">Acerca de</a><a href="#como">Cómo funciona</a><a href="#nosotros-datos">De dónde salen los precios</a><a href="#nosotros-preguntas">Preguntas frecuentes</a></nav>
-    <nav aria-label="Herramientas"><h4>Herramientas</h4>
-      <a href="#buscar">Productos</a><a href="#ofertas">Ofertas</a><a href="#pagos">Descuentos por día</a><a href="#conviene">¿Dónde conviene mi compra?</a><a href="#comparar">Comparar productos</a><a href="#mapa">Mapa de sucursales</a><a href="#" data-ticket>Escanear un ticket</a><a href="#super">Modo en el súper</a><a href="#" data-instalar>Instalar como app</a></nav>
     <nav aria-label="Ayuda y legales"><h4>Ayuda y legales</h4>
-      <a href="#" data-tour>Guía rápida</a><a href="#sugerencias">Contacto y sugerencias</a><a href="#legal">Términos de uso</a><a href="#legal-privacidad">Política de privacidad</a><a href="#nosotros-aviso">Aviso sobre precios</a></nav>
+      <a href="#sugerencias">Contacto y sugerencias</a><a href="#legal">Términos de uso</a><a href="#legal-privacidad">Política de privacidad</a><a href="#nosotros-aviso">Aviso sobre precios</a></nav>
   </div>
   <div class="fbot"><span>© <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</span><span id="fupd"></span></div>
 </footer>

@@ -258,11 +258,48 @@ const canalOk = (pr, c) => pr.canal === "ambos" || pr.canal === c;
 function promosFor(sid, day, c, { mine = true, withCuotas = false } = {}) {
   return P.promos.filter(pr => pr.stores.includes(sid) && pr.dias.includes(day) && (withCuotas || pr.pct > 0) && (!mine || mineOk(pr)) && canalOk(pr, c));
 }
-function payDiscount(sid, day, c, subtotal, mine = true) {
+/* ¿El descuento se suma a las ofertas del súper? Usa el campo "acumulable" si la promo lo trae (true/false)
+   y si no, lo deduce de la nota. Devuelve "si", "no", "parcial" (depende del comercio) o "?" (no lo informa). */
+const sinTilde = t => (t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+function acumDe(pr, sid) {
+  if (pr.acumulable === true) return "si";
+  if (pr.acumulable === false) return "no";
+  const t = sinTilde(pr.nota);
+  if (/no (es |son )?acumulable|no se (acumula|combina|suma)|no acumula/.test(t)) {
+    const m = t.match(/en ([a-z0-9 ]+?) no se (acumula|combina|suma)/);
+    const s = m && pr.stores.length > 1 && pr.stores.find(x => ST[x] && sinTilde(ST[x].name) === m[1].trim());
+    if (s) return sid ? (sid === s ? "no" : "?") : "parcial";
+    return "no";
+  }
+  if (/acumulable|se acumula|se suma a las ofertas/.test(t)) return "si";
+  return "?";
+}
+const acumSoloEn = pr => { const m = sinTilde(pr.nota).match(/en ([a-z0-9 ]+?) no se (acumula|combina|suma)/); const s = m && pr.stores.find(x => ST[x] && sinTilde(ST[x].name) === m[1].trim()); return s ? ST[s].name : ""; };
+const ACUM = {
+  si: ["si", "check", "Se acumula", "con las ofertas del súper (2x1, 2.ª unidad, precios rebajados): el descuento se aplica sobre el precio ya rebajado."],
+  no: ["no", "x", "No se acumula", "con otras promociones: si el producto ya tiene una oferta del súper, el descuento del banco o billetera no se suma."],
+  "?": ["nd", "circle-help", "Acumulación no informada:", "la fuente no dice si se suma a las ofertas del súper. Revisá las bases antes de pagar."],
+};
+function acumBadge(pr, corto) {
+  const k = acumDe(pr);
+  if (k === "parcial") return `<div class="acum parcial"><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg><div><b>Se acumula según el comercio:</b> en ${esc(acumSoloEn(pr))} no se suma a otras promociones.</div></div>`;
+  const [c, i, t, d] = ACUM[k];
+  return corto ? `<span class="acum sm ${c}" title="${esc(t + " " + d)}">${k === "?" ? "¿Se acumula? Sin datos" : t}</span>`
+    : `<div class="acum ${c}"><svg class="ic" aria-hidden="true"><use href="#i-${i}"/></svg><div><b>${t}</b> ${esc(d)}</div></div>`;
+}
+/* reg = lo que costaría sin las ofertas del súper. Si la promo no se acumula, o usás la oferta del súper o el
+   descuento sobre el precio de lista: se cuenta solo lo que el descuento ahorra por encima de las ofertas. */
+function payDiscount(sid, day, c, subtotal, mine = true, reg = subtotal) {
   let r = { disc: 0, promo: null };
   for (const pr of promosFor(sid, day, c, { mine })) {
-    if (subtotal < (pr.minimo || 0)) continue;
-    const d = Math.min(subtotal * pr.pct / 100, pr.tope ?? Infinity);
+    let d;
+    if (acumDe(pr, sid) === "no" && reg > subtotal + 0.5) {
+      if (reg < (pr.minimo || 0)) continue;
+      d = Math.max(0, subtotal - (reg - Math.min(reg * pr.pct / 100, pr.tope ?? Infinity)));
+    } else {
+      if (subtotal < (pr.minimo || 0)) continue;
+      d = Math.min(subtotal * pr.pct / 100, pr.tope ?? Infinity);
+    }
     if (d > r.disc) r = { disc: d, promo: pr };
   }
   return r;
@@ -338,7 +375,7 @@ function basketAt(sid, c, items, day) {
     if (!o || !base(o, c)) { miss.push(p); continue; }
     const lc = lineCost(o, c, qty); reg += qty * base(o, c); sub += lc.total; lines.push({ p, qty, o, lc });
   }
-  const pay = payDiscount(sid, day, c, sub), env = lines.length ? shipping(sid, c, sub) : 0;
+  const pay = payDiscount(sid, day, c, sub, true, reg), env = lines.length ? shipping(sid, c, sub) : 0;
   return { sid, c, reg, sub, promoSave: reg - sub, pay, env, total: sub - pay.disc + env, miss, lines };
 }
 const rankAll = (items, day) => options().map(x => basketAt(x.sid, x.c, items, day)).filter(b => b.lines.length)
@@ -453,7 +490,7 @@ function card(p) {
       ${addCtl(p.id)}</div>
   </article>`;
 }
-function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
+function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const tm = $("#tmenu"); if (tm) tm.classList.toggle("on", ["comparar", "mapa", "super", "sugerencias", "como"].includes(v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
 const storeSelect = (id, val, label = "Todos los comercios") => `<select class="sel" id="${id}" aria-label="Comercio"><option value="">${label}</option>${grupos().map(([n, ss]) => `<optgroup label="${n}">${ss.map(s => `<option value="${s.id}" ${val === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
@@ -851,7 +888,7 @@ async function fondoMapa(L, m) {
 /* pin de una sucursal: gota con la sigla de la cadena (en vez de un puntito de color) */
 const pinHtml = (st, grande) => `<span class="pin${grande ? " g" : ""}" style="--c:${st.color || "#0e7a55"}"><b>${esc(st.sigla || st.name.slice(0, 2))}</b></span>`;
 async function vMapa() {
-  setTab("");
+  setTab("mapa");
   const marcar = MAPA.marcar; MAPA.marcar = false;
   $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>🗺️ Sucursales cerca</h1>
       <button class="btn sec sm" data-ubic>${ic("map-pin")} ${UBIC ? "Cambiar ubicación" : "Elegir ubicación"}</button></div>
@@ -1316,6 +1353,7 @@ function promoCard(pr) {
       ${needs(pr).length ? `<div class="req">Requiere además: ${needs(pr).map(r => esc((P.medioBy[r] || { name: r }).name)).join(", ")}</div>` : ""}</div></div>
       <div class="pp">${pr.pct ? pr.pct + "%" : pr.cuotas + " cuotas"}</div></div>
     <div class="stores">${pr.stores.filter(s => ST[s]).map(s => storeChip(s)).join(" ")}</div>
+    ${acumBadge(pr)}
     ${pr.stores.filter(s => ST[s] && ST[s].lista && ST[s].lista.length).map(s => `<div class="sub adher">Adheridos en ${esc(provCorto(PROV))}: ${ST[s].lista.map(esc).join(", ")}</div>`).join("")}
     ${(pr.bancos || []).length ? `<div class="bancos"><span class="sub">${pr.medio === "cuentadni" ? "Billetera de" : "Vale con tarjetas de"}:</span> ${pr.bancos.map(b => P.medioBy[b]).filter(Boolean).map(m => `<span class="bk" title="${esc(m.name)}">${medioBadge(m)}</span>`).join("")}</div>` : ""}
     <div class="howpay"><div class="k">Cómo pagar para que aplique</div>
@@ -1358,6 +1396,7 @@ function vPagos() {
       <label class="chip" style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="pmine" ${S.pmine ? "checked" : ""} ${MEDIOS ? "" : "disabled"}> Solo mis medios</label>
     </div>
     <h2 style="font-size:18px;margin:18px 0 10px">${DIAS[day]}${day === HOY ? " (hoy)" : ""}: ${list.length} ${list.length === 1 ? "beneficio" : "beneficios"}</h2>
+    ${list.length ? `<details class="acumleg"><summary><svg class="ic" aria-hidden="true"><use href="#i-info"/></svg> ¿Qué significa «se acumula»?</summary><p>Indica si el descuento del banco o la billetera <b>se suma a las ofertas del propio súper</b> (2x1, 2.ª unidad al 70%, precios rebajados). Si <b>no se acumula</b>, en los productos que ya están en oferta pagás el precio de oferta o el de lista con el descuento, no las dos cosas. En «¿Dónde conviene mi compra?» ya lo tenemos en cuenta.</p><p>Aparte de eso, <b>dos descuentos por medio de pago nunca se suman</b> en una misma compra: pagás con un solo medio.</p></details>` : ""}
     <div class="plist">${list.map(promoCard).join("") || `<div class="empty">No hay beneficios para ese día con esos filtros.</div>`}</div>
 
     <h2 style="font-size:18px;margin:30px 0 10px">La semana de un vistazo <span class="sub" style="font-weight:500">· mayor descuento de cada día${S.ptipo ? " (" + esc(P.tipos[S.ptipo]) + ")" : ""}</span></h2>
@@ -1517,7 +1556,7 @@ function vConviene() {
   const pct = (a, b2) => b2 ? Math.round(a / b2 * 100) : 0;
 
   const card1 = bst ? `<div class="sumc win"><div class="k">① Todo en un solo comercio</div><div class="t">${esc(optName(bst))}</div><div class="big">${money(bst.total)}</div>
-      ${bst.pay.promo ? `<div class="sv">💳 Pagando con <b>${esc(medioName(bst.pay.promo))}</b> (−${money(bst.pay.disc)})<br>${pagoIcon(bst.pay.promo)} ${esc(pagoTxt(bst.pay.promo))}</div>` : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
+      ${bst.pay.promo ? `<div class="sv">💳 Pagando con <b>${esc(medioName(bst.pay.promo))}</b> (−${money(bst.pay.disc)})<br>${pagoIcon(bst.pay.promo)} ${esc(pagoTxt(bst.pay.promo))} ${acumBadge(bst.pay.promo, true)}</div>` : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
       ${bst.c === "online" ? `<div class="sv">🚚 ${bst.env ? `Incluye envío ${money(bst.env)}` : "Envío gratis con esta compra"}</div>` : ""}
       ${cartBtn(bst) ? `<div style="margin-top:10px">${cartBtn(bst)}</div>` : ""}</div>`
     : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>Ningún comercio tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.</p></div>`;
@@ -1545,7 +1584,7 @@ function vConviene() {
     <div class="tscroll"><table class="cmp opt"><thead><tr><th>#</th><th>Comercio</th><th class="r">Sin descuentos</th><th class="r">Ofertas</th><th>Medio de pago del día</th><th class="r">Envío</th><th class="r">Total</th><th class="r">Diferencia</th><th></th></tr></thead><tbody>
     ${shown.map((b, i) => `<tr class="${b === bst ? "top" : ""}${b.miss.length ? " inc" : ""}"><td>${b.miss.length ? "–" : i + 1}</td><td>${storeChip(b.sid, b.c)}${b.miss.length ? `<div class="miss">Le falta${b.miss.length > 1 ? "n" : ""}: ${b.miss.map(p => esc(shortName(p))).join(", ")}</div>` : ""}</td>
       <td class="r" data-l="Sin descuentos">${money(b.reg)}</td><td class="r okc${b.promoSave > 0 ? "" : " nil"}" data-l="Ofertas">${b.promoSave > 0 ? "−" + money(b.promoSave) : "—"}</td>
-      <td class="${b.pay.promo ? "" : "nil"}" data-l="Medio de pago">${b.pay.promo ? `<span class="okc">−${money(b.pay.disc)}</span> ${esc(medioName(b.pay.promo))} ${b.pay.promo.pct}%<div class="sub">${esc(pagoTxt(b.pay.promo))}</div>` : '<span class="sub">—</span>'}</td>
+      <td class="${b.pay.promo ? "" : "nil"}" data-l="Medio de pago">${b.pay.promo ? `<span class="okc">−${money(b.pay.disc)}</span> ${esc(medioName(b.pay.promo))} ${b.pay.promo.pct}%<div class="sub">${esc(pagoTxt(b.pay.promo))} ${acumBadge(b.pay.promo, true)}</div>` : '<span class="sub">—</span>'}</td>
       <td class="r${b.c === "online" ? "" : " nil"}" data-l="Envío">${b.c === "online" ? (b.env ? money(b.env) : "gratis") : "—"}</td>
       <td class="r"><b>${money(b.total)}</b>${b.miss.length ? '<div class="sub">sin lo que falta</div>' : ""}</td>
       <td class="r" data-l="Diferencia">${b.miss.length || !bst ? "" : b === bst ? '<span class="tag g sm">la mejor</span>' : `+${money(b.total - bst.total)}`}</td>
@@ -1699,7 +1738,7 @@ async function openProduct(id) {
   const watching = id in AVISOS;
   // el más barato pagando hoy con un descuento de medio de pago
   let bp = null;
-  for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; }
+  for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; }
   const pq = promoQty(p), q = LISTA[id] || 0, hint = q ? qtyHint(p, q, PREF[id]) : "";
   const link = o => {
     const u0 = o.url || (o.lk && ST[o.s].online && ST[o.s].online.vtex ? `https://${ST[o.s].online.vtex}/${o.lk}/p` : null);
@@ -1709,10 +1748,10 @@ async function openProduct(id) {
   };
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
-    const pr = promoOf(o, c), pay = payDiscount(o.s, HOY, c, price1(o, c));
+    const pr = promoOf(o, c), pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c));
     return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>
       ${pr ? `<span class="tag sm">🏷️ ${esc(pr.txt)}: ${money(pr.pu)} c/u${pr.n > 1 ? ` llevando ${pr.n}` : ""}</span>` : ""}
-      ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span>` : ""}</div>`;
+      ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span> ${acumBadge(pay.promo, true)}` : ""}</div>`;
   };
   const storeRow = o => {
     const mine = PREF[id] === o.s && q;
@@ -2071,7 +2110,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape" && S.fopen && $("#fx")) { $("#fx").click(); return; }
-  if (e.key === "Escape") { if (!$("#modal").hidden) closeModal(); else if (!$("#drawer").hidden) closeDrawer(); }
+  if (e.key === "Escape") { if ($("#hmenu") && !$("#hmenu").hidden) { hmenuShow(false); $("#tmenu").focus(); return; } if (!$("#modal").hidden) closeModal(); else if (!$("#drawer").hidden) closeDrawer(); }
   if (e.key === "Enter" && e.target.matches("article[data-open]")) openProduct(e.target.dataset.open);
 });
 $("#scrim").onclick = () => { if (!$("#modal").hidden) closeModal(); else closeDrawer(); };
@@ -2164,6 +2203,24 @@ $("#qsug").addEventListener("click", e => {
 document.addEventListener("click", e => { if (!e.target.closest(".hsearch")) qsugShow(false); });
 
 /* ---------- MENÚ DE ABAJO (celular) ---------- */
+/* menú «Herramientas» del encabezado */
+function hmenuPos() { const b = $("#tmenu").getBoundingClientRect(), m = $("#hmenu"); m.style.top = Math.round(b.bottom + 4) + "px"; m.style.left = Math.round(Math.max(8, Math.min(b.left, innerWidth - m.offsetWidth - 8))) + "px"; }
+function hmenuShow(open) {
+  const m = $("#hmenu"), b = $("#tmenu"); if (!m || m.hidden === !open) return;
+  m.hidden = !open; b.setAttribute("aria-expanded", open);
+  if (open) { hmenuPos(); ovOpen("hmenu", () => hmenuShow(false)); } else ovDone("hmenu");
+}
+if ($("#tmenu")) {
+  $("#tmenu").onclick = e => { e.stopPropagation(); hmenuShow($("#hmenu").hidden); if (!$("#hmenu").hidden && e.detail === 0) $("#hmenu a").focus(); };
+  document.addEventListener("click", e => { if (!$("#hmenu").hidden && (!e.target.closest("#hmenu") || e.target.closest("a, button"))) hmenuShow(false); });
+  addEventListener("resize", () => { if (!$("#hmenu").hidden) hmenuPos(); });
+  addEventListener("scroll", () => { if (!$("#hmenu").hidden) hmenuPos(); }, { passive: true });
+  $("#hmenu").addEventListener("keydown", e => {
+    const it = [...$$("#hmenu a")], i = it.indexOf(document.activeElement);
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") { e.preventDefault(); it[(i + (e.key === "ArrowDown" ? 1 : -1) + it.length) % it.length].focus(); }
+    else if (e.key === "Escape" || (e.key === "Tab" && ((e.shiftKey && i === 0) || (!e.shiftKey && i === it.length - 1)))) { if (e.key === "Escape") e.preventDefault(); hmenuShow(false); $("#tmenu").focus(); }
+  });
+}
 function masShow(open) { const sh = $("#bsheet"); sh.hidden = !open; $("#bmore").setAttribute("aria-expanded", open); if (open) ovOpen("mas", () => masShow(false)); else ovDone("mas"); }
 $("#bmore").onclick = e => { e.stopPropagation(); masShow($("#bsheet").hidden); };
 document.addEventListener("click", e => { const sh = $("#bsheet"); if (!sh.hidden && (!e.target.closest("#bsheet") || e.target.closest("a, button"))) masShow(false); });
@@ -2562,10 +2619,10 @@ function cmpBar() {
   $("#cmpx").onclick = () => { CMP = []; LS.set(PK("cs_cmp"), CMP); cmpBar(); };
 }
 function vComparar() {
-  setTab("");
+  setTab("comparar");
   const ps = CMP.map(id => BY[id]).filter(Boolean);
   if (!ps.length) { $("#view").innerHTML = `<div class="wrap"><section class="blk first"><h1>⚖️ Comparar productos</h1><div class="cv"><div class="empty" style="padding:40px">Abrí un producto y tocá <b>«⚖️ Comparar»</b> (en «⋯ Más opciones») para sumarlo acá (hasta 4).<br><br><a class="btn" href="#buscar">Buscar productos</a></div>${ayudaVacia("cmp")}</div></section></div>`; cmpBar(); return; }
-  const rows = ps.map(p => { const b = best(p); let bp = null; for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; } return { p, b, bp, u: perUnit(p, b.v), of: p.offers.find(o => o.promo || o.promoo) }; });
+  const rows = ps.map(p => { const b = best(p); let bp = null; for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; } return { p, b, bp, u: perUnit(p, b.v), of: p.offers.find(o => o.promo || o.promoo) }; });
   const minU = Math.min(...rows.filter(r => r.u).map(r => r.u)), minV = Math.min(...rows.map(r => r.b.v));
   $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>⚖️ Comparar productos</h1><button class="btn sec sm" id="cmpclr">Vaciar</button></div>
     <div class="cmpgrid" style="--n:${rows.length}">${rows.map(({ p, b, bp, u, of }) => `<article class="cmpc${u && u === minU ? " gana" : ""}">

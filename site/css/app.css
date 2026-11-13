@@ -251,6 +251,21 @@ table.offers .pay{margin-top:4px}
 .promo .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
 .promo .pp{font-size:24px;font-weight:800;color:var(--gtx);line-height:1;white-space:nowrap}
 .promo .stores{display:flex;flex-wrap:wrap;gap:4px 12px}
+.acum{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.4;padding:8px 10px;border-radius:10px;border:1px solid}
+.acum .ic{flex:none;width:18px;height:18px;margin-top:1px}
+.acum.si{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}
+.acum.no{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+.acum.parcial{background:#fffbeb;border-color:#fde68a;color:#92400e}
+.acum.nd{background:var(--gll);border-color:var(--line);color:var(--mut)}
+.acum.nd b{color:var(--ink)}
+.acum.sm{display:inline-flex;padding:1px 8px;font-size:11.5px;font-weight:700;border-radius:999px;vertical-align:middle;white-space:nowrap}
+.acum.sm.si::before{content:"✓ "}.acum.sm.no::before{content:"✕ "}.acum.sm.nd::before{content:"? "}
+[data-theme=dark] .acum.si{background:#052e22;border-color:#065f46;color:#a7f3d0}
+[data-theme=dark] .acum.no{background:#3b0d0d;border-color:#7f1d1d;color:#fecaca}
+[data-theme=dark] .acum.parcial{background:#3a2a05;border-color:#78350f;color:#fde68a}
+.acumleg{margin:0 0 14px;font-size:14px;background:var(--card);border:1px solid var(--line);border-radius:var(--rad);padding:10px 14px}
+.acumleg summary{cursor:pointer;font-weight:700;display:flex;gap:6px;align-items:center}
+.acumleg p{margin:8px 0 0}
 .howpay{background:var(--soft);border-radius:12px;padding:10px 12px}
 .howpay .k{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);margin-bottom:6px}
 .howpay .hp+.or,.howpay .or{font-size:11px;color:var(--mut);margin:4px 0 4px 44px}
@@ -1020,7 +1035,7 @@ footer.site{padding-bottom:90px}
 /* botón de la guía junto a los globos */
 .fab.guia{background:var(--card);color:var(--ink);border:1px solid var(--line)}
 /* footer con enlaces */
-.fin{grid-template-columns:1.4fr 1fr 1fr 1fr}
+.fin{grid-template-columns:1.6fr 1fr 1fr}
 .fin nav{display:flex;flex-direction:column;gap:7px}
 .fin nav a{color:#b9cbc2;text-decoration:none}
 .fin nav a:hover{color:#fff;text-decoration:underline}
@@ -1236,3 +1251,20 @@ header.site{view-transition-name:encabezado}
 @media (max-width:640px){.mapa{height:min(52vh,430px)}}
 .leaflet-gesture-handling-touch-warning:after,.leaflet-gesture-handling-scroll-warning:after{font-family:inherit;font-weight:700;font-size:17px}
 .leaflet-container .maplibregl-canvas{outline:none}
+
+/* menú desplegable «Herramientas» (PC y tablet; en el celular están en «Más») */
+.tmenu{background:none;border:0;border-bottom:3px solid transparent;color:#fff;font:inherit;font-weight:600;font-size:15px;padding:10px 12px 12px;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.tmenu .car{width:7px;height:7px;border:solid currentColor;border-width:0 2px 2px 0;transform:translateY(-2px) rotate(45deg);transition:transform .15s}
+.tmenu[aria-expanded=true] .car{transform:translateY(1px) rotate(-135deg)}
+.tmenu.on{border-bottom-color:var(--y)}
+.tmenu:focus-visible{outline:2px solid var(--y);outline-offset:-2px;border-radius:6px}
+.hmenu{position:fixed;z-index:60;width:300px;max-height:calc(100vh - 80px);overflow:auto;background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.18);padding:6px}
+.hmenu[hidden]{display:none}
+.hmenu .hmk{font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--mut);padding:8px 10px 4px}
+.hmenu a{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;color:var(--ink);text-decoration:none}
+.hmenu a:hover,.hmenu a:focus-visible{background:var(--gll);outline:none}
+.hmenu a .ic{width:20px;height:20px;flex:none;margin-top:1px;color:var(--g)}
+.hmenu a span{display:flex;flex-direction:column;line-height:1.25}
+.hmenu a b{font-size:14.5px}.hmenu a small{font-size:12.5px;color:var(--mut)}
+@media (max-width:640px){.hmenu{display:none!important}}
+@media (min-width:641px) and (max-width:1100px){.tabs a,.tmenu{padding-left:8px;padding-right:8px;font-size:14px}}
