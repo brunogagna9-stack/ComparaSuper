@@ -1,0 +1,7 @@
+{
+ "_leeme": "Páginas extra que lee scripts/promos_bases.py cada semana para buscar frases de acumulación, además de las fuentes de cada descuento.",
+ "paginas": [
+  {"url": "https://www.bancoprovincia.com.ar/cuentadni/Home/GetBeneficioByRubro?idRubro=27", "comercio": "cuentadni"},
+  {"url": "https://www.bancoprovincia.com.ar/cuentadni/buscadores/supermercados", "comercio": "cuentadni-barrio"}
+ ]
+}

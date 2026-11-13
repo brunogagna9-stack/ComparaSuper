@@ -76,8 +76,25 @@ def leer(url, fetcher):
         return {"estado": "error", "error": str(e)[:100]}
     if p.status != 200:
         return {"estado": p.status}
+    if "GetBeneficioByRubro" in url:                               # Cuenta DNI: API con las bases de cada beneficio
+        return {"estado": 200, "frases": frases_cuentadni(p.body)}
     texto = " ".join(p.get_all_text().split())
     return {"estado": 200, "frases": frases_de(texto)}
+
+
+def frases_cuentadni(cuerpo):
+    """La API de Cuenta DNI trae todos los beneficios (también los viejos). Se usan solo los vigentes y cada
+    frase lleva adelante el comercio, porque las bases de distintas cadenas repiten las mismas palabras."""
+    hoy = dt.date.today()
+    salida = []
+    for b in json.loads(cuerpo):
+        m = re.search(r"\d+", b.get("fecha_hasta") or "")
+        if not m or dt.datetime.fromtimestamp(int(m.group()) / 1000, dt.timezone.utc).date() < hoy:
+            continue
+        for fr in frases_de(b.get("legal") or ""):
+            fr["t"] = f"[{b.get('url') or b.get('titulo')}] " + fr["t"]
+            salida.append(fr)
+    return salida[:MAX_FRASES * 3]
 
 
 def main():

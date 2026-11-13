@@ -82,6 +82,60 @@
    "texto": "Beneficios exclusivos para asociados, no acumulables con ofertas, descuentos, promociones y programas del gobierno.",
    "fuente": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/",
    "visto": "2026-11-13"
+  },
+  "n010": {
+   "acumulable": true,
+   "texto": "Acumulable con productos en oferta. No acumulable con otras promociones y/o descuentos vigentes.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "n063": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes sobre la misma compra.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "n064": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes sobre la misma compra.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "n066": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes sobre la misma compra.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "n067": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes sobre la misma compra.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "r004": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "r020": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "r044": {
+   "acumulable": false,
+   "texto": "No acumulable con otras promociones y/o descuentos vigentes.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/contenidos/cdniBeneficios",
+   "visto": "2026-11-13"
+  },
+  "r043": {
+   "acumulable": "banco",
+   "texto": "Acumulable con la acción de comercios de cercanía.",
+   "fuente": "https://www.bancoprovincia.com.ar/cuentadni/buscadores/supermercados",
+   "visto": "2026-11-13"
   }
  }
 }
