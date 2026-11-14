@@ -27,6 +27,8 @@ jobs:
           path: data/fuentes_estado.json
           key: fuentes-${{ github.run_id }}
           restore-keys: fuentes-
+      - name: Lector para sitios que bloquean al básico
+        run: pip install -q "scrapling[fetchers]"
       - name: Revisar
         id: r
         run: python scripts/revisar_promos.py 10

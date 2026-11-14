@@ -2764,10 +2764,10 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-11-08",
-   "fuente": "https://www.diarco.com.ar/promociones",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.diarco.com.ar/promociones/",
    "fuente_tipo": "oficial",
-   "verificado": "2026-11-08",
+   "verificado": "2026-11-14",
    "ejemplo": false,
    "bancos": [
     "bna",
@@ -2808,10 +2808,10 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-11-08",
-   "fuente": "https://www.diarco.com.ar/promociones",
+   "hasta": "2026-11-30",
+   "fuente": "https://www.diarco.com.ar/promociones/",
    "fuente_tipo": "oficial",
-   "verificado": "2026-11-08",
+   "verificado": "2026-11-14",
    "ejemplo": false,
    "bancos": [
     "bna",
@@ -2827,70 +2827,6 @@
     "hipotecario",
     "columbia"
    ]
-  },
-  {
-   "id": "n082",
-   "medio": "mp",
-   "stores": [
-    "diarco"
-   ],
-   "dias": [
-    5,
-    6,
-    0
-   ],
-   "pct": 15,
-   "tope": null,
-   "periodo_tope": null,
-   "minimo": 0,
-   "canal": "tienda",
-   "pago": [
-    "qr_billetera",
-    "qr_billetera_tarjeta"
-   ],
-   "reintegro": "en la caja",
-   "nota": "Sucursales Diarco Mayorista seleccionadas.",
-   "cuotas": null,
-   "requiere": [],
-   "desde": "2026-11-01",
-   "hasta": "2026-11-08",
-   "fuente": "https://www.diarco.com.ar/promociones",
-   "fuente_tipo": "oficial",
-   "verificado": "2026-11-08",
-   "ejemplo": false,
-   "bancos": []
-  },
-  {
-   "id": "n083",
-   "medio": "mp",
-   "stores": [
-    "diarcobarrio"
-   ],
-   "dias": [
-    5,
-    6,
-    0
-   ],
-   "pct": 15,
-   "tope": null,
-   "periodo_tope": null,
-   "minimo": 35000,
-   "canal": "tienda",
-   "pago": [
-    "qr_billetera",
-    "qr_billetera_tarjeta"
-   ],
-   "reintegro": "en la caja",
-   "nota": null,
-   "cuotas": null,
-   "requiere": [],
-   "desde": "2026-11-01",
-   "hasta": "2026-11-08",
-   "fuente": "https://www.diarco.com.ar/promociones",
-   "fuente_tipo": "oficial",
-   "verificado": "2026-11-08",
-   "ejemplo": false,
-   "bancos": []
   },
   {
    "id": "n084",

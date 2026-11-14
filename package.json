@@ -11,9 +11,9 @@
     "@axe-core/playwright": "^4.10.0",
     "@playwright/test": "^1.50.0",
     "@resvg/resvg-js": "2.6",
-    "@size-limit/file": "^11.2.0",
+    "@size-limit/file": "^14.3.0",
     "jpeg-js": "^0.4.4",
     "satori": "^0.63.2",
-    "size-limit": "^11.2.0"
+    "size-limit": "^14.3.0"
   }
 }

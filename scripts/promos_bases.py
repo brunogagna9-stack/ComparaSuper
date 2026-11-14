@@ -121,7 +121,9 @@ def main():
 
 def informe(antes, ahora):
     """Escribe revision_bases.md: frases nuevas o que cambiaron, páginas caídas y descuentos con evidencia sin cargar."""
-    cargados = set(json.loads((DATA / "promos_acumulable.json").read_text(encoding="utf-8")).get("promos", {})) if (DATA / "promos_acumulable.json").exists() else set()
+    acum = json.loads((DATA / "promos_acumulable.json").read_text(encoding="utf-8")) if (DATA / "promos_acumulable.json").exists() else {}
+    # los ya cargados y los revisados sin evidencia concluyente no se vuelven a pedir (si la página cambia, sale en "cambiaron")
+    cargados = set(acum.get("promos", {})) | set(acum.get("revisados_sin_dato", {}))
     nuevas, caidas, sin_cargar = [], [], []
     for u, r in ahora.items():
         if r.get("estado") != 200 or r.get("estado_hoy"):

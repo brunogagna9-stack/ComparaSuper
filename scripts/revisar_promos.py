@@ -24,13 +24,25 @@ def cargar(nombre):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {"promos": []}
 
 
+def leer_navegador_simple(url):
+    """Segundo intento con Scrapling, que se presenta como un navegador común. Devuelve el HTML o None."""
+    try:
+        from scrapling.fetchers import Fetcher
+        p = Fetcher.get(url, stealthy_headers=True, timeout=30, follow_redirects=True)
+        return p.body.decode("utf-8", "ignore") if p.status == 200 else None
+    except Exception:
+        return None
+
+
 def huella(url):
     """Código de la página, sin lo que cambia en cada visita (scripts, horas, números de sesión)."""
     try:
         with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=30) as r:
             html = r.read().decode("utf-8", "ignore")
     except Exception as e:
-        return None, str(e)[:80]
+        html = leer_navegador_simple(url)                                      # algunos sitios bloquean al lector básico (403)
+        if html is None:
+            return None, str(e)[:80]
     txt = re.sub(r"<script.*?</script>|<style.*?</style>", " ", html, flags=re.S | re.I)
     txt = re.sub(r"<[^>]+>", " ", txt)
     txt = re.sub(r"\d{1,2}:\d{2}(:\d{2})?|[0-9a-f]{16,}", " ", txt)          # horas y códigos aleatorios

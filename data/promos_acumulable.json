@@ -29,18 +29,6 @@
    "fuente": "https://www.nini.com.ar/promociones",
    "visto": "2026-11-13"
   },
-  "n082": {
-   "acumulable": false,
-   "texto": "No acumulable con otras ofertas, promociones, beneficios bancarios ni descuentos de otras billeteras virtuales.",
-   "fuente": "https://www.diarco.com.ar/promociones",
-   "visto": "2026-11-13"
-  },
-  "n083": {
-   "acumulable": false,
-   "texto": "No acumulable con otras ofertas, promociones, beneficios bancarios ni descuentos de otras billeteras virtuales.",
-   "fuente": "https://www.diarco.com.ar/promociones",
-   "visto": "2026-11-13"
-  },
   "n089": {
    "acumulable": false,
    "texto": "Beneficio no acumulable con otras promociones y/o beneficios vigentes.",
@@ -166,6 +154,148 @@
    "texto": "Bases de la app de Mercado Pago: «Descuento no cumulativo con otras promociones y/o beneficios vigentes en los comercios.»",
    "fuente": "https://www.mercadopago.com.ar/",
    "visto": "2026-11-13"
+  },
+  "n007": {
+   "acumulable": false,
+   "texto": "Club La Nación 10% online: se puede usar una vez por cliente por día y no es acumulable.",
+   "fuente": "https://calcularsueldo.com.ar/?p=16402",
+   "visto": "2026-11-14"
+  },
+  "n087": {
+   "acumulable": "banco",
+   "texto": "Este beneficio es acumulable con otras promociones vigentes que apliquen pagando con MODO.",
+   "fuente": "https://makro.com.ar/beneficios-bancarios/",
+   "visto": "2026-11-14"
+  }
+ },
+ "revisados_sin_dato": {
+  "n014": {
+   "visto": "2026-11-14",
+   "nota": "La nota de Carrefour no dice nada sobre acumulación de las 3 cuotas con Mercado Pago."
+  },
+  "n015": {
+   "visto": "2026-11-14",
+   "nota": "La nota de Carrefour no dice nada sobre acumulación de las cuotas con Naranja X."
+  },
+  "n038": {
+   "visto": "2026-11-14",
+   "nota": "La frase de la página es de la promo de 5% para quienes cobran en el Nación, no de esta."
+  },
+  "n076": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n038."
+  },
+  "n079": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n038."
+  },
+  "n084": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n038."
+  },
+  "n085": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n038."
+  },
+  "n086": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n038; la frase de Makro es del jueves MODO (n087), no confirmado que sea la misma."
+  },
+  "n039": {
+   "visto": "2026-11-14",
+   "nota": "La página de Galicia no tiene frase de acumulación para estas cuotas."
+  },
+  "n037": {
+   "visto": "2026-11-14",
+   "nota": "La página no tiene frase de acumulación para esta promo."
+  },
+  "n001": {
+   "visto": "2026-11-14",
+   "nota": "Las fuentes no coinciden en días y canal; no se asigna."
+  },
+  "n002": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n003": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n005": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n006": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n008": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n009": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n012": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "n013": {
+   "visto": "2026-11-14",
+   "nota": "Sin frase específica."
+  },
+  "r022": {
+   "visto": "2026-11-14",
+   "nota": "La frase de convi es de la promo MODO de los lunes, que no está cargada."
+  },
+  "r023": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r024": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r025": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r026": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r027": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r028": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r029": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "r030": {
+   "visto": "2026-11-14",
+   "nota": "Ídem r022."
+  },
+  "n090": {
+   "visto": "2026-11-14",
+   "nota": "Las frases de Maxiconsumo son de Mercado Pago, Cuenta DNI (2025) y Tuya Chaco; no de esta promo."
+  },
+  "n091": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n090."
+  },
+  "n092": {
+   "visto": "2026-11-14",
+   "nota": "Ídem n090."
+  },
+  "n078": {
+   "visto": "2026-11-14",
+   "nota": "Las bases de Credicoop en Nini no dicen nada sobre acumulación."
   }
  }
 }
