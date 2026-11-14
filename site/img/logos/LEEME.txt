@@ -1,4 +1,1 @@
-Solo van acá logos con permiso de uso: de un sitio oficial de descarga de la marca o con autorización escrita.
-Registro de permisos:
-- m-mp.png (Mercado Pago): sitio oficial de descarga del logo para usar en otros sitios, mercadopago.com.ar/mp/logo-oficial. Revisado 14/11/2026.
-Las demás cadenas, bancos y billeteras se muestran con su insignia de iniciales hasta tener permiso.
+Guardá acá los logos oficiales (svg o png) y registralos en site/config.json.

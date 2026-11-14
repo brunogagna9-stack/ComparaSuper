@@ -664,7 +664,7 @@ function vInicio() {
         <div class="how">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</div>
         ${pr.tope ? `<div class="tline">Rinde al máximo con compras de hasta <b>${money(pr.tope / pr.pct * 100)}</b></div>` : ""}
         <button class="linkbtn agl" data-agendar="${pr.id}">📅 Agendar</button></div></div>`;
-  const tile = st => { const src = (CFG.logos || {})[st.id]; return `<a class="stile" href="#buscar" data-tienda="${st.id}" title="Ver productos de ${esc(st.name)}">${src ? `<img src="${esc(src)}" alt="${esc(st.name)}" loading="lazy">` : `<span class="stn" style="--c:${esc(st.color || "var(--ink2)")}">${esc(st.name)}</span>`}</a>`; };
+  const tile = st => { const src = (CFG.logos || {})[st.id]; return `<a class="stile" href="#buscar" data-tienda="${st.id}" title="Ver productos de ${esc(st.name)}">${src ? `<img src="${esc(src)}" alt="${esc(st.name)}" loading="lazy">` : `<span class="stn" style="color:${esc(st.color || "var(--ink)")}">${esc(st.name)}</span>`}</a>`; };
   $("#view").innerHTML = `
   <section class="hero2"><div class="wrap">
     <h1>Encontrá los mejores precios <span class="l2">en un solo lugar</span></h1>

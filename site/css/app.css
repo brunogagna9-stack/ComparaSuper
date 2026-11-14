@@ -129,7 +129,7 @@ h1{letter-spacing:-.03em}
 .store{display:inline-flex;align-items:center;gap:7px;font-weight:600;font-size:14px;white-space:nowrap}
 .store i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
 /* insignia con iniciales (o logo oficial si está cargado) */
-.bdg{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px;background:var(--c);background:color-mix(in srgb,var(--c) 68%,#000);color:#fff;font-size:10px;font-weight:800;letter-spacing:-.02em;line-height:1;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
+.bdg{display:inline-grid;place-items:center;flex:none;width:22px;height:22px;border-radius:7px;background:var(--c);color:#fff;font-size:10px;font-weight:800;letter-spacing:-.02em;line-height:1;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
 .bdg.m{width:26px;height:26px;border-radius:50%;font-size:10.5px}
 .logo-img{width:auto;max-width:78px;height:32px;object-fit:contain;flex:none;vertical-align:middle;background:transparent}
 .logo-img.m{width:auto;max-width:78px;height:32px}
@@ -785,7 +785,7 @@ body.noscroll{overflow:hidden}
 .stile{background:#ececec;border-radius:6px;height:96px;display:grid;place-items:center;padding:14px 22px;text-decoration:none;transition:transform .15s,box-shadow .15s}
 .stile:hover{transform:translateY(-2px);box-shadow:var(--sh)}
 .stile img{max-width:100%;max-height:62px;object-fit:contain;mix-blend-mode:multiply}
-.stile .stn{font-weight:800;font-size:20px;text-align:center;color:#1f2937;border-bottom:4px solid var(--c);padding-bottom:4px;line-height:1.15}
+.stile .stn{font-weight:800;font-size:20px;text-align:center}
 [data-theme="dark"] .stile{background:#e9ecea}
 /* botones flotantes y asistente */
 .fabs{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;align-items:flex-end;gap:10px;z-index:35}
