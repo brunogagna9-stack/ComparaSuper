@@ -248,6 +248,66 @@ def marcar_raros(offers):
             o["anom"] = True
 
 
+RANK_MIN_COMERCIOS = 3      # un producto entra al ranking si lo venden al menos 3 cadenas
+RANK_MIN_PRODUCTOS = 100    # y una cadena entra si tiene al menos tantos productos comparables
+
+
+def ranking(hist, usados, stores):
+    """Ranking de cadenas del mes: para cada producto que venden al menos 3 cadenas, cuánto cobra cada una frente a la
+    mediana de todas (promedio de los días del mes). El índice de una cadena es el promedio geométrico de esas relaciones
+    × 100: 100 = precio típico, 95 = 5% más barata. Como compara producto por producto, no castiga a una cadena por vender
+    productos más caros. Se descartan relaciones absurdas (errores de carga) igual que en marcar_raros."""
+    import math
+    import statistics
+    fechas = hist["dates"]
+    if not fechas:
+        return None
+    tipo = {x["id"]: x.get("tipo") for x in stores}
+    nombre = {x["id"]: x.get("name") for x in stores}
+
+    def calc(idx):
+        rel, base, var = {}, 0, []
+        for ean in usados:
+            ser = hist["series"].get(ean)
+            if not ser:
+                continue
+            prom = {}
+            for sid, vals in ser.items():
+                vs = [vals[i] for i in idx if i < len(vals) and vals[i]]
+                if vs:
+                    prom[sid] = sum(vs) / len(vs)
+                    ini = next((vals[i] for i in idx if i < len(vals) and vals[i]), None)
+                    fin = next((vals[i] for i in reversed(idx) if i < len(vals) and vals[i]), None)
+                    if ini and fin and len(idx) > 1:
+                        var.append(math.log(fin / ini))
+            if len(prom) < RANK_MIN_COMERCIOS:
+                continue
+            med = statistics.median(prom.values())
+            base += 1
+            for sid, v in prom.items():
+                r = v / med
+                if RARO_BAJO <= r <= RARO_ALTO:
+                    rel.setdefault(sid, []).append(math.log(r))
+        cad = [{"s": sid, "nombre": nombre.get(sid, sid), "tipo": tipo.get(sid), "n": len(ls),
+                "indice": round(math.exp(sum(ls) / len(ls)) * 100, 1)}
+               for sid, ls in rel.items() if len(ls) >= RANK_MIN_PRODUCTOS]
+        cad.sort(key=lambda c: c["indice"])
+        return cad, base, (round(math.expm1(sum(var) / len(var)) * 100, 2) if var else None)
+
+    mes = fechas[-1][:7]
+    cur = [i for i, d in enumerate(fechas) if d.startswith(mes)]
+    cad, base, variacion = calc(cur)
+    out = {"mes": mes, "desde": fechas[cur[0]], "hasta": fechas[cur[-1]], "dias": len(cur), "productos": base,
+           "variacion": variacion, "cadenas": cad, "anterior": None}
+    ant = (dt.date.fromisoformat(mes + "-01") - dt.timedelta(days=1)).isoformat()[:7]
+    prev = [i for i, d in enumerate(fechas) if d.startswith(ant)]
+    if len(prev) >= 5:   # el mes anterior se muestra solo si hubo datos de al menos 5 días
+        pc, _, pv = calc(prev)
+        out["anterior"] = {"mes": ant, "variacion": pv, "indices": {c["s"]: c["indice"] for c in pc},
+                           "puestos": {c["s"]: k + 1 for k, c in enumerate(pc)}}
+    return out
+
+
 def build(snap, hist, stores, min_offers=1):
     known = {s["id"] for s in stores}
     groups = {}
@@ -459,6 +519,7 @@ def main():
     used = {p["id"] for p in products}
     (OUT / "history.json").write_text(json.dumps({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}},
                                                  separators=(",", ":")), encoding="utf-8")
+    (OUT / "ranking.json").write_text(json.dumps(ranking(hist, used, stores), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     suc = ROOT / "data" / "sucursales.json"   # ubicación de las sucursales, para "comercios cerca de mí"
     if suc.exists():
         (OUT / "sucursales.json").write_text(suc.read_text(encoding="utf-8"), encoding="utf-8")

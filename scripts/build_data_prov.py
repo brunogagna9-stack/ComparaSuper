@@ -67,6 +67,7 @@ def main():
         write(out / "links.json", {})
         used = {p["id"] for p in products}
         write(out / "history.json", {"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}})
+        write(out / "ranking.json", B.ranking(hist, used, stores))
         write(out / "sucursales.json", raw.get("sucursales", {}).get(code, {}))
         # el historial guardado solo conserva productos que se publicaron alguna vez en la provincia
         write(hp, hist)

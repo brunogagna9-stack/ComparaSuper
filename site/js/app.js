@@ -454,8 +454,9 @@ const savePref = () => LS.set(PK("cs_pref"), PREF);
 /* control del carrito en cada producto: "+" si no está; "− cantidad +" si ya está */
 function addCtl(id) {
   const q = LISTA[id] || 0;
-  if (!q) return `<button class="add" data-inc="${id}" aria-label="Agregar al carrito">+</button>`;
-  return `<span class="qmini" data-qc="${id}"><button data-dec="${id}" aria-label="Uno menos">−</button><b aria-live="polite">${q}</b><button data-inc="${id}" aria-label="Uno más">+</button></span>`;
+  const nom = BY[id] ? BY[id].name : "este producto";
+  if (!q) return `<button class="add" data-inc="${id}" aria-label="Agregar ${esc(nom)} al carrito">+</button>`;
+  return `<span class="qmini" data-qc="${id}"><button data-dec="${id}" aria-label="Uno menos de ${esc(nom)}">−</button><b aria-live="polite" aria-label="${q} en el carrito">${q}</b><button data-inc="${id}" aria-label="Uno más de ${esc(nom)}">+</button></span>`;
 }
 /* ofertas que dependen de la cantidad (2x1, 2da al 70%, llevando 3…) */
 const promoQty = p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]].filter(([, pr]) => pr && pr.n > 1).map(([c, pr]) => ({ o, c, pr })));
@@ -506,7 +507,7 @@ function card(p) {
       ${addCtl(p.id)}</div>
   </article>`;
 }
-function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const tm = $("#tmenu"); if (tm) tm.classList.toggle("on", ["comparar", "mapa", "super", "sugerencias", "como"].includes(v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
+function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const tm = $("#tmenu"); if (tm) tm.classList.toggle("on", ["comparar", "mapa", "super", "sugerencias", "como", "ranking"].includes(v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
 const storeSelect = (id, val, label = "Todos los comercios") => `<select class="sel" id="${id}" aria-label="Comercio"><option value="">${label}</option>${grupos().map(([n, ss]) => `<optgroup label="${n}">${ss.map(s => `<option value="${s.id}" ${val === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
@@ -1055,7 +1056,7 @@ function vNosotros() {
     </ul>
     <h2 id="s-datos">De dónde salen los precios</h2>
     <ul>
-      <li><b>Precios de las sucursales:</b> base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal.</li>
+      <li><b>Precios de las sucursales:</b> base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal. Es un conjunto de datos abiertos publicado como <a href="https://datos.gob.ar/dataset/produccion-precios-claros---base-sepa" target="_blank" rel="noopener">Precios Claros – Base SEPA</a> con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>.</li>
       <li><b>Precios online:</b> los de la tienda web o app de cada comercio, sin el costo de envío.</li>
       <li><b>Descuentos con medios de pago:</b> los leemos de las páginas oficiales de cada banco, billetera o tarjeta (y de MODO, que se actualiza solo). Cada descuento dice su fuente y la fecha en que se verificó.</li>
     </ul>
@@ -1078,7 +1079,7 @@ function vLegal() {
     <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen.</p>
     <h2>Precios y descuentos</h2>
     <ul>
-      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b> de la Secretaría de Comercio, que informan las cadenas. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto.</li>
+      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b> de la Secretaría de Comercio, que informan las cadenas. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto. Esos datos son de la Subsecretaría de Defensa del Consumidor y Lealtad Comercial y se publican con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>; ComparáSúper los procesa, así que lo que mostramos no es la información oficial tal cual.</li>
       <li>Los precios online salen de las tiendas web de cada cadena y no incluyen el envío; cuando armás tu compra, lo sumamos aparte si la tienda lo informa.</li>
       <li>Los descuentos con bancos, billeteras y tarjetas los relevamos de las páginas oficiales y de notas periodísticas; cada uno indica su fuente y la fecha en que se verificó. Tienen topes, días y condiciones que pueden cambiar sin aviso.</li>
       <li>Hacemos lo posible para que todo esté correcto, pero <b>la información es orientativa</b>: confirmá siempre el precio y el descuento en el comercio antes de pagar. No nos hacemos responsables por diferencias, errores de las fuentes ni cambios de último momento.</li>
@@ -1224,7 +1225,7 @@ function vBuscar() {
       <div class="ffoot"><button class="btn sec sm" id="freset" type="button">Limpiar</button><button class="btn sm" id="fclose" type="button">Ver resultados</button></div>
     </aside>
     <div>
-      <div class="toolbar"><div><h1>${title}</h1><span class="sub" id="rcount"></span></div>
+      <div class="toolbar"><div><h1>${title}</h1><span class="sub" id="rcount" role="status" aria-live="polite"></span></div>
         <div class="tbtns"><button class="btn sec sm fbtn" id="fopen">Filtros</button>
         <details class="vmenu" id="vmenu"><summary class="btn sec sm" aria-label="Cambiar la vista">${VISTAS[S.vista].i} Ver ▾</summary>
           <div class="vopts">${Object.entries(VISTAS).map(([k, v]) => `<button type="button" data-vista="${k}" class="${S.vista === k ? "on" : ""}"><span class="vi">${v.i}</span><span>${v.t}<small>${v.d}</small></span>${S.vista === k ? "<b>•</b>" : ""}</button>`).join("")}</div></details>
@@ -1475,6 +1476,10 @@ function vCarrito() {
     <aside class="res">
       <div class="win"><div class="k">¿Dónde lo compro?</div><div style="font-size:18px;font-weight:800;margin:4px 0 10px">Calculá en qué comercio, qué día y con qué medio de pago te sale menos</div>
         <button class="btn light" id="tocalc">📊 Calcular dónde conviene este carrito</button></div>
+      <section class="box infl" aria-labelledby="inflh"><h3 id="inflh">📈 Tu inflación</h3>
+        <p class="sub" style="margin:-4px 0 12px">Cuánto cambió el precio de los productos de tu carrito, con el historial de precios de cada comercio.</p>
+        <button class="btn sec" id="inflbtn">Ver cuánto cambió mi carrito</button>
+        <div id="inflres" aria-live="polite"></div></section>
       <section class="box share"><h3>📤 Compartir el carrito</h3>
         <p class="sub" style="margin:-4px 0 12px">Con los productos y las cantidades. Quien lo reciba lo abre acá con un toque.</p>
         <div class="sharebtns">
@@ -1492,6 +1497,96 @@ function vCarrito() {
   $("#shcopy").onclick = () => copy(txt + "\n\nAbrir el carrito: " + link, "Texto copiado: pegalo donde quieras");
   $("#shlink").onclick = () => copy(link, "Enlace copiado");
   $("#shqr").onclick = () => modalQR(link);
+  $("#inflbtn").onclick = () => tuInflacion(items);
+}
+/* Tu inflación: cuánto cambió el precio de los productos del carrito en un período. Por producto se toma la mediana de
+   los comercios que tienen precio al principio y al final (así no cuenta como "suba" cambiar de comercio) y se pondera
+   por la cantidad. El historial se baja recién al tocar el botón (es un archivo grande). */
+const fechaCorta = iso => iso.split("-").reverse().slice(0, 2).join("/");
+const mediana = a => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const pct = (x, dec = 1) => `${x > 0 ? "+" : x < 0 ? "−" : ""}${Math.abs(x * 100).toLocaleString("es-AR", { maximumFractionDigits: dec, minimumFractionDigits: dec })}%`;
+function inflCalc(h, items, dias) {
+  const D2 = h.dates, fin = D2.length - 1;
+  const lim = new Date(Date.parse(D2[fin]) - dias * 864e5).toISOString().slice(0, 10);
+  const ini = Math.max(0, D2.findIndex(d => d >= lim));
+  let antes = 0, ahora = 0; const cambios = [], sin = [];
+  for (const { p, qty } of items) {
+    const ser = h.series[p.id] || {}, a = [], b = [];
+    for (const v of Object.values(ser)) if (v[ini] && v[fin]) { a.push(v[ini]); b.push(v[fin]); }
+    if (!a.length) { sin.push(p); continue; }
+    const pa = mediana(a), pb = mediana(b);
+    antes += pa * qty; ahora += pb * qty; cambios.push({ p, pa, pb, c: pb / pa - 1 });
+  }
+  return { desde: D2[ini], hasta: D2[fin], dias: Math.round((Date.parse(D2[fin]) - Date.parse(D2[ini])) / 864e5), antes, ahora, total: antes ? ahora / antes - 1 : 0, cambios, sin };
+}
+async function tuInflacion(items, dias) {
+  const box = $("#inflres"), btn = $("#inflbtn"); if (!box) return;
+  btn.disabled = true; box.innerHTML = '<p class="sub">Cargando el historial de precios…</p>';
+  const h = await hist(); btn.disabled = false;
+  if ((h.dates || []).length < 2) { box.innerHTML = '<p class="sub">Todavía no hay historial suficiente para calcularlo.</p>'; return; }
+  const span = Math.round((Date.parse(h.dates.at(-1)) - Date.parse(h.dates[0])) / 864e5);
+  const opciones = [7, 30, 90].filter(d => d <= span || d === 7);
+  dias = dias || (span >= 30 ? 30 : 7);
+  const r = inflCalc(h, items, dias);
+  if (!r.cambios.length) { box.innerHTML = '<p class="sub">Ninguno de tus productos tiene historial todavía.</p>'; return; }
+  const sube = r.cambios.filter(x => x.c > 0.0005).sort((x, y) => y.c - x.c).slice(0, 5);
+  const baja = r.cambios.filter(x => x.c < -0.0005).sort((x, y) => x.c - y.c).slice(0, 3);
+  const linea = x => `<li><span>${esc(x.p.name)}</span> <b class="${x.c > 0 ? "up" : "dn"}">${pct(x.c)}</b> <span class="sub">(${money(x.pa)} → ${money(x.pb)})</span></li>`;
+  const verbo = r.total > 0.0005 ? "subió" : r.total < -0.0005 ? "bajó" : "se mantuvo";
+  box.innerHTML = `
+    ${opciones.length > 1 ? `<div class="chips" role="group" aria-label="Período">${opciones.map(d => `<button class="chip${d === dias ? " on" : ""}" data-dias="${d}" aria-pressed="${d === dias}">${d} días</button>`).join("")}</div>` : ""}
+    <p class="inflbig">Tu carrito <b>${verbo}${verbo === "se mantuvo" ? "" : " " + pct(Math.abs(r.total)).replace(/^[+−]/, "")}</b></p>
+    <p class="sub">Del ${fechaCorta(r.desde)} al ${fechaCorta(r.hasta)} (${r.dias} días): de ${money(r.antes)} a ${money(r.ahora)}, con ${r.cambios.length} de ${items.length} productos${r.sin.length ? ` (${r.sin.length} sin historial)` : ""}.</p>
+    ${sube.length ? `<h4>Los que más subieron</h4><ul class="infl-l">${sube.map(linea).join("")}</ul>` : ""}
+    ${baja.length ? `<h4>Los que bajaron</h4><ul class="infl-l">${baja.map(linea).join("")}</ul>` : ""}
+    ${span < 30 ? `<p class="sub">Guardamos precios desde el ${fechaCorta(h.dates[0])}: los períodos de 30 y 90 días aparecen cuando haya historial suficiente.</p>` : ""}
+    <p class="sub">Precio de cada producto: el del medio entre los comercios que lo tenían en las dos fechas, sin descuentos.</p>`;
+  for (const b of box.querySelectorAll("[data-dias]")) b.onclick = () => tuInflacion(items, +b.dataset.dias);
+}
+/* Ranking de cadenas del mes (data/ranking.json, lo arma la actualización diaria). Índice 100 = precio típico. */
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const mesNombre = m => MESES[+m.slice(5, 7) - 1] + " de " + m.slice(0, 4);
+async function vRanking() {
+  setTab("ranking");
+  const v = $("#view");
+  v.innerHTML = '<div class="wrap"><section class="blk"><h1>🏆 Ranking de cadenas</h1><p class="sub">Cargando…</p></section></div>';
+  const r = await fetch(DIR() + "ranking.json").then(x => x.ok ? x.json() : null).catch(() => null);
+  if (location.hash.slice(1) !== "ranking") return;
+  if (!r || !r.cadenas || !r.cadenas.length) {
+    v.innerHTML = '<div class="wrap"><section class="blk"><h1>🏆 Ranking de cadenas</h1><p>Todavía no hay datos suficientes para armar el ranking de tu zona.</p></section></div>';
+    return;
+  }
+  const ant = r.anterior;
+  const fila = (c, k) => {
+    const dif = c.indice - 100, txt = Math.abs(dif) < 0.5 ? "en el promedio" : `${Math.abs(dif).toLocaleString("es-AR", { maximumFractionDigits: 1 })}% ${dif < 0 ? "más barato" : "más caro"}`;
+    const pa = ant && ant.puestos[c.s], mov = pa ? (pa > k + 1 ? `subió ${pa - k - 1} ${pa - k - 1 === 1 ? "puesto" : "puestos"}` : pa < k + 1 ? `bajó ${k + 1 - pa} ${k + 1 - pa === 1 ? "puesto" : "puestos"}` : "mismo puesto") : "";
+    const raro = c.tipo !== "mayorista" && Math.abs(dif) > 15;
+    const w = Math.max(4, Math.min(100, 50 + dif * 2.5));
+    return `<tr><th scope="row" class="rk-n">${k + 1}</th>
+      <td class="rk-c">${ST[c.s] ? storeChip(c.s) : `<b>${esc(c.nombre)}</b>`}${raro ? ` <span class="rk-w" title="Diferencia muy grande">⚠️<span class="sr">diferencia muy grande, revisá la nota</span></span>` : ""}</td>
+      <td class="rk-i"><b>${c.indice.toLocaleString("es-AR", { minimumFractionDigits: 1 })}</b><div class="rk-bar" aria-hidden="true"><span class="${dif < 0 ? "dn" : "up"}" style="width:${w}%"></span></div></td>
+      <td class="rk-x">${txt}${mov ? `<div class="sub">${mov}</div>` : ""}</td>
+      <td class="rk-p sub">${c.n.toLocaleString("es-AR")}</td></tr>`;
+  };
+  const tabla = (titulo, lista, id) => lista.length ? `<section class="box rk" aria-labelledby="${id}"><h2 id="${id}">${titulo}</h2>
+    <div class="rk-wrap"><table class="rk-t"><caption class="sr">${titulo}: de la más barata a la más cara. Índice 100 es el precio típico.</caption>
+      <thead><tr><th scope="col">Puesto</th><th scope="col">Cadena</th><th scope="col">Índice</th><th scope="col">Frente al promedio</th><th scope="col">Productos</th></tr></thead>
+      <tbody>${lista.map(fila).join("")}</tbody></table></div></section>` : "";
+  const sup = r.cadenas.filter(c => c.tipo !== "mayorista"), may = r.cadenas.filter(c => c.tipo === "mayorista");
+  const varTxt = r.variacion == null ? "" : `<p class="rk-var">En lo que va del mes, los precios ${r.variacion > 0.05 ? `subieron <b>${pct(r.variacion / 100, 2).replace("+", "")}</b>` : r.variacion < -0.05 ? `bajaron <b>${pct(r.variacion / 100, 2).replace("−", "")}</b>` : "se mantuvieron estables"} en promedio.</p>`;
+  const hayRaro = sup.some(c => Math.abs(c.indice - 100) > 15);
+  v.innerHTML = `<div class="wrap">
+    <section class="blk"><h1>🏆 Ranking de cadenas · ${mesNombre(r.mes)}</h1>
+      <p class="sub">Qué cadena cobra menos por los mismos productos, del ${fechaCorta(r.desde)} al ${fechaCorta(r.hasta)} (${r.dias} ${r.dias === 1 ? "día" : "días"} con datos), comparando ${r.productos.toLocaleString("es-AR")} productos que venden al menos 3 cadenas.</p>
+      ${varTxt}</section>
+    ${tabla("Supermercados", sup, "rk-sup")}
+    ${tabla("Mayoristas", may, "rk-may")}
+    <section class="box"><h2>Cómo se calcula</h2>
+      <p>Para cada producto que venden al menos 3 cadenas, comparamos el precio promedio del mes de cada una con el precio del medio entre todas. El <b>índice</b> junta esas comparaciones: <b>100</b> es el precio típico, <b>95</b> quiere decir 5% más barato y <b>105</b>, 5% más caro. Como se compara producto por producto, una cadena no sale más cara solo por vender productos más caros.</p>
+      <p>Usamos el precio de lista (sin descuentos de bancos ni billeteras ni ofertas por cantidad), y solo entran las cadenas con al menos 100 productos comparables. Los mayoristas van aparte porque muchas veces venden por bulto o con compra mínima.</p>
+      ${hayRaro ? "<p>⚠️ Cuando una cadena se aleja mucho del resto puede ser por precios realmente más bajos o porque los datos que informa a la base oficial están desactualizados. Conviene confirmar en la sucursal.</p>" : ""}
+      ${ant ? "" : "<p class=\"sub\">El cambio de puesto frente al mes anterior aparece cuando haya datos de un mes completo.</p>"}</section>
+  </div>`;
 }
 /* código QR del carrito (qrcode-generator, licencia MIT): para pasarlo de la compu al celular con la cámara */
 let QR_P = null;
@@ -1888,6 +1983,15 @@ async function chartU(p, dias) {
       ...sids.map(s => ({ label: ST[s].name, stroke: ST[s].color || "#16a34a", width: 2.2, spanGaps: true, points: { show: n - desde <= 15, size: 6 }, value: (u, v) => (v == null ? "—" : money(v)) }))],
   }, datos, $(".ugraf", el));
 }
+/* texto del gráfico de historial para quien no lo ve: precio más bajo hoy, y mínimo y máximo del período */
+function resumenHist(dates, ser, vis) {
+  const fin = dates.length - 1, hoy = vis.filter(s => ser[s][fin]).sort((a, b) => ser[a][fin] - ser[b][fin]);
+  const todos = vis.flatMap(s => ser[s].map((v, i) => v && { s, v, i }).filter(Boolean));
+  if (!todos.length) return "";
+  const mn = todos.reduce((a, b) => (b.v < a.v ? b : a)), mx = todos.reduce((a, b) => (b.v > a.v ? b : a));
+  const f = i => dates[i].split("-").reverse().slice(0, 2).join("/");
+  return `Del ${f(0)} al ${f(fin)}. ${hoy.length ? `Hoy el más barato es ${ST[hoy[0]].name}, ${money(ser[hoy[0]][fin])}. ` : ""}Precio más bajo del período: ${money(mn.v)} en ${ST[mn.s].name} el ${f(mn.i)}. Más alto: ${money(mx.v)} en ${ST[mx.s].name} el ${f(mx.i)}.`;
+}
 async function chart(p) {
   const h = await hist(), el = $("#chart"); if (!el) return;
   const ser = h.series[p.id] || {}, dates = h.dates, sids = D.stores.map(s => s.id).filter(s => ser[s]);
@@ -1908,7 +2012,8 @@ async function chart(p) {
       ${xt.map(i => `<text x="${x(i)}" y="${H - 6}" text-anchor="${i === 0 ? "start" : i === dates.length - 1 ? "end" : "middle"}" font-size="11" style="fill:var(--mut)">${dates[i].slice(8, 10)}/${dates[i].slice(5, 7)}</text>`).join("")}
       ${vis.map(s => `<path d="${path(s)}" fill="none" stroke="${ST[s].color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`).join("")}
       <line id="cx" y1="${T}" y2="${H - B}" style="stroke:var(--ink)" stroke-dasharray="3 3" opacity="0"/>
-      <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/></svg><div class="tip" id="tip" hidden></div>`;
+      <rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="transparent" id="hit"/></svg><div class="tip" id="tip" hidden></div>
+      <p class="sr">${resumenHist(dates, ser, vis)}</p>`;
     const hit = $("#hit", el), tip = $("#tip", el), cx = $("#cx", el);
     const move = ev => {
       const r = el.getBoundingClientRect(), px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
@@ -1926,8 +2031,9 @@ async function chart(p) {
 }
 
 /* ---------- ventanas ---------- */
-function openModal(html) { const m = $("#modal"); m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; ovOpen("modal", closeModal); const f = m.querySelector("input, button"); f && f.focus(); }
-function closeModal() { if (FUERA_PEND) { FUERA_PEND = false; setTimeout(() => location.reload(), 300); } if (typeof scanStop === "function") scanStop(); const was = !$("#modal").hidden; $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; if (was || ovEsta("modal")) ovDone("modal"); }
+function openModal(html) { const m = $("#modal"); if (m.hidden) openModal.back = document.activeElement; m.innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button>` + html; m.hidden = false; $("#scrim").hidden = false; ovOpen("modal", closeModal); const f = m.querySelector("input, button"); f && f.focus(); }
+function closeModal() { if (FUERA_PEND) { FUERA_PEND = false; setTimeout(() => location.reload(), 300); } if (typeof scanStop === "function") scanStop(); const was = !$("#modal").hidden; $("#modal").hidden = true; if ($("#drawer").hidden) $("#scrim").hidden = true; if (was || ovEsta("modal")) ovDone("modal");
+  if (was && openModal.back && openModal.back.isConnected) { openModal.back.focus?.({ preventScroll: true }); openModal.back = null; } }
 function modalMedios() {
   const sel = new Set(MEDIOS || []);
   const groups = Object.entries(P.tipos).filter(([k]) => k !== "general").map(([k, v]) => [k, v, P.medios.filter(m => m.tipo === k).sort((a, b) => a.name.localeCompare(b.name, "es"))]).filter(g => g[2].length);
@@ -2095,7 +2201,7 @@ function route() {
   const [v0, sec] = v.split("-");
   if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
   if (!READY && TOPR && v === "buscar") setTimeout(() => { const h1 = $("#view h1"); if (h1 && !READY && !$("#cargando")) h1.insertAdjacentHTML("afterend", '<div class="sub" id="cargando">⏳ Mostrando los más comparados mientras cargamos el resto…</div>'); });
-  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
+  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar, ranking: vRanking }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
 }
@@ -2138,7 +2244,32 @@ $("#q").addEventListener("input", () => { clearTimeout(route.t); if (location.ha
   route.t = setTimeout(() => { S.bpage = 1; S.q = $("#q").value.trim(); S.cat = ""; vBuscar(); }, 250); });
 /* cambio de sección con una transición suave (función nativa del navegador; si no la tiene, cambia como siempre) */
 const SUAVE = !!document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+/* accesibilidad: al cambiar de sección se actualiza el título de la pestaña y el foco pasa al título de la página,
+   así los lectores de pantalla anuncian dónde estás (no se mueve si estás escribiendo o con una ventana abierta) */
+const TITULO0 = document.title;
+let VISTA_ANT = (location.hash.slice(1) || "inicio").split(/[-?=]/)[0], NAV_PEND = false;
+function anunciarVista(mover) {
+  const h = location.hash.slice(1) || "inicio"; if (h.startsWith("p-")) return;
+  const v = h.split(/[-?=]/)[0], h1 = $("#view h1");
+  const nom = h1 ? h1.textContent.replace(/^[^\p{L}\d]+/u, "").trim() : "";
+  document.title = v === "inicio" || !nom ? TITULO0 : `${nom} · ComparáSúper`;
+  const quieto = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "") || !$("#drawer").hidden || !$("#modal").hidden;
+  if (mover && v !== VISTA_ANT && h1 && !quieto) { h1.tabIndex = -1; h1.focus({ preventScroll: true }); }
+  if (h1) VISTA_ANT = v;
+}
+new MutationObserver(() => { const m = NAV_PEND && $("#view h1"); if (m) NAV_PEND = false; anunciarVista(!!m); }).observe($("#view"), { childList: true });
+addEventListener("keydown", e => {
+  if (e.key !== "Tab") return;
+  const box = !$("#modal").hidden ? $("#modal") : !$("#drawer").hidden ? $("#drawer") : null; if (!box) return;
+  const f = $$('a[href],button:not([disabled]),input:not([disabled]):not([type=hidden]),select,textarea,[tabindex]:not([tabindex="-1"])', box).filter(x => x.offsetParent !== null);
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+  else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+});
 window.addEventListener("hashchange", () => {
+  NAV_PEND = true;
   if (SUAVE && !location.hash.startsWith("#p-") && $("#drawer").hidden && $("#modal").hidden && !OV.quieto && D) document.startViewTransition(() => route());
   else route();
 });
