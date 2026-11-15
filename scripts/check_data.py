@@ -51,6 +51,13 @@ if _ap.exists():
         if not (isinstance(_a, bool) or _a == "banco" or (isinstance(_a, dict) and all(isinstance(v, bool) for v in _a.values()))):
             errors.append(f"acumulable {_i}: valor inválido")
         if not (_x.get("texto") and str(_x.get("fuente", "")).startswith("http")): errors.append(f"acumulable {_i}: falta la frase de las bases o su dirección")
+# GitHub rechaza archivos de más de 100 MB: si alguno se acerca, se frena acá y la web sigue con los datos de ayer
+for _f in list((ROOT / "site" / "data").rglob("*.json")) + list((ROOT / "data").glob("*.json")):
+    if _f.stat().st_size > 80 * 1024 * 1024:
+        errors.append(f"{_f.relative_to(ROOT)} pesa {_f.stat().st_size / 1048576:.0f} MB (el límite de GitHub es 100 MB)")
+_h = ROOT / "site" / "data" / "history.json"
+if _h.exists() and json.loads(_h.read_text(encoding="utf-8")).get("v") != 2:
+    errors.append("site/data/history.json no está en el formato compacto (v: 2)")
 if errors:
     print("ERRORES:\n- " + "\n- ".join(errors[:50])); sys.exit(1)
 ej = sum(1 for p in promos["promos"] if p.get("ejemplo"))

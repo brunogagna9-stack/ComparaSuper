@@ -24,7 +24,10 @@ OUTP = ROOT / "site" / "data" / "p"
 
 
 def write(path, obj):
-    path.write_text(json.dumps(obj, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    txt = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+    if len(txt.encode("utf-8")) > 80 * 1024 * 1024:   # GitHub rechaza archivos de más de 100 MB: mejor frenar que publicar a medias
+        raise SystemExit(f"{path} pesaría {len(txt) / 1048576:.0f} MB (límite de GitHub: 100 MB)")
+    path.write_text(txt, encoding="utf-8")
 
 
 def main():
@@ -46,7 +49,7 @@ def main():
         out = OUTP / x
         out.mkdir(parents=True, exist_ok=True)
         hp = hdir / "hist" / f"{x}.json"
-        hist = json.loads(hp.read_text(encoding="utf-8")) if hp.exists() else {"dates": [], "series": {}}
+        hist = B.hist_expandir(json.loads(hp.read_text(encoding="utf-8"))) if hp.exists() else {"dates": [], "series": {}}
         snap = {"date": raw["date"], "source": "sepa", "region": nombre, "items": raw["items"].get(code, [])}
         if not hist["dates"] or snap["date"] >= hist["dates"][-1]:
             B.update_history(hist, snap)
@@ -66,11 +69,11 @@ def main():
         write(out / "products-top.json", B.columnas(meta, sorted(products, key=lambda p: -len(p["offers"]))[:5000]))   # para buscar mientras baja el resto
         write(out / "links.json", {})
         used = {p["id"] for p in products}
-        write(out / "history.json", {"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}})
+        write(out / "history.json", B.hist_comprimir({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}}))
         write(out / "ranking.json", B.ranking(hist, used, stores))
         write(out / "sucursales.json", raw.get("sucursales", {}).get(code, {}))
         # el historial guardado solo conserva productos que se publicaron alguna vez en la provincia
-        write(hp, hist)
+        write(hp, B.hist_comprimir(hist))
         resumen.append(f"{nombre}: {len(products)} productos, {len(usados)} cadenas")
     print("\n".join(resumen))
     print(f"OK: datos de {len(resumen)} provincias, lectura del {raw['date']}")

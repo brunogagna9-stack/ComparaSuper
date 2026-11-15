@@ -135,7 +135,7 @@ function iniciarFondo() {
   if (BUSC.w !== null || !window.Worker) return false;
   try { BUSC.w = new Worker("js/buscador.js"); } catch { BUSC.w = false; return false; }
   const abs = f => new URL(DIR() + f, location.href).href;
-  PROD_P = new Promise(ok => {
+  PROD_P = new Promise((ok, mal) => {
     BUSC.w.onmessage = e => {
       const m = e.data;
       if (m.t === "top") usarTop({ products: m.products, listo: true });
@@ -145,9 +145,9 @@ function iniciarFondo() {
       else if (m.t === "indice") { BUSC.ok = true; if (document.activeElement === $("#q")) qsugDraw(); }
       else if (m.t === "ticket") { const f = BUSC.tk && BUSC.tk[m.id]; if (f) { delete BUSC.tk[m.id]; f(m.res); } }
       else if (m.t === "res") { BUSC.cache.set(m.q, m); const f = BUSC.esp.get(m.q); if (f) { BUSC.esp.delete(m.q); f(m); } }
-      else if (m.t === "error") { BUSC.w.terminate(); BUSC.w = false; PROD_P = null; loadProducts().then(ok); }   // si falla, como siempre
+      else if (m.t === "error") { BUSC.w.terminate(); BUSC.w = false; PROD_P = null; loadProducts().then(ok, mal); }   // si falla, como siempre
     };
-    BUSC.w.onerror = () => { if (READY) return; BUSC.w = false; PROD_P = null; loadProducts().then(ok); };
+    BUSC.w.onerror = () => { if (READY) return; BUSC.w = false; PROD_P = null; loadProducts().then(ok, mal); };
   });
   BUSC.w.postMessage({ t: "cargar", full: abs("products.json"), top: abs("products-top.json"), fuera: [...FUERA], clave: D && D.updated ? `${D.updated}|${PROV || ""}` : "" });
   return true;
@@ -161,8 +161,18 @@ function buscarFondo(q, cb) {
 }
 function loadProducts() {
   if (!PROD_P && BUSC.w === null) iniciarFondo();
-  if (!PROD_P) PROD_P = fetch(DIR() + "products.json").then(r => r.json()).then(prepProducts);
+  if (!PROD_P) PROD_P = fetch(DIR() + "products.json").then(r => { if (!r.ok) throw new Error("products " + r.status); return r.json(); }).then(prepProducts)
+    .catch(e => { PROD_P = null; fallaCarga(); throw e; });
   return PROD_P;
+}
+/* si no se pudieron bajar los productos (sin señal, corte): aviso con botón para reintentar, en vez de quedar cargando */
+function fallaCarga() {
+  const v = $("#view");
+  if (v && v.querySelector(".loading")) {
+    v.innerHTML = `<div class="wrap"><section class="box empty" role="alert"><h1>No pudimos cargar los productos</h1>
+      <p>Puede ser la conexión. Revisá que tengas internet y probá de nuevo.</p><button class="btn" id="reint">Reintentar</button></section></div>`;
+    $("#reint").onclick = () => route();
+  } else toast("No pudimos cargar los productos. Revisá tu conexión.");
 }
 function ensureLinks() {
   if (!LINKS_P) LINKS_P = loadProducts().then(() => fetch(DIR() + "links.json")).then(r => (r.ok ? r.json() : {})).catch(() => ({})).then(L => {
@@ -177,7 +187,7 @@ async function load() {
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : Promise.reject())).catch(() => fetch("data/promos.json").then(r => r.json())),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
-  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts(); loadTop(); }
+  if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts().catch(() => {}); loadTop(); }
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
   ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
@@ -189,6 +199,19 @@ async function load() {
   if (FUERA.size) P.promos = P.promos.filter(pr => (pr.stores = pr.stores.filter(x => !FUERA.has(x))).length);
   if (MEDIOS) MEDIOS = MEDIOS.filter(id => P.medioBy[id]);
   if (UBIC) { await loadSuc(); calcCerca(); }
+}
+/* el historial viene compacto (v: 2): por comercio, [día, precio, día, precio…] con los días en que cambia el precio.
+   Se expande solo el producto que se mira, para no ocupar memoria con los 29.000 productos. */
+function histSer(h, id) {
+  const s = h.series[id]; if (!s || h.v !== 2) return s;
+  h._x ||= {}; if (h._x[id]) return h._x[id];
+  const n = h.dates.length, o = {};
+  for (const [sid, pr] of Object.entries(s)) {
+    const a = new Array(n).fill(null);
+    for (let k = 0; k < pr.length; k += 2) { const fin = k + 2 < pr.length ? pr[k + 2] : n; for (let i = pr[k]; i < fin; i++) a[i] = pr[k + 1]; }
+    o[sid] = a;
+  }
+  return (h._x[id] = o);
 }
 async function hist() {
   if (!HIST) HIST = await fetch(DIR() + "history.json").then(r => r.json()).catch(() => ({ dates: [], series: {} }));
@@ -1056,7 +1079,7 @@ function vNosotros() {
     </ul>
     <h2 id="s-datos">De dónde salen los precios</h2>
     <ul>
-      <li><b>Precios de las sucursales:</b> base oficial <b>SEPA / Precios Claros</b> de la Secretaría de Comercio, que las cadenas grandes informan todos los días, sucursal por sucursal. Es un conjunto de datos abiertos publicado como <a href="https://datos.gob.ar/dataset/produccion-precios-claros---base-sepa" target="_blank" rel="noopener">Precios Claros – Base SEPA</a> con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>.</li>
+      <li><b>Precios de las sucursales:</b> base oficial <b>SEPA / Precios Claros</b>, que las cadenas grandes informan al Estado nacional todos los días, sucursal por sucursal. Es un conjunto de datos abiertos publicado como <a href="https://datos.gob.ar/dataset/produccion-precios-claros---base-sepa" target="_blank" rel="noopener">Precios Claros – Base SEPA</a> con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>.</li>
       <li><b>Precios online:</b> los de la tienda web o app de cada comercio, sin el costo de envío.</li>
       <li><b>Descuentos con medios de pago:</b> los leemos de las páginas oficiales de cada banco, billetera o tarjeta (y de MODO, que se actualiza solo). Cada descuento dice su fuente y la fecha en que se verificó.</li>
     </ul>
@@ -1073,33 +1096,46 @@ function vNosotros() {
 /* ---------- TÉRMINOS Y PRIVACIDAD ---------- */
 function vLegal() {
   setTab("legal");
+  const R = CFG.responsable || {};   // identidad y contacto del responsable (Ley 25.326, art. 6): se cargan en site/config.json
+  const resp = R.nombre ? `<li><b>Responsable de los datos:</b> ${esc(R.nombre)}${R.domicilio ? `, ${esc(R.domicilio)}` : ""}${R.email ? ` · <a href="mailto:${esc(R.email)}">${esc(R.email)}</a>` : ""}.</li>` : "";
+  const contacto = R.email ? `escribiendo a <a href="mailto:${esc(R.email)}">${esc(R.email)}</a> o desde <a href="#sugerencias">Contacto y sugerencias</a> (aclarando que es un pedido sobre tus datos: no se publica)` : `desde <a href="#sugerencias">Contacto y sugerencias</a>, aclarando que es un pedido sobre tus datos (esos mensajes no se publican)`;
   $("#view").innerHTML = `<div class="wrap legal"><section class="blk first">
-    <h1>📄 Términos de uso y privacidad</h1><p class="sub">Última actualización: noviembre de 2026.</p>
+    <h1>📄 Términos de uso y privacidad</h1><p class="sub">Última actualización: 15 de noviembre de 2026.</p>
     <h2>Qué es ComparáSúper</h2>
-    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen.</p>
-    <h2>Precios y descuentos</h2>
+    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen. Usar la página implica aceptar estos términos.</p>
+    <h2>Precios, descuentos y comparaciones</h2>
     <ul>
-      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b> de la Secretaría de Comercio, que informan las cadenas. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto. Esos datos son de la Subsecretaría de Defensa del Consumidor y Lealtad Comercial y se publican con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>; ComparáSúper los procesa, así que lo que mostramos no es la información oficial tal cual.</li>
+      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b>, que las cadenas informan al Estado nacional. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto. Esos datos los publica la Subsecretaría de Defensa del Consumidor y Lealtad Comercial con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>; ComparáSúper los procesa, así que lo que mostramos no es la información oficial tal cual.</li>
       <li>Los precios online salen de las tiendas web de cada cadena y no incluyen el envío; cuando armás tu compra, lo sumamos aparte si la tienda lo informa.</li>
       <li>Los descuentos con bancos, billeteras y tarjetas los relevamos de las páginas oficiales y de notas periodísticas; cada uno indica su fuente y la fecha en que se verificó. Tienen topes, días y condiciones que pueden cambiar sin aviso.</li>
-      <li>Hacemos lo posible para que todo esté correcto, pero <b>la información es orientativa</b>: confirmá siempre el precio y el descuento en el comercio antes de pagar. No nos hacemos responsables por diferencias, errores de las fuentes ni cambios de último momento.</li>
-      <li>Las marcas, logos y fotos de productos pertenecen a sus dueños y se usan solo para identificar los productos y comercios comparados.</li>
+      <li>Las comparaciones (cuál es más barato, el <a href="#ranking">ranking de cadenas</a>, Tu inflación) se calculan con esos datos y con el método que explicamos en cada sección. Son información, no una recomendación de compra.</li>
+      <li>Hacemos lo posible para que todo esté correcto, pero <b>la información es orientativa</b>: confirmá siempre el precio y el descuento en el comercio antes de pagar. No nos hacemos responsables por diferencias, errores de las fuentes, cambios de último momento ni por interrupciones de la página.</li>
+      <li>Las marcas, logos y fotos de productos pertenecen a sus dueños y se usan solo para identificar los productos y comercios comparados. Si sos titular de una marca y querés que la quitemos, escribinos.</li>
     </ul>
     <h2 id="s-privacidad">Privacidad: qué datos usamos</h2>
     <ul>
-      <li><b>No necesitás crear una cuenta.</b> Tu carrito, tus medios de pago, tus avisos, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran.</li>
-      <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos. No se envía ni se guarda en ningún servidor.</li>
-      <li><b>Cámara:</b> al escanear un código de barras, la imagen se procesa en tu celular y no se sube a ningún lado.</li>
-      <li><b>Sugerencias y novedades:</b> si dejás una sugerencia (con tu nombre, si querés) o tu correo para recibir novedades, se guardan en una planilla privada de Google del responsable del sitio. Las sugerencias solo se publican después de ser revisadas. Tu correo se usa únicamente para mandarte las novedades; podés pedir la baja en cualquier momento respondiendo cualquier correo.</li>
+      ${resp}
+      <li><b>No necesitás crear una cuenta.</b> Tu carrito, tus medios de pago, tus avisos de baja de precio, tus listas, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran. Si compartís una lista, el enlace lleva los productos que elegiste.</li>
+      <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos y no se guarda en ningún servidor. Solo si tocás «Cómo llegar» se abre Google Maps con tu ubicación y el destino.</li>
+      <li><b>Cámara:</b> al escanear un código de barras o leer un ticket, la imagen se procesa en tu celular y no se sube a ningún lado.</li>
+      <li><b>Sugerencias, votos y novedades:</b> si dejás una sugerencia (con tu nombre, si querés) o tu correo para recibir novedades, se guardan en una planilla privada de Google del responsable del sitio, en servidores de Google que pueden estar fuera de la Argentina; al enviarlos, aceptás que se guarden ahí. Dar estos datos es voluntario: si no los das, podés usar toda la página igual. Las sugerencias solo se publican después de ser revisadas. Los votos son anónimos. Tu correo se usa únicamente para mandarte las novedades que elegiste, no se vende ni se comparte con nadie, y podés pedir la baja cuando quieras.</li>
+      <li><b>Servicios externos:</b> como cualquier página web, al cargarse pide archivos a otros servicios, que reciben tu dirección IP y el tipo de navegador: GitHub Pages (aloja la página), wsrv.nl (achica las fotos), los sitios de los comercios (fotos de productos), OpenStreetMap y OpenFreeMap (mapas), jsDelivr (lector de tickets), GoatCounter (estadísticas) y Google (formularios). No les mandamos tus datos personales.</li>
+      <li><b>Estadísticas de visitas:</b> contamos visitas de forma anónima con GoatCounter (qué secciones se usan, desde qué tipo de dispositivo y cuántas veces se toca un enlace hacia cada tienda), sin cookies y sin datos personales.</li>
       <li><b>Publicidad:</b> si hay anuncios, siempre están marcados como «Publicidad» y nunca cambian los precios, el orden ni qué comercio aparece como más barato.</li>
-      <li><b>Estadísticas de visitas:</b> si están activadas, contamos visitas de forma anónima (qué secciones se usan, desde qué tipo de dispositivo y cuántas veces se toca un enlace hacia cada tienda), sin cookies y sin datos personales.</li>
       <li><b>Enlaces a otras páginas:</b> al tocar «Ver en la tienda» o «Armar el carrito» pasás al sitio del comercio, que tiene sus propias condiciones y políticas de privacidad.</li>
       <li>El <b>asistente virtual</b> funciona dentro de tu navegador: lo que le escribís no se envía a ningún lado.</li>
     </ul>
-    <p>Podés pedir que se borre tu correo o una sugerencia tuya escribiendo por la sección <a href="#sugerencias">Dejanos tu sugerencia</a>. Estos datos se tratan conforme a la Ley 25.326 de Protección de Datos Personales.</p>
+    <h2>Tus derechos</h2>
+    <p>Podés pedir acceder a tus datos, corregirlos, actualizarlos o borrarlos (tu correo o una sugerencia tuya) ${contacto}. Respondemos en los plazos de la Ley 25.326 de Protección de Datos Personales: hasta 10 días corridos para el acceso y 5 días hábiles para corregir o borrar.</p>
+    <p class="sub">El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita a intervalos no inferiores a seis meses, salvo que se acredite un interés legítimo al efecto conforme lo establecido en el artículo 14, inciso 3 de la Ley N° 25.326. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.</p>
+    <h2>Otras condiciones</h2>
+    <ul>
+      <li>El código y el diseño de ComparáSúper son del proyecto. Los datos de precios de SEPA se pueden reutilizar según su licencia CC BY 4.0, citando la fuente.</li>
+      <li>Podemos actualizar estos términos; la fecha de arriba indica la última versión.</li>
+      <li>Estos términos se rigen por las leyes de la República Argentina.</li>
+    </ul>
   </section></div>`;
 }
-
 /* ---------- CÓMO FUNCIONA ---------- */
 function vComo() {
   setTab("como");
@@ -1511,7 +1547,7 @@ function inflCalc(h, items, dias) {
   const ini = Math.max(0, D2.findIndex(d => d >= lim));
   let antes = 0, ahora = 0; const cambios = [], sin = [];
   for (const { p, qty } of items) {
-    const ser = h.series[p.id] || {}, a = [], b = [];
+    const ser = histSer(h, p.id) || {}, a = [], b = [];
     for (const v of Object.values(ser)) if (v[ini] && v[fin]) { a.push(v[ini]); b.push(v[fin]); }
     if (!a.length) { sin.push(p); continue; }
     const pa = mediana(a), pb = mediana(b);
@@ -1938,7 +1974,7 @@ function closeDrawer() {
 /* una línea con lo que pasó con el precio más bajo desde que lo seguimos (sin gráficos) */
 async function buenPrecio(p, ahora) {
   const h = await hist(), el = $("#pbueno"); if (!el || openProduct.id !== p.id) return;
-  const ser = h.series[p.id], n = h.dates.length; if (!ser || n < 3) return;
+  const ser = histSer(h, p.id), n = h.dates.length; if (!ser || n < 3) return;
   const minDia = i => { let m = null; for (const [s, l] of Object.entries(ser)) if (ST[s] && !FUERA.has(s) && l[i]) m = m == null ? l[i] : Math.min(m, l[i]); return m; };
   const serie = h.dates.map((_, i) => minDia(i)).filter(v => v), desde = h.dates[0].split("-").reverse().slice(0, 2).join("/");
   if (serie.length < 3) return;
@@ -1962,14 +1998,14 @@ async function chartU(p, dias) {
   let h, U;
   try { [h, U] = await Promise.all([hist(), loadUP()]); } catch { return chart(p); }   // sin la librería: el gráfico simple
   if (!$("#chart") || openProduct.id !== p.id) return;
-  const ser = h.series[p.id] || {}, n = h.dates.length, desde = dias ? Math.max(0, n - dias) : 0;
+  const ser = histSer(h, p.id) || {}, n = h.dates.length, desde = dias ? Math.max(0, n - dias) : 0;
   const sids = D.stores.map(s => s.id).filter(s => ser[s] && ser[s].slice(desde).some(Boolean));
   if (n - desde < 2 || !sids.length) { el.innerHTML = '<div class="sub">Todavía no hay historial suficiente. Se completa día a día.</div>'; return; }
   const xs = h.dates.slice(desde).map(d => Date.parse(d + "T12:00:00-03:00") / 1000);
   const css = getComputedStyle(document.documentElement), mut = css.getPropertyValue("--mut").trim() || "#888", line = css.getPropertyValue("--line").trim() || "#ddd";
   const eje = { stroke: mut, grid: { stroke: line, width: 1 }, ticks: { stroke: line, width: 1 }, font: "11px " + getComputedStyle(document.body).fontFamily };
   el.innerHTML = `<div class="ugraf"></div><div class="uinfo sub" aria-live="polite">Tocá o pasá el mouse por el gráfico para ver el precio de cada día.</div>
-    <div class="uley">${sids.map(sd => `<span><i style="background:${ST[sd].color || "#16a34a"}"></i>${esc(ST[sd].name)}</span>`).join("")}</div>`;
+    <div class="uley">${sids.map(sd => `<span><i style="background:${ST[sd].color || "#16a34a"}"></i>${esc(ST[sd].name)}</span>`).join("")}</div><p class="sr">${resumenHist(h.dates.slice(desde), Object.fromEntries(sids.map(s => [s, ser[s].slice(desde)])), sids)}</p>`;
   const info = $(".uinfo", el), fecha = t => new Date(t * 1000).toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "numeric" });
   const datos = [xs, ...sids.map(s => ser[s].slice(desde).map(v => v || null))];
   new U({
@@ -1994,7 +2030,7 @@ function resumenHist(dates, ser, vis) {
 }
 async function chart(p) {
   const h = await hist(), el = $("#chart"); if (!el) return;
-  const ser = h.series[p.id] || {}, dates = h.dates, sids = D.stores.map(s => s.id).filter(s => ser[s]);
+  const ser = histSer(h, p.id) || {}, dates = h.dates, sids = D.stores.map(s => s.id).filter(s => ser[s]);
   if (dates.length < 2 || !sids.length) { el.innerHTML = '<div class="sub">Todavía no hay historial suficiente.</div>'; return; }
   const off = new Set();
   const draw = () => {
@@ -2064,13 +2100,13 @@ function modalAvisos() {
 }
 /* registro para recibir novedades: se guarda en un formulario de Google (ver site/config.json y README) */
 function modalNews() {
-  const temas = [["semanal", "Resumen semanal de ofertas y descuentos bancarios"], ["bajas", "Bajas de precio de los productos de mis avisos"], ["nuevos", "Nuevos comercios y funciones de la página"]];
-  openModal(`<h2>📬 Recibir novedades</h2><p class="sub">Dejanos tu correo y elegí qué te interesa. Te podés dar de baja cuando quieras desde el enlace de cada correo.</p>
+  const temas = [["semanal", "Resumen de ofertas y descuentos bancarios"], ["nuevos", "Nuevos comercios y funciones de la página"]];
+  openModal(`<h2>📬 Recibir novedades</h2><p class="sub">Dejanos tu correo y elegí qué te interesa. Te vamos a escribir cuando haya novedades (todavía no mandamos correos automáticos), y podés darte de baja cuando quieras.</p>
     <form id="nform" class="nform" novalidate>
       <label class="fl">Correo electrónico<input type="email" id="nmail" required autocomplete="email" placeholder="tu@correo.com"></label>
       <fieldset><legend>Quiero recibir</legend>${temas.map(([v, t], i) => `<label class="ck"><input type="checkbox" name="tema" value="${v}" ${i < 2 ? "checked" : ""}> ${t}</label>`).join("")}</fieldset>
       <label class="fl">Zona<select class="sel" id="nzona">${(enAMBA() ? ["CABA", "GBA Norte", "GBA Oeste", "GBA Sur", "La Plata y alrededores"] : [provNombre(PROV)]).concat(PROVINCIAS.map(x => x.name).filter(n => !["Ciudad de Buenos Aires", provNombre(PROV)].includes(n))).map(z => `<option>${esc(z)}</option>`).join("")}</select></label>
-      <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de ComparáSúper. Solo usamos tu correo para esto y no lo compartimos.</label>
+      <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de ComparáSúper y que mi correo se guarde en una planilla de Google para eso. No lo compartimos con nadie. <a href="#legal" data-close>Más detalles</a>.</label>
       <div class="ferr" id="nerr" role="alert"></div>
       <div class="mfoot"><button type="button" class="btn sec sm" data-close>Cancelar</button><button class="btn" type="submit">Registrarme</button></div>
     </form>`);
@@ -2189,7 +2225,7 @@ function route() {
   const h = location.hash.slice(1) || "inicio";
   if (!READY && !/^(inicio|pagos|como|legal|sugerencias|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
     $("#view").innerHTML = `<div class="wrap loading"><div class="sk sk-h"></div>${esqueleto(8)}<span class="sr">Cargando productos…</span></div>`;
-    loadProducts().then(() => route()); return;
+    loadProducts().then(() => route()).catch(() => {}); return;
   }
   if (!LINKS_DONE && /^(conviene|carrito)/.test(h)) ensureLinks().then(() => { if (location.hash.slice(1) === h) route(); });   // vuelve a dibujar con los botones de carrito online
   if (h.startsWith("l-")) { importList(h.slice(2)); return; }
@@ -2927,7 +2963,7 @@ listaCompartida();
 })().then(() => {
   const pocas = !enAMBA() && D.stores.length <= 3;
   if (pocas) { $("#pocos").hidden = false; $("#pocos").innerHTML = `📍 En <b>${esc(provNombre(PROV))}</b> todavía tenemos precios de pocas cadenas (${D.stores.map(s => esc(s.name)).join(", ")}). Los descuentos con bancos y billeteras sí están completos. <button type="button" class="lnk" data-pcambiar>Cambiar provincia</button>`; $("[data-pcambiar]").onclick = () => $("#pbtn").click(); }
-  loadProducts().then(() => { saveLista(); refreshAvisos(); setTimeout(avisoBajas, 1500); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
+  loadProducts().catch(() => new Promise(() => {})).then(() => { saveLista(); refreshAvisos(); setTimeout(avisoBajas, 1500); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;

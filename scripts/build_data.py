@@ -248,6 +248,47 @@ def marcar_raros(offers):
             o["anom"] = True
 
 
+# ---------- historial en formato compacto ----------
+# Los precios casi nunca cambian de un día a otro, así que en disco se guarda solo cuándo cambia cada uno:
+# {"v": 2, "dates": [...], "series": {ean: {comercio: [i0, v0, i1, v1, ...]}}}  → desde el día i0 vale v0, desde i1 vale v1…
+# (antes del primer cambio no hay precio; un valor null marca que el comercio dejó de tenerlo). Así el archivo crece con
+# los cambios de precio y no con los días: con el formato anterior, 90 días superaban el límite de 100 MB de GitHub.
+def hist_comprimir(hist):
+    n = len(hist["dates"])
+    out = {}
+    for ean, por in hist["series"].items():
+        e = {}
+        for sid, vals in por.items():
+            pares, prev = [], None
+            for i in range(n):
+                v = vals[i] if i < len(vals) else None
+                if v != prev:
+                    pares += [i, v]
+                    prev = v
+            if pares:
+                e[sid] = pares
+        if e:
+            out[ean] = e
+    return {"v": 2, "dates": hist["dates"], "series": out}
+
+
+def hist_expandir(h):
+    if h.get("v") != 2:
+        return h
+    n = len(h["dates"])
+    series = {}
+    for ean, por in h["series"].items():
+        e = series[ean] = {}
+        for sid, pares in por.items():
+            vals = [None] * n
+            for k in range(0, len(pares), 2):
+                fin = pares[k + 2] if k + 2 < len(pares) else n
+                for i in range(pares[k], fin):
+                    vals[i] = pares[k + 1]
+            e[sid] = vals
+    return {"dates": h["dates"], "series": series}
+
+
 RANK_MIN_COMERCIOS = 3      # un producto entra al ranking si lo venden al menos 3 cadenas
 RANK_MIN_PRODUCTOS = 100    # y una cadena entra si tiene al menos tantos productos comparables
 
@@ -487,7 +528,7 @@ def main():
     mp = ROOT / "data" / "promos_modo.json"        # ¿se acumula con otras promos? (data/promos_acumulable.json y términos de MODO)
     acumulable.aplicar(promos["promos"], json.loads(mp.read_text(encoding="utf-8")).get("promos") if mp.exists() else [])
     hp = ROOT / "data" / "history.json"
-    hist = json.loads(hp.read_text(encoding="utf-8")) if hp.exists() else {"dates": [], "series": {}}
+    hist = hist_expandir(json.loads(hp.read_text(encoding="utf-8"))) if hp.exists() else {"dates": [], "series": {}}
     snaps = load_raw()
     if not snaps:
         raise SystemExit("No hay lecturas en data/raw/. Corré sepa_fetch.py (datos reales) o make_demo.py (ejemplo).")
@@ -517,7 +558,7 @@ def main():
     (OUT / "products-top.json").write_text(json.dumps(columnas(meta, top), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (OUT / "links.json").write_text(json.dumps(links, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     used = {p["id"] for p in products}
-    (OUT / "history.json").write_text(json.dumps({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}},
+    (OUT / "history.json").write_text(json.dumps(hist_comprimir({"dates": hist["dates"], "series": {k: v for k, v in hist["series"].items() if k in used}}),
                                                  separators=(",", ":")), encoding="utf-8")
     (OUT / "ranking.json").write_text(json.dumps(ranking(hist, used, stores), ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     suc = ROOT / "data" / "sucursales.json"   # ubicación de las sucursales, para "comercios cerca de mí"
@@ -525,7 +566,7 @@ def main():
         (OUT / "sucursales.json").write_text(suc.read_text(encoding="utf-8"), encoding="utf-8")
     (OUT / "promos.json").write_text(json.dumps({k: promos.get(k) for k in ("tipos", "formas_pago", "medios", "relevado")} | {"promos": active_promos(promos, dt.date.fromisoformat(last["date"]))},
                                                 ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
-    hp.write_text(json.dumps(hist, separators=(",", ":")), encoding="utf-8")
+    hp.write_text(json.dumps(hist_comprimir(hist), separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(products)} productos, {len(hist['dates'])} días de historial, lectura del {last['date']}")
 
 
