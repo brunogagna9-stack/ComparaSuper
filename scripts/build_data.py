@@ -232,15 +232,19 @@ def marcar_raros(offers):
     en vez de la unidad, o al revés). Se marca como "anom": la web lo muestra con un aviso pero no lo usa
     como "el más barato" ni en las cuentas de ¿Dónde conviene?. Hace falta que al menos 3 comercios más lo vendan."""
     import statistics
-    if len(offers) < 4:
+    if len(offers) < 3:
         return
     precios = [(o, o.get("p") or o.get("po")) for o in offers]
     for o, v in precios:
         otros = [x for oo, x in precios if oo is not o and x]
-        if not v or len(otros) < 3:
+        if not v or len(otros) < 2:
             continue
         m = statistics.median(otros)
-        if v < m * RARO_BAJO or v > m * RARO_ALTO:
+        if len(otros) >= 3:
+            if v < m * RARO_BAJO or v > m * RARO_ALTO:
+                o["anom"] = True
+        # con solo 2 comercios más: tienen que coincidir entre ellos y el precio estar a más de 4 veces
+        elif max(otros) <= min(otros) * 1.6 and (v < m / 4 or v > m * 4):
             o["anom"] = True
 
 
