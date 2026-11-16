@@ -2219,12 +2219,14 @@ async function vBaja(qs) {
   const q = new URLSearchParams(qs), uid = q.get("u") || "", tok = q.get("t") || "", que = q.get("q") || "todo";
   const nombre = { semanal: "las ofertas de la semana", bajas: "los avisos de baja de precio", todo: "ningún correo" }[que] || "estos correos";
   const pinta = (h) => { $("#view").innerHTML = `<div class="wrap"><section class="blk first cuenta"><h1>📭 Dejar de recibir correos</h1>${h}</section></div>`; };
-  if (!/^[\w-]{10,64}$/.test(uid) || !/^[\w-]{16,64}$/.test(tok) || !CFG.firebase) { pinta(`<p>El enlace está incompleto. Podés cambiar qué correos recibís desde <a href="#cuenta">Mi cuenta</a>.</p>`); return; }
+  const fb = (CFG && CFG.firebase) || (await fetch("config.json").then(r => r.json()).catch(() => ({}))).firebase;
+  if (vBaja.hecho === qs) return; vBaja.hecho = qs;
+  if (!/^[\w-]{10,64}$/.test(uid) || !/^[\w-]{16,64}$/.test(tok) || !fb) { pinta(`<p>El enlace está incompleto. Podés cambiar qué correos recibís desde <a href="#cuenta">Mi cuenta</a>.</p>`); return; }
   pinta(`<p>Procesando…</p>`);
   const campos = { bajaUsado: { stringValue: tok } };
   if (que === "semanal" || que === "todo") campos.semanal = { booleanValue: false };
   if (que === "bajas" || que === "todo") campos.bajas = { booleanValue: false };
-  const url = `https://firestore.googleapis.com/v1/projects/${CFG.firebase.projectId}/databases/(default)/documents/usuarios/${uid}?` + Object.keys(campos).map(k => "updateMask.fieldPaths=" + k).join("&") + "&currentDocument.exists=true";
+  const url = `https://firestore.googleapis.com/v1/projects/${fb.projectId}/databases/(default)/documents/usuarios/${uid}?` + Object.keys(campos).map(k => "updateMask.fieldPaths=" + k).join("&") + "&currentDocument.exists=true";
   try {
     const r = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: campos }) });
     if (!r.ok) throw new Error(r.status);
@@ -2324,9 +2326,9 @@ function route() {
   if (OV.quieto) { OV.quieto = false; OV.h = location.hash; if (!location.hash.startsWith("#p-")) return; }
   OV.h = location.hash;
   if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; ovForget("filtros"); document.body.classList.remove("noscroll"); }
+  if (location.hash.startsWith("#baja?")) { vBaja(location.hash.slice(6)); return; }   // baja desde un correo: no espera los precios
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
-  if (h.startsWith("baja?")) { vBaja(h.slice(5)); return; }
   if (!READY && !/^(inicio|pagos|como|legal|sugerencias|cuenta|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
     $("#view").innerHTML = `<div class="wrap loading"><div class="sk sk-h"></div>${esqueleto(8)}<span class="sr">Cargando productos…</span></div>`;
     loadProducts().then(() => route()).catch(() => {}); return;
@@ -3056,6 +3058,7 @@ $("#pbtn").onclick = async () => {
 };
 listaCompartida();
 (async () => {
+  if (location.hash.startsWith("#baja?") && !PROV) { await vBaja(location.hash.slice(6)); return new Promise(() => {}); }   // baja desde un correo en un navegador nuevo
   if (!PROV) {                         // primera visita: elegir la provincia antes de cargar precios
     $("#view").innerHTML = "";
     const v = await abrirMapa({ primera: true });
