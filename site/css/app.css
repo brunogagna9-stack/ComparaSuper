@@ -1334,6 +1334,5 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .btn.peligro:hover{filter:brightness(.97)}
 .go.nolink{cursor:default;color:var(--mut)}
 .go.sm{font-size:12px;padding:4px 9px}
-.basesrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
-.basesrow{align-items:center}.bk-l{font-size:13px;font-weight:600}
+.basesrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center}.bk-l{font-size:13px;font-weight:600}
