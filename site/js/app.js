@@ -402,6 +402,17 @@ function shipping(sid, c, sub) {
   if (on.gratis_desde && sub >= on.gratis_desde) return 0;
   return on.envio || 0;
 }
+// De dónde sale el costo de envío de una tienda online: se muestra debajo de cada costo.
+function envFuente(sid, corto) {
+  const on = (ST[sid] || {}).online || {};
+  if (!on.envio && !on.envio_estado) return "";
+  const f = on.envio_visto ? on.envio_visto.split("-").reverse().slice(0, 2).join("/") : "";
+  if (on.envio_estado !== "verificado") return corto ? "estimado" : `Envío estimado: ${esc(on.envio_fuente || "la tienda no lo publica")}${on.envio_nota ? ` · ${esc(on.envio_nota)}` : ""}`;
+  if (corto) return `verificado ${f}`;
+  const src = on.envio_url ? `<a href="${esc(on.envio_url)}" target="_blank" rel="noopener">${esc(on.envio_fuente)}</a>` : esc(on.envio_fuente);
+  return `Según ${src}, verificado el ${f}${on.envio_nota ? ` · ${esc(on.envio_nota)}` : ""}${on.gratis_desde ? ` · gratis desde ${money(on.gratis_desde)}` : ""}`;
+}
+function envLinea(sid) { const t = envFuente(sid); return t ? `<div class="sub envf">${t}</div>` : ""; }
 
 /* ---------- compra completa ---------- */
 function options() {   // cada súper en cada canal (local / online) según el filtro elegido
@@ -1709,7 +1720,7 @@ function vConviene() {
 
   const card1 = bst ? `<div class="sumc win"><div class="k">① Todo en un solo comercio</div><div class="t">${esc(optName(bst))}</div><div class="big">${money(bst.total)}</div>
       ${bst.pay.promo ? `<div class="sv">💳 Pagando con <b>${esc(medioName(bst.pay.promo))}</b> (−${money(bst.pay.disc)})<br>${pagoIcon(bst.pay.promo)} ${esc(pagoTxt(bst.pay.promo))} ${acumBadge(bst.pay.promo, true)}</div>` : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
-      ${bst.c === "online" ? `<div class="sv">🚚 ${bst.env ? `Incluye envío ${money(bst.env)}` : "Envío gratis con esta compra"}</div>` : ""}
+      ${bst.c === "online" ? `<div class="sv">🚚 ${bst.env ? `Incluye envío ${money(bst.env)}` : "Envío gratis con esta compra"}${envLinea(bst.sid)}</div>` : ""}
       ${cartBtn(bst) ? `<div style="margin-top:10px">${cartBtn(bst)}</div>` : ""}</div>`
     : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>Ningún comercio tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.</p></div>`;
   const card2 = split ? `<div class="sumc box ${splitGain > 0 ? "good" : ""}"><div class="k">② Mezclando dos comercios</div><div class="t">${split.parts.map(b => esc(optName(b))).join(" + ")}</div><div class="big">${money(split.total)}</div>
@@ -1729,7 +1740,7 @@ function vConviene() {
         const alt = bst && bst.lines.find(x => x.p.id === l.p.id);
         return `<tr><td>${esc(l.p.name)}${l.qty > 1 ? ` <b>×${l.qty}</b>` : ""}${l.lc.promo ? `<div class="sub">🏷️ ${esc(l.lc.promo.txt)}</div>` : ""}</td><td>${storeChip(b.sid, b.c)}</td><td class="r"><b>${money(l.lc.total)}</b></td><td class="r sub" data-l="${alt ? "Todo en " + esc(optName(bst)) + ":" : ""}">${alt ? money(alt.lc.total) : ""}</td></tr>`;
       })).join("")}</tbody>
-      <tfoot>${split.parts.map(b => `<tr><td colspan="2">Subtotal en ${esc(optName(b))}${b.pay.promo ? ` <span class="sub">· 💳 ${esc(medioName(b.pay.promo))} −${money(b.pay.disc)} (${esc(pagoTxt(b.pay.promo))})</span>` : ""}${b.env ? ` <span class="sub">· envío ${money(b.env)}</span>` : ""}</td><td class="r"><b>${money(b.total)}</b></td><td class="r">${cartBtn(b, true)}</td></tr>`).join("")}</tfoot></table></div></section>` : "";
+      <tfoot>${split.parts.map(b => `<tr><td colspan="2">Subtotal en ${esc(optName(b))}${b.pay.promo ? ` <span class="sub">· 💳 ${esc(medioName(b.pay.promo))} −${money(b.pay.disc)} (${esc(pagoTxt(b.pay.promo))})</span>` : ""}${b.env ? ` <span class="sub">· envío ${money(b.env)}</span>${envLinea(b.sid)}` : ""}</td><td class="r"><b>${money(b.total)}</b></td><td class="r">${cartBtn(b, true)}</td></tr>`).join("")}</tfoot></table></div></section>` : "";
 
   const shown = rk.slice(0, 15);
   const optTable = `<section class="box"><h3>Todas las opciones comprando todo en un solo lugar · ${DIAS[day]}</h3>
@@ -1737,12 +1748,13 @@ function vConviene() {
     ${shown.map((b, i) => `<tr class="${b === bst ? "top" : ""}${b.miss.length ? " inc" : ""}"><td>${b.miss.length ? "–" : i + 1}</td><td>${storeChip(b.sid, b.c)}${b.miss.length ? `<div class="miss">Le falta${b.miss.length > 1 ? "n" : ""}: ${b.miss.map(p => esc(shortName(p))).join(", ")}</div>` : ""}</td>
       <td class="r" data-l="Sin descuentos">${money(b.reg)}</td><td class="r okc${b.promoSave > 0 ? "" : " nil"}" data-l="Ofertas">${b.promoSave > 0 ? "−" + money(b.promoSave) : "—"}</td>
       <td class="${b.pay.promo ? "" : "nil"}" data-l="Medio de pago">${b.pay.promo ? `<span class="okc">−${money(b.pay.disc)}</span> ${esc(medioName(b.pay.promo))} ${b.pay.promo.pct}%<div class="sub">${esc(pagoTxt(b.pay.promo))} ${acumBadge(b.pay.promo, true)}</div>` : '<span class="sub">—</span>'}</td>
-      <td class="r${b.c === "online" ? "" : " nil"}" data-l="Envío">${b.c === "online" ? (b.env ? money(b.env) : "gratis") : "—"}</td>
+      <td class="r${b.c === "online" ? "" : " nil"}" data-l="Envío">${b.c === "online" ? `${b.env ? money(b.env) : "gratis"}<div class="sub envf">${envFuente(b.sid, true)}</div>` : "—"}</td>
       <td class="r"><b>${money(b.total)}</b>${b.miss.length ? '<div class="sub">sin lo que falta</div>' : ""}</td>
       <td class="r" data-l="Diferencia">${b.miss.length || !bst ? "" : b === bst ? '<span class="tag g sm">la mejor</span>' : `+${money(b.total - bst.total)}`}</td>
       <td>${cartBtn(b, true)}</td></tr>`).join("")}</tbody></table></div>
     ${rk.length > shown.length ? `<p class="sub">Y ${rk.length - shown.length} opciones más caras.</p>` : ""}
-    <p class="sub">El botón «Armar el carrito» abre la tienda online con los productos ya cargados; ahí elegís envío o retiro y pagás. Solo aparece en las tiendas online que lo permiten (Carrefour, ChangoMás, Día, Disco, Jumbo y Vea) y cuando tienen todos los productos.</p></section>`;
+    <p class="sub">El botón «Armar el carrito» abre la tienda online con los productos ya cargados; ahí elegís envío o retiro y pagás. Solo aparece en las tiendas online que lo permiten (Carrefour, ChangoMás, Día, Disco, Jumbo y Vea) y cuando tienen todos los productos.</p>
+    <p class="sub">🚚 Envío a domicilio en CABA: «verificado» = lo comprobamos simulando una compra en la tienda (la fecha indica cuándo); «estimado» = la cadena no lo publica y puede cambiar según la zona. El costo final siempre lo ves en el carrito de la tienda.</p></section>`;
 
   $("#view").innerHTML = `<div class="wrap">${head}
     <div class="cv">${editor}
@@ -1754,7 +1766,7 @@ function vConviene() {
       if (!bst) return "";
       const on = [...new Set(items.map(({ p }) => best(p)).filter(b => b.c === "online" && !(b.o.s === bst.sid && bst.c === "online")).map(b => b.o.s))];
       if (!on.length) return "";
-      const txt = on.map(s => `${esc(chanName(s, "online"))} (envío estimado ${money((ST[s].online || {}).envio || 0)}${(ST[s].online || {}).retiro ? ", o retiro en sucursal" : ""})`).join(", ");
+      const txt = on.map(s => `${esc(chanName(s, "online"))} (envío ${money((ST[s].online || {}).envio || 0)}, ${envFuente(s, true)}${(ST[s].online || {}).retiro ? ", o retiro en sucursal" : ""})`).join(", ");
       return `<p class="note">💡 Algunos productos tienen su precio más bajo online en ${txt}. Acá sumamos el envío, y con eso conviene otra opción. Si retirás en la sucursal, mirá su fila en la tabla sin contar el envío.</p>`;
     })()}
     <div class="sumgrid">${card1}${card2}${card3}${card4}</div>
@@ -1908,9 +1920,9 @@ async function openProduct(id) {
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
     const pr = promoOf(o, c), pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c));
-    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>${bultoDe(o, c) ? ` <span class="tag sm">📦 c/u llevando el bulto de ${o.bulto}</span>` : ""}${c === "online" ? ' <span class="sub">+ envío</span>' : ""}
+    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>${bultoDe(o, c) ? ` <span class="tag sm">📦 c/u llevando el bulto de ${o.bulto}</span>` : ""}${c === "online" ? ` <span class="sub">+ envío${(ST[o.s].online || {}).envio ? " " + money(ST[o.s].online.envio) : ""}</span>` : ""}
       ${pr ? `<span class="tag sm">🏷️ ${esc(pr.txt)}: ${money(pr.pu)} c/u${pr.n > 1 ? ` llevando ${pr.n}` : ""}</span>` : ""}
-      ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span> ${acumBadge(pay.promo, true)}` : ""}</div>`;
+      ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span> ${acumBadge(pay.promo, true)}` : ""}${c === "online" ? envLinea(o.s) : ""}</div>`;
   };
   const storeRow = o => {
     const mine = PREF[id] === o.s && q;

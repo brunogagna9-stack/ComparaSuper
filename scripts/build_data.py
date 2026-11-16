@@ -430,7 +430,7 @@ def build(snap, hist, stores, min_offers=1):
 def public_online(o):
     if not o:
         return None
-    return {k: o.get(k) for k in ("nombre", "envio", "gratis_desde", "retiro", "solo_app", "vtex")}
+    return {k: o.get(k) for k in ("nombre", "envio", "gratis_desde", "minimo", "retiro", "solo_app", "vtex", "envio_estado", "envio_visto", "envio_fuente", "envio_url", "envio_nota") if o.get(k) is not None}
 
 
 def active_promos(promos, today):

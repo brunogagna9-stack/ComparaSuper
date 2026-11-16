@@ -1,5 +1,5 @@
 {
-  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio y gratis_desde son valores DE EJEMPLO: hay que cargarlos de la web de cada cadena. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra. sepa_base: 'mayoristas' si la cadena informa en la base de mayoristas (si no, se busca en la de supermercados). sepa_lat_provincia: para cadenas que informan solo la latitud de la sucursal (sin provincia ni longitud): de norte a sur, [latitud límite, provincia]; la sucursal va a la primera provincia cuyo límite queda al sur.",
+  "_comentario": "Cadenas de CABA y GBA. tipo: super | mayorista | app. sepa_banderas: nombres con que figura cada cadena en la base oficial SEPA (VERIFICAR con el primer archivo real: el script avisa cuáles no encontró). online: tienda web o app; 'vtex' = se lee con scripts/online_fetch.py; 'adaptador: pendiente' = todavía no se lee automáticamente. envio, gratis_desde y minimo: costo de envío a domicilio, monto desde el que es gratis y compra mínima. envio_estado 'verificado' (con envio_fuente, envio_url y envio_visto = fecha en que se comprobó) o 'estimado' si la cadena no lo publica; se muestra debajo de cada costo de envío. sigla: letras de la insignia que se muestra mientras no haya logo cargado (ver site/config.json → logos). sepa_sucursal_contiene: si una cadena tiene dos formatos con la misma bandera (Diarco), las sucursales cuyo nombre contiene esas palabras van a esta tienda y el resto a la otra. sepa_base: 'mayoristas' si la cadena informa en la base de mayoristas (si no, se busca en la de supermercados). sepa_lat_provincia: para cadenas que informan solo la latitud de la sucursal (sin provincia ni longitud): de norte a sur, [latitud límite, provincia]; la sucursal va a la primera provincia cuyo límite queda al sur.",
   "stores": [
     {
       "id": "carrefour",
@@ -19,9 +19,14 @@
       "online": {
         "nombre": "Carrefour online",
         "vtex": "www.carrefour.com.ar",
-        "envio": 4500,
-        "gratis_desde": 80000,
-        "retiro": true
+        "envio": 3990,
+        "gratis_desde": null,
+        "retiro": true,
+        "envio_estado": "verificado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "simulación de compra en carrefour.com.ar",
+        "envio_url": "https://www.carrefour.com.ar",
+        "envio_nota": "CABA (CP 1414); igual con compras de $6.000 a $250.000"
       },
       "sigla": "C"
     },
@@ -57,9 +62,14 @@
       "online": {
         "nombre": "Más Online",
         "vtex": "www.masonline.com.ar",
-        "envio": 4000,
-        "gratis_desde": 70000,
-        "retiro": true
+        "envio": 3999,
+        "gratis_desde": null,
+        "retiro": true,
+        "envio_estado": "verificado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "simulación de compra en masonline.com.ar",
+        "envio_url": "https://www.masonline.com.ar",
+        "envio_nota": "CABA (CP 1414); igual con compras de $2.500 a $100.000"
       },
       "sigla": "Ch"
     },
@@ -78,8 +88,14 @@
         "nombre": "Coto Digital",
         "adaptador": "coto",
         "envio": 5000,
-        "gratis_desde": 90000,
-        "retiro": true
+        "gratis_desde": null,
+        "retiro": true,
+        "minimo": 30000,
+        "envio_estado": "estimado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "Coto no publica el costo para alimentos; se ve en el carrito",
+        "envio_url": "https://www.coto.com.ar/ayuda",
+        "envio_nota": "compra mínima $30.000 con envío, según su página de ayuda; retiro sin cargo"
       },
       "sigla": "Co"
     },
@@ -113,9 +129,15 @@
       "online": {
         "nombre": "Día Online",
         "vtex": "diaonline.supermercadosdia.com.ar",
-        "envio": 3500,
-        "gratis_desde": 60000,
-        "retiro": false
+        "envio": 4999,
+        "gratis_desde": null,
+        "retiro": true,
+        "minimo": 12000,
+        "envio_estado": "verificado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "simulación de compra y preguntas frecuentes de Día Online",
+        "envio_url": "https://diaonline.supermercadosdia.com.ar/preguntas-frecuentes",
+        "envio_nota": "CABA (CP 1414); compra mínima $12.000"
       },
       "sigla": "Dí"
     },
@@ -168,8 +190,12 @@
         "nombre": "Disco online",
         "vtex": "www.disco.com.ar",
         "envio": 4500,
-        "gratis_desde": 90000,
-        "retiro": true
+        "gratis_desde": null,
+        "retiro": true,
+        "envio_estado": "estimado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
+        "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
       "sigla": "Ds"
     },
@@ -201,8 +227,12 @@
         "nombre": "Jumbo online",
         "vtex": "www.jumbo.com.ar",
         "envio": 4500,
-        "gratis_desde": 90000,
-        "retiro": true
+        "gratis_desde": null,
+        "retiro": true,
+        "envio_estado": "estimado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
+        "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
       "sigla": "Ju"
     },
@@ -268,7 +298,9 @@
         "envio": 1800,
         "gratis_desde": null,
         "retiro": false,
-        "solo_app": true
+        "solo_app": true,
+        "envio_estado": "estimado",
+        "envio_fuente": "varía según el local y la distancia; se ve en la app"
       },
       "nota": "Precio dentro de la app; cambia según tu dirección.",
       "sigla": "PY"
@@ -302,7 +334,9 @@
         "envio": 1500,
         "gratis_desde": null,
         "retiro": false,
-        "solo_app": true
+        "solo_app": true,
+        "envio_estado": "estimado",
+        "envio_fuente": "varía según el local y la distancia; se ve en la app"
       },
       "nota": "Precio dentro de la app; cambia según tu dirección.",
       "sigla": "Ra"
@@ -321,8 +355,12 @@
         "nombre": "Vea online",
         "vtex": "www.vea.com.ar",
         "envio": 4000,
-        "gratis_desde": 70000,
-        "retiro": true
+        "gratis_desde": null,
+        "retiro": true,
+        "envio_estado": "estimado",
+        "envio_visto": "2026-11-15",
+        "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
+        "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
       "sigla": "Ve"
     },
