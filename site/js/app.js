@@ -350,6 +350,18 @@ function payDiscount(sid, day, c, subtotal, mine = true, reg = subtotal) {
 }
 const medio = pr => P.medioBy[pr.medio] || { name: pr.medio, tipo: "" };
 const medioName = pr => medio(pr).name;
+/* bases y condiciones oficiales: la página de descuentos del comercio (cada promo tiene su "ver legal") y la del banco o billetera */
+function bases(pr) {
+  const out = [], vistos = new Set(), add = (url, nombre) => { if (url && !vistos.has(url)) { vistos.add(url); out.push({ url, nombre }); } };
+  for (const s of pr.stores) if (ST[s] && ST[s].promos_url) add(ST[s].promos_url, ST[s].name);
+  const m = medio(pr); add(m.promos_url, m.name);
+  if (!out.length && pr.fuente && pr.fuente_tipo === "oficial") add(pr.fuente, "la fuente oficial");
+  return out;
+}
+const basesBtns = (pr, uno) => { const b = bases(pr); if (!b.length) return ""; const xs = uno ? b.slice(0, 1) : b;
+  const a = x => `href="${esc(x.url)}" target="_blank" rel="noopener" data-salida="bases|${esc(pr.id)}" title="Bases y condiciones oficiales en ${esc(x.nombre)}"`;
+  if (uno || xs.length === 1) return `<a class="go sec${uno ? " sm" : ""}" ${a(xs[0])}>📄 Bases y condiciones ↗</a>`;
+  return `<span class="bk-l">📄 Bases y condiciones:</span> ${xs.map(x => `<a class="go sec sm" ${a(x)}>${esc(x.nombre)} ↗</a>`).join(" ")}`; };
 const topeTxt = pr => pr.tope ? `tope ${money(pr.tope)}${pr.periodo_tope ? " por " + pr.periodo_tope : ""}` : "sin tope";
 const pagoTxt = pr => (pr.pago || []).map(k => (P.formas_pago[k] || { t: k }).t).join(" o ");
 const FUENTE = { oficial: "página oficial", relevamiento: "relevamiento de sitios oficiales", prensa: "nota periodística" };
@@ -385,7 +397,11 @@ function claveBusqueda(p) {
     && !/^x?\d+([.,]\d+)?(x\d+)?(ml|cc|cm3|l|lt|lts|g|gr|grs|kg|kgs|cm|mm|m|un|uni|unid|u|ud|uds|mts)?$/.test(w));
   return [marca, ...pal.slice(0, marca ? 2 : 3)].filter(Boolean).join(" ") || p.name.replace(/\s\d.*$/, "");
 }
-const goUrl = (sid, p) => { const s = ST[sid]; const u = s.buscar || s.web; return u ? u.replaceAll("{q}", encodeURIComponent(claveBusqueda(p))) : null; };
+const goUrl = (sid, p) => { const u = ST[sid].buscar; return u ? u.replaceAll("{q}", encodeURIComponent(claveBusqueda(p))) : null; };
+/* comercios sin tienda online con productos: en vez de un enlace que no sirve, llevamos a sus sucursales en el mapa */
+const sinTienda = (sid, sm) => (ST[sid].online && ST[sid].online.solo_app)
+  ? `<span class="go sec nolink${sm ? " sm" : ""}" title="Se compra desde la app de ${esc(ST[sid].name)}">📱 Solo desde la app</span>`
+  : `<a class="go sec${sm ? " sm" : ""}" href="#mapa" data-close title="${esc(ST[sid].name)} no vende online: mirá sus sucursales cercanas">🏬 Solo en sucursal · Ver sucursales</a>`;
 /* Google Maps: la sucursal más cercana a tu ubicación (o las cercanas a donde estés, si no cargaste ubicación) */
 function mapaUrl(sid) {
   const s = ST[sid], l = SUC && SUC[sid];
@@ -704,7 +720,7 @@ function vInicio() {
         <div class="pd">${medioBadge(medio(pr))} <b>${esc(medioName(pr))}</b> <span class="tag gr sm">${esc(P.tipos[medio(pr).tipo] || "")}</span><br>en ${pr.stores.map(s => (FAV.has(s) ? "⭐ " : "") + esc(ST[s] ? ST[s].name : s)).join(", ")}
         <div class="how">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</div>
         ${pr.tope ? `<div class="tline">Rinde al máximo con compras de hasta <b>${money(pr.tope / pr.pct * 100)}</b></div>` : ""}
-        <button class="linkbtn agl" data-agendar="${pr.id}">📅 Agendar</button></div></div>`;
+        <div class="pbtns"><button class="linkbtn agl" data-agendar="${pr.id}">📅 Agendar</button> ${basesBtns(pr, true)}</div></div></div>`;
   const tile = st => { const src = (CFG.logos || {})[st.id]; return `<a class="stile" href="#buscar" data-tienda="${st.id}" title="Ver productos de ${esc(st.name)}">${src ? `<img src="${esc(src)}" alt="${esc(st.name)}" loading="lazy">` : `<span class="stn" style="color:${esc(st.color || "var(--ink)")}">${esc(st.name)}</span>`}</a>`; };
   $("#view").innerHTML = `
   <section class="hero2"><div class="wrap">
@@ -1425,6 +1441,7 @@ function promoCard(pr) {
       <div class="pp">${pr.pct ? pr.pct + "%" : pr.cuotas + " cuotas"}</div></div>
     <div class="stores">${pr.stores.filter(s => ST[s]).map(s => storeChip(s)).join(" ")}</div>
     ${acumBadge(pr)}
+    ${bases(pr).length ? `<div class="basesrow">${basesBtns(pr)}</div>` : ""}
     ${pr.stores.filter(s => ST[s] && ST[s].lista && ST[s].lista.length).map(s => `<div class="sub adher">Adheridos en ${esc(provCorto(PROV))}: ${ST[s].lista.map(esc).join(", ")}</div>`).join("")}
     ${(pr.bancos || []).length ? `<div class="bancos"><span class="sub">${pr.medio === "cuentadni" ? "Billetera de" : "Vale con tarjetas de"}:</span> ${pr.bancos.map(b => P.medioBy[b]).filter(Boolean).map(m => `<span class="bk" title="${esc(m.name)}">${medioBadge(m)}</span>`).join("")}</div>` : ""}
     <div class="howpay"><div class="k">Cómo pagar para que aplique</div>
@@ -1687,7 +1704,7 @@ function cartUrl(b) {
   if (!host || b.miss.length || !b.lines.every(l => l.o.sku)) return null;
   return `https://${host}/checkout/cart/add?` + b.lines.map(l => `sku=${encodeURIComponent(l.o.sku)}&qty=${l.qty}&seller=${encodeURIComponent(l.o.seller || "1")}`).join("&") + "&sc=1";
 }
-const cartBtn = (b, sm) => { const u = cartUrl(b); return u ? `<a class="btn ${sm ? "sm " : ""}cartbtn" data-salida="carrito|${esc(b.sid)}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la tienda con estos productos ya cargados en el carrito">🛒 Armar el carrito en ${esc(ST[b.sid].name)}</a>` : ""; };
+const cartBtn = (b, sm) => { const u = cartUrl(b); return u ? `<a class="btn ${sm ? "sm " : ""}cartbtn" data-salida="carrito|${esc(b.sid)}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la tienda con estos productos ya cargados en el carrito">🛒 Armar el carrito en ${esc(ST[b.sid].name)}</a>` : (ST[b.sid].buscar ? "" : sinTienda(b.sid, sm)); };
 
 /* panel de al lado cuando la página está vacía: productos vistos hace poco para sumar de un toque */
 function ayudaVacia(modo) {
@@ -1917,7 +1934,7 @@ async function openProduct(id) {
     const u0 = o.url || (o.lk && ST[o.s].online && ST[o.s].online.vtex ? `https://${ST[o.s].online.vtex}/${o.lk}/p` : null);
     if (u0) return `<a class="go" data-salida="producto|${o.s}" href="${esc(u0)}" target="_blank" rel="noopener">Ver en la tienda ↗</a>`;
     const u = goUrl(o.s, p);
-    return u ? `<a class="go sec" data-salida="buscar|${o.s}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la búsqueda de la tienda; puede mostrar productos parecidos">Buscar en la tienda ↗</a>` : "";
+    return u ? `<a class="go sec" data-salida="buscar|${o.s}" href="${esc(u)}" target="_blank" rel="noopener" title="Abre la búsqueda de la tienda; puede mostrar productos parecidos">Buscar en la tienda ↗</a>` : sinTienda(o.s);
   };
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
@@ -2196,6 +2213,25 @@ function vCuenta() {
     $("#cu-sib").onclick = async () => { try { if (await Cuenta.borrar()) { closeModal(); location.hash = "#inicio"; } } catch { toast("No se pudo borrar. Probá de nuevo en un momento."); } };
   };
 }
+/* baja con un clic desde un correo (#baja?u=<cuenta>&t=<clave>&q=semanal|bajas|todo): no hace falta iniciar sesión */
+async function vBaja(qs) {
+  setTab("cuenta");
+  const q = new URLSearchParams(qs), uid = q.get("u") || "", tok = q.get("t") || "", que = q.get("q") || "todo";
+  const nombre = { semanal: "las ofertas de la semana", bajas: "los avisos de baja de precio", todo: "ningún correo" }[que] || "estos correos";
+  const pinta = (h) => { $("#view").innerHTML = `<div class="wrap"><section class="blk first cuenta"><h1>📭 Dejar de recibir correos</h1>${h}</section></div>`; };
+  if (!/^[\w-]{10,64}$/.test(uid) || !/^[\w-]{16,64}$/.test(tok) || !CFG.firebase) { pinta(`<p>El enlace está incompleto. Podés cambiar qué correos recibís desde <a href="#cuenta">Mi cuenta</a>.</p>`); return; }
+  pinta(`<p>Procesando…</p>`);
+  const campos = { bajaUsado: { stringValue: tok } };
+  if (que === "semanal" || que === "todo") campos.semanal = { booleanValue: false };
+  if (que === "bajas" || que === "todo") campos.bajas = { booleanValue: false };
+  const url = `https://firestore.googleapis.com/v1/projects/${CFG.firebase.projectId}/databases/(default)/documents/usuarios/${uid}?` + Object.keys(campos).map(k => "updateMask.fieldPaths=" + k).join("&") + "&currentDocument.exists=true";
+  try {
+    const r = await fetch(url, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ fields: campos }) });
+    if (!r.ok) throw new Error(r.status);
+    pinta(`<p>✅ Listo: ya no vas a recibir ${que === "todo" ? "ningún correo de SuperBarato" : esc(nombre)}.</p>
+      <p class="sub">Si fue un error, o querés elegir otros correos, entrá a <a href="#cuenta">Mi cuenta</a>.</p>`);
+  } catch { pinta(`<p>No pudimos procesar la baja con este enlace (puede haber vencido). Entrá a <a href="#cuenta">Mi cuenta</a> para elegir qué correos recibir, o escribinos a <a href="mailto:contacto@superbarato.com.ar">contacto@superbarato.com.ar</a> y lo hacemos nosotros.</p>`); }
+}
 /* "Recibir novedades": ahora se elige desde la cuenta (js/cuenta.js) */
 function modalNews() {
   if (!Cuenta.activa()) { toast("Muy pronto vas a poder recibir las novedades por correo"); return; }
@@ -2290,6 +2326,7 @@ function route() {
   if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; ovForget("filtros"); document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
+  if (h.startsWith("baja?")) { vBaja(h.slice(5)); return; }
   if (!READY && !/^(inicio|pagos|como|legal|sugerencias|cuenta|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
     $("#view").innerHTML = `<div class="wrap loading"><div class="sk sk-h"></div>${esqueleto(8)}<span class="sr">Cargando productos…</span></div>`;
     loadProducts().then(() => route()).catch(() => {}); return;

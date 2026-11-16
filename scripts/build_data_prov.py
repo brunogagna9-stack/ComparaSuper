@@ -57,7 +57,7 @@ def main():
         products = B.build(snap, hist, stores, min_offers=B.MIN_OFERTAS)
         usados = {o["s"] for p in products for o in p["offers"]}
         meta = {"imghosts": list(B.IMGHOSTS), "updated": snap["date"], "source": "sepa", "region": nombre, "prov": code, "demo": False,
-                "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota")} | {"online": None}
+                "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota", "promos_url")} | {"online": None}
                            for s in stores if s["id"] in usados],
                 "cats": [{"id": c[0], "name": c[1], "emoji": c[2]} for c in B.CATS] + [{"id": B.OTROS[0], "name": B.OTROS[1], "emoji": B.OTROS[2]}]}
         for p in products:

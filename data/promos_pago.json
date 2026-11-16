@@ -69,12 +69,14 @@
   {
    "id": "bna",
    "name": "Banco Nación",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados"
   },
   {
    "id": "ciudad",
    "name": "Banco Ciudad",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.bancociudad.com.ar/beneficios"
   },
   {
    "id": "columbia",
@@ -84,22 +86,26 @@
   {
    "id": "comafi",
    "name": "Banco Comafi",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.comafi.com.ar/beneficios"
   },
   {
    "id": "credicoop",
    "name": "Credicoop",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.bancocredicoop.coop/personas/beneficios"
   },
   {
    "id": "hipotecario",
    "name": "Banco Hipotecario",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.hipotecario.com.ar/beneficios"
   },
   {
    "id": "icbc",
    "name": "ICBC",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.beneficios.icbc.com.ar/promo/super"
   },
   {
    "id": "patagonia",
@@ -109,12 +115,14 @@
   {
    "id": "supervielle",
    "name": "Supervielle",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.supervielle.com.ar/personas/beneficios"
   },
   {
    "id": "galicia",
    "name": "Galicia",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.galicia.ar/personas/buscador-de-promociones"
   },
   {
    "id": "bbva",
@@ -124,7 +132,8 @@
   {
    "id": "santander",
    "name": "Santander",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.santander.com.ar/personas/beneficios"
   },
   {
    "id": "provincia",
@@ -134,57 +143,68 @@
   {
    "id": "macro",
    "name": "Banco Macro",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.macro.com.ar/beneficios/supermercados"
   },
   {
    "id": "cencopay",
    "name": "CencoPay",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://cencopay.ar/promociones/"
   },
   {
    "id": "cuentacarrefour",
    "name": "Carrefour Banco (cuenta digital)",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
   },
   {
    "id": "cuentadni",
    "name": "Cuenta DNI",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://www.bancoprovincia.com.ar/cuentadni/"
   },
   {
    "id": "mp",
    "name": "Mercado Pago",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://promociones.mercadopago.com.ar/"
   },
   {
    "id": "modo",
    "name": "MODO",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://www.modo.com.ar/promos"
   },
   {
    "id": "naranjax",
    "name": "Naranja X",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://www.naranjax.com/promociones"
   },
   {
    "id": "personalpay",
    "name": "Personal Pay",
-   "tipo": "billetera"
+   "tipo": "billetera",
+   "promos_url": "https://www.personal.com.ar/pay/beneficios"
   },
   {
    "id": "naranja",
    "name": "Tarjeta Naranja (Plan Z)",
-   "tipo": "tarjeta"
+   "tipo": "tarjeta",
+   "promos_url": "https://www.naranjax.com/promociones"
   },
   {
    "id": "tcarrefour",
    "name": "Tarjeta Carrefour (crédito)",
-   "tipo": "tarjeta"
+   "tipo": "tarjeta",
+   "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
   },
   {
    "id": "tci",
    "name": "Tarjeta Coto TCI",
-   "tipo": "tarjeta"
+   "tipo": "tarjeta",
+   "promos_url": "https://www.coto.com.ar/terminos-descuentos"
   },
   {
    "id": "credito",
@@ -199,12 +219,14 @@
   {
    "id": "clublanacion",
    "name": "Club La Nación",
-   "tipo": "programa"
+   "tipo": "programa",
+   "promos_url": "https://club.lanacion.com.ar/"
   },
   {
    "id": "comunidadcoto",
    "name": "Comunidad Coto",
-   "tipo": "programa"
+   "tipo": "programa",
+   "promos_url": "https://www.coto.com.ar/terminos-descuentos"
   },
   {
    "id": "jubilados",
@@ -214,12 +236,14 @@
   {
    "id": "masclub",
    "name": "MasClub (ChangoMás)",
-   "tipo": "programa"
+   "tipo": "programa",
+   "promos_url": "https://www.masonline.com.ar/masclub"
   },
   {
    "id": "micarrefour",
    "name": "Mi Carrefour",
-   "tipo": "programa"
+   "tipo": "programa",
+   "promos_url": "https://www.carrefour.com.ar/mi-carrefour"
   },
   {
    "id": "todos",

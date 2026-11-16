@@ -168,3 +168,13 @@ jobs:
           path: site
       - id: deploy
         uses: actions/deploy-pages@v5
+  alerta:
+    # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
+    needs: [pruebas, visual, publicar]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, sparse-checkout: scripts/alerta.py, sparse-checkout-cone-mode: false }
+      - run: python3 scripts/alerta.py "la publicación de la web" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }

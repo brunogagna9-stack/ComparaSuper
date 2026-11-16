@@ -28,7 +28,8 @@
         "envio_url": "https://www.carrefour.com.ar",
         "envio_nota": "CABA (CP 1414); igual con compras de $6.000 a $250.000"
       },
-      "sigla": "C"
+      "sigla": "C",
+      "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
     },
     {
       "id": "carrefourmaxi",
@@ -43,7 +44,8 @@
       "buscar": null,
       "online": null,
       "sigla": "CM",
-      "nota": "Formato mayorista: algunos precios piden llevar varias unidades."
+      "nota": "Formato mayorista: algunos precios piden llevar varias unidades.",
+      "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
     },
     {
       "id": "changomas",
@@ -71,7 +73,8 @@
         "envio_url": "https://www.masonline.com.ar",
         "envio_nota": "CABA (CP 1414); igual con compras de $2.500 a $100.000"
       },
-      "sigla": "Ch"
+      "sigla": "Ch",
+      "promos_url": "https://www.masonline.com.ar/promociones-bancarias"
     },
     {
       "id": "coto",
@@ -97,7 +100,8 @@
         "envio_url": "https://www.coto.com.ar/ayuda",
         "envio_nota": "compra mínima $30.000 con envío, según su página de ayuda; retiro sin cargo"
       },
-      "sigla": "Co"
+      "sigla": "Co",
+      "promos_url": "https://www.coto.com.ar/terminos-descuentos"
     },
     {
       "id": "dar",
@@ -139,7 +143,8 @@
         "envio_url": "https://diaonline.supermercadosdia.com.ar/preguntas-frecuentes",
         "envio_nota": "CABA (CP 1414); compra mínima $12.000"
       },
-      "sigla": "Dí"
+      "sigla": "Dí",
+      "promos_url": "https://diaonline.supermercadosdia.com.ar/descuentos-bancarios"
     },
     {
       "id": "diarco",
@@ -154,7 +159,8 @@
       "buscar": null,
       "online": null,
       "nota": "Local mayorista de Diarco (no incluye Diarco Barrio). Algunos precios piden llevar varias unidades.",
-      "sigla": "DM"
+      "sigla": "DM",
+      "promos_url": "https://www.diarco.com.ar/promociones/"
     },
     {
       "id": "diarcobarrio",
@@ -174,7 +180,8 @@
       "web": "https://www.diarco.com.ar",
       "buscar": null,
       "online": null,
-      "nota": "Locales de cercanía de Diarco (Diarco Barrio y Diarco Pueblo), con precios distintos a los del Diarco Mayorista."
+      "nota": "Locales de cercanía de Diarco (Diarco Barrio y Diarco Pueblo), con precios distintos a los del Diarco Mayorista.",
+      "promos_url": "https://www.diarco.com.ar/promociones/"
     },
     {
       "id": "disco",
@@ -197,7 +204,8 @@
         "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
         "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
-      "sigla": "Ds"
+      "sigla": "Ds",
+      "promos_url": "https://www.disco.com.ar/descuentos-del-dia?type=por-banco"
     },
     {
       "id": "josimar",
@@ -234,7 +242,8 @@
         "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
         "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
-      "sigla": "Ju"
+      "sigla": "Ju",
+      "promos_url": "https://www.jumbo.com.ar/descuentos-del-dia?type=por-banco"
     },
     {
       "id": "makro",
@@ -250,7 +259,8 @@
       "online": null,
       "sigla": "Mk",
       "nota": "Formato mayorista: algunos precios piden llevar varias unidades.",
-      "sepa_base": "mayoristas"
+      "sepa_base": "mayoristas",
+      "promos_url": "https://makro.com.ar/beneficios-bancarios/"
     },
     {
       "id": "maxiconsumo",
@@ -265,7 +275,8 @@
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Mx",
-      "sepa_base": "mayoristas"
+      "sepa_base": "mayoristas",
+      "promos_url": "https://www.maxiconsumo.com/promociones"
     },
     {
       "id": "nini",
@@ -282,7 +293,8 @@
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Ni",
-      "sepa_base": "mayoristas"
+      "sepa_base": "mayoristas",
+      "promos_url": "https://www.nini.com.ar/promociones"
     },
     {
       "id": "pedidosya",
@@ -362,7 +374,8 @@
         "envio_fuente": "la tienda no publica el costo; se ve en el carrito",
         "envio_nota": "retiro en sucursal sin cargo (verificado)"
       },
-      "sigla": "Ve"
+      "sigla": "Ve",
+      "promos_url": "https://www.vea.com.ar/descuentos-del-dia?type=por-banco"
     },
     {
       "id": "vital",
@@ -379,7 +392,8 @@
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Vi",
-      "sepa_base": "mayoristas"
+      "sepa_base": "mayoristas",
+      "promos_url": "https://www.vital.com.ar/promociones"
     },
     {
       "id": "yaguar",
@@ -395,7 +409,8 @@
       "online": null,
       "nota": "Mayorista: algunos precios piden llevar varias unidades.",
       "sigla": "Ya",
-      "sepa_base": "mayoristas"
+      "sepa_base": "mayoristas",
+      "promos_url": "https://yaguar.com.ar/mendoza/promociones-bancarias"
     },
     {
       "id": "coope",
@@ -409,7 +424,8 @@
       "web": "https://www.cooperativaobrera.coop",
       "buscar": null,
       "online": null,
-      "nota": "Cooperativa Obrera. En AMBA tiene sucursales en Caballito, San Telmo y La Plata."
+      "nota": "Cooperativa Obrera. En AMBA tiene sucursales en Caballito, San Telmo y La Plata.",
+      "promos_url": "https://www.cooperativaobrera.coop/financiacion-y-promos-bancarias/"
     },
     {
       "id": "laanonima",
@@ -425,7 +441,8 @@
       "web": "https://www.laanonima.com.ar",
       "buscar": null,
       "online": null,
-      "nota": "Cadena patagónica, también en el sur de Buenos Aires, Córdoba y el norte (hoy maneja las sucursales Libertad)."
+      "nota": "Cadena patagónica, también en el sur de Buenos Aires, Córdoba y el norte (hoy maneja las sucursales Libertad).",
+      "promos_url": "https://www.laanonima.com.ar/empresa/promociones-y-descuentos"
     },
     {
       "id": "marianomax",
@@ -497,7 +514,8 @@
       "web": "https://www.toledodigital.com.ar",
       "buscar": null,
       "online": null,
-      "nota": "Cadena de Mar del Plata y la costa bonaerense."
+      "nota": "Cadena de Mar del Plata y la costa bonaerense.",
+      "promos_url": "https://www.toledodigital.com.ar/promociones-bancarias"
     },
     {
       "id": "unicoop",

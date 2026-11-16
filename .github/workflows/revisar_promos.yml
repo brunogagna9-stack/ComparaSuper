@@ -50,3 +50,13 @@ jobs:
           elif [ -n "$NUM" ]; then
             gh issue close "$NUM" --comment "Todo en orden: se cierra solo."
           fi
+  alerta:
+    # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
+    needs: [revisar]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, sparse-checkout: scripts/alerta.py, sparse-checkout-cone-mode: false }
+      - run: python3 scripts/alerta.py "la revisión semanal de descuentos" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }

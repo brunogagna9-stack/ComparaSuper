@@ -1,13 +1,14 @@
 rules_version = '2';
 // SuperBarato: cada persona solo puede leer, cambiar o borrar SU documento (usuarios/{su id}).
 // Los correos los manda un proceso del servidor (scripts/enviar_avisos.py), que no pasa por estas reglas.
+// Se publican solas desde GitHub (workflow "Reglas de Firestore") cuando cambia este archivo.
 service cloud.firestore {
   match /databases/{database}/documents {
     match /usuarios/{uid} {
       function esDuenio() { return request.auth != null && request.auth.uid == uid; }
       function valido() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['email', 'semanal', 'bajas', 'zona', 'acepto', 'avisos', 'actualizado', 'enviados', 'ultimoEnvio'])
+        return d.keys().hasOnly(['email', 'semanal', 'bajas', 'zona', 'acepto', 'avisos', 'actualizado', 'enviados', 'ultimoEnvio', 'bajaToken', 'bajaUsado'])
           && (!('semanal' in d) || d.semanal is bool)
           && (!('bajas' in d) || d.bajas is bool)
           && (!('zona' in d) || (d.zona is string && d.zona.size() <= 10))
@@ -16,6 +17,14 @@ service cloud.firestore {
       }
       allow read, delete: if esDuenio();
       allow create, update: if esDuenio() && valido();
+      // Baja con un clic desde el correo, sin iniciar sesión: solo se puede APAGAR "semanal" o "bajas",
+      // y solo con la clave secreta de esa persona (bajaToken) que viaja en el enlace del correo.
+      allow update: if request.auth == null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['semanal', 'bajas', 'bajaUsado'])
+        && resource.data.get('bajaToken', '') is string && resource.data.get('bajaToken', '').size() >= 16
+        && request.resource.data.get('bajaUsado', '') == resource.data.get('bajaToken', '')
+        && (request.resource.data.get('semanal', false) == false || request.resource.data.get('semanal', false) == resource.data.get('semanal', false))
+        && (request.resource.data.get('bajas', false) == false || request.resource.data.get('bajas', false) == resource.data.get('bajas', false));
     }
     match /{otro=**} {
       allow read, write: if false;

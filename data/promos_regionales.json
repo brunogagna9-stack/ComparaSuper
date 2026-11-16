@@ -5,12 +5,14 @@
   {
    "id": "bsantafe",
    "name": "Banco Santa Fe",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.bancosantafe.com.ar/beneficios-supermercados"
   },
   {
    "id": "bancor",
    "name": "Bancor (Banco de Córdoba)",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.bancor.com.ar/promociones"
   },
   {
    "id": "bentrerios",
@@ -60,7 +62,8 @@
   {
    "id": "btf",
    "name": "Banco de Tierra del Fuego",
-   "tipo": "banco"
+   "tipo": "banco",
+   "promos_url": "https://www.btf.com.ar/promociones/la-25/"
   },
   {
    "id": "brioja",
@@ -105,7 +108,8 @@
   {
    "id": "cordobesa",
    "name": "Tarjeta Cordobesa (Bancor)",
-   "tipo": "tarjeta"
+   "tipo": "tarjeta",
+   "promos_url": "https://www.bancor.com.ar/promociones"
   },
   {
    "id": "tlaanonima",
@@ -140,7 +144,8 @@
   {
    "id": "tdino",
    "name": "Tarjeta Dino",
-   "tipo": "tarjeta"
+   "tipo": "tarjeta",
+   "promos_url": "https://bancodino.com/beneficios/"
   },
   {
    "id": "mutualcard",

@@ -40,3 +40,13 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then python3 scripts/enviar_avisos.py "${{ inputs.modo }}" $P; exit; fi
           python3 scripts/enviar_avisos.py bajas
           if [ "$(TZ=America/Argentina/Buenos_Aires date +%u)" = "1" ]; then python3 scripts/enviar_avisos.py semanal; fi
+  alerta:
+    # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
+    needs: [correos]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main, sparse-checkout: scripts/alerta.py, sparse-checkout-cone-mode: false }
+      - run: python3 scripts/alerta.py "el envío de correos a usuarios" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }

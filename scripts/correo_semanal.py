@@ -23,10 +23,17 @@ DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábad
 VERDE, AMARILLO = "#0e7a55", "#ffc72c"
 
 
-def leer(nombre):
+ZONAS = {"amba": "CABA y GBA", "b": "la provincia de Buenos Aires", "k": "Catamarca", "h": "Chaco", "u": "Chubut", "x": "Córdoba", "w": "Corrientes",
+         "e": "Entre Ríos", "p": "Formosa", "y": "Jujuy", "l": "La Pampa", "f": "La Rioja", "m": "Mendoza", "n": "Misiones", "q": "Neuquén",
+         "r": "Río Negro", "a": "Salta", "j": "San Juan", "d": "San Luis", "z": "Santa Cruz", "s": "Santa Fe", "g": "Santiago del Estero",
+         "v": "Tierra del Fuego", "t": "Tucumán", "c": "CABA"}
+
+
+def leer(nombre, zona="amba"):
+    carpeta = "data/" if zona == "amba" else f"data/p/{zona}/"
     if "--local" in sys.argv:
-        return json.loads((RAIZ / "site" / "data" / nombre).read_text(encoding="utf-8"))
-    req = urllib.request.Request(WEB + "data/" + nombre, headers={"User-Agent": "SuperBarato/0.1 (correo semanal)"})
+        return json.loads((RAIZ / "site" / carpeta / nombre).read_text(encoding="utf-8"))
+    req = urllib.request.Request(WEB + carpeta + nombre, headers={"User-Agent": "SuperBarato/0.1 (correo semanal)"})
     return json.loads(urllib.request.urlopen(req, timeout=60).read())
 
 
@@ -149,8 +156,10 @@ def grilla(celdas):
     return "".join(f'<tr>{"".join(f)}{"<td></td>" * (3 - len(f))}</tr>' for f in filas)
 
 
-def main():
-    d, pr = leer("products.json"), leer("promos.json")
+def main(zona=None):
+    zona = zona or next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--zona=")), "amba")
+    d, pr = leer("products.json", zona), leer("promos.json", zona)
+    region = ZONAS.get(zona, "tu zona")
     ps = list(productos(d))
     tiendas = {s["id"]: s["name"] for s in d["stores"]}
     hoy = dt.date.today()
@@ -170,7 +179,7 @@ def main():
 <tr><td style="background:{VERDE};border-radius:14px 14px 0 0;padding:22px 24px;color:#fff">
 <a href="{WEB}" style="color:#fff;text-decoration:none;font-size:26px;font-weight:800">🛒 Super<span style="color:{AMARILLO}">Barato</span></a>
 <div style="font-size:20px;font-weight:700;margin-top:10px">Las ofertas de la semana del {fecha}</div>
-<div style="font-size:14px;opacity:.9;margin-top:4px">Precios de supermercados y mayoristas de CABA y GBA, comparados en un solo lugar.</div></td></tr>
+<div style="font-size:14px;opacity:.9;margin-top:4px">Precios de supermercados y mayoristas de {region}, comparados en un solo lugar.</div></td></tr>
 <tr><td style="background:#fff;padding:20px 18px">
 <h2 style="font-size:18px;margin:0 0 8px">📉 Bajaron de precio</h2>
 <table width="100%" cellpadding="0" cellspacing="0">{sec_bajas}</table>
@@ -185,12 +194,13 @@ def main():
 Precios de sucursales: base oficial SEPA (Precios Claros), del {d['updated'].split('-')[2]}/{d['updated'].split('-')[1]}; pueden cambiar. Confirmá siempre en el comercio.<br>
 Recibís este correo porque te anotaste en <a href="{WEB}" style="color:{VERDE}">superbarato.com.ar</a>.<br>
 SuperBarato · Ciudad de Buenos Aires · <a href="mailto:contacto@superbarato.com.ar" style="color:{VERDE}">contacto@superbarato.com.ar</a><br>
-<a href="{{{{ unsubscribe }}}}" style="color:{VERDE}">Darme de baja</a></td></tr>
+<a href="{{{{ unsubscribe }}}}" style="color:{VERDE}">Darme de baja</a> · <a href="{WEB}#cuenta" style="color:{VERDE}">Elegir qué correos recibo</a></td></tr>
 </table></td></tr></table></body></html>"""
-    sal = RAIZ / "correo" / f"semana-{lunes.isoformat()}.html"
+    sal = RAIZ / "correo" / (f"semana-{lunes.isoformat()}.html" if zona == "amba" else f"semana-{lunes.isoformat()}-{zona}.html")
     sal.parent.mkdir(exist_ok=True)
     sal.write_text(cuerpo, encoding="utf-8")
-    print(f"Correo armado: {sal} ({len(b)} bajas, {len(c)} ofertas por cantidad)")
+    print(f"Correo armado para {region}: {sal} ({len(b)} bajas, {len(c)} ofertas por cantidad)")
+    return sal, len(b) + len(c)
 
 
 if __name__ == "__main__":

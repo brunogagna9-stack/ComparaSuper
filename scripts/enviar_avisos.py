@@ -15,6 +15,7 @@ import datetime as dt
 import html
 import json
 import os
+import secrets
 import sys
 import urllib.request
 
@@ -25,6 +26,7 @@ WEB = "https://superbarato.com.ar/"
 CUENTA = WEB + "#cuenta"
 REMITENTE = {"name": "SuperBarato", "email": "novedades@superbarato.com.ar"}
 TOPE_DIA = 290
+BAJA_SEMANAL = "{{ params.baja }}"   # Brevo reemplaza esto por el enlace de baja de cada persona
 PRUEBA = "--prueba" in sys.argv
 VERDE, AMARILLO = cs.VERDE, cs.AMARILLO
 
@@ -42,8 +44,8 @@ def brevo(cuerpo):
     urllib.request.urlopen(req, timeout=60).read()
 
 
-def cabeceras():
-    return {"List-Unsubscribe": f"<mailto:contacto@superbarato.com.ar?subject=baja>, <{CUENTA}>"}
+def cabeceras(baja=CUENTA):
+    return {"List-Unsubscribe": f"<mailto:contacto@superbarato.com.ar?subject=baja>, <{baja}>"}
 
 
 def firebase():
@@ -54,8 +56,20 @@ def firebase():
     return auth, firestore.client()
 
 
+def enlace_baja(uid, d, ref, que):
+    """Enlace para dejar de recibir un tipo de correo con un clic, sin iniciar sesión.
+    Lleva una clave secreta propia de cada persona (bajaToken), que las reglas de Firestore comprueban."""
+    tok = d.get("bajaToken")
+    if not tok:
+        tok = secrets.token_urlsafe(18)
+        d["bajaToken"] = tok
+        if not PRUEBA:
+            ref.update({"bajaToken": tok})
+    return f"{WEB}#baja?u={uid}&t={tok}&q={que}"
+
+
 def usuarios(campo):
-    """(uid, correo, documento) de quienes activaron `campo` y confirmaron el correo."""
+    """(uid, correo, documento, referencia) de quienes activaron `campo` y confirmaron el correo."""
     auth, db = firebase()
     for d in db.collection("usuarios").where(campo, "==", True).stream():
         try:
@@ -86,13 +100,13 @@ def precios_zona(zona, cache={}):
     return cache[zona]
 
 
-def pie(motivo):
+def pie(motivo, baja):
     return f"""<tr><td style="padding:16px 18px;font-size:12px;color:#4b5a53;text-align:center;line-height:1.5">
-{motivo}<br>Para cambiar qué correos recibís o dejar de recibirlos, entrá a <a href="{CUENTA}" style="color:{VERDE}">Mi cuenta</a>.<br>
+{motivo}<br><a href="{baja}" style="color:{VERDE}">Dejar de recibir estos avisos</a> · Para elegir qué correos recibir, entrá a <a href="{CUENTA}" style="color:{VERDE}">Mi cuenta</a>.<br>
 SuperBarato · Ciudad de Buenos Aires · <a href="mailto:contacto@superbarato.com.ar" style="color:{VERDE}">contacto@superbarato.com.ar</a></td></tr>"""
 
 
-def correo_bajas(items):
+def correo_bajas(items, baja=CUENTA):
     filas = "".join(f"""<tr><td style="padding:10px 0;border-top:1px solid #e5ece8">
 <a href="{WEB}p/{html.escape(i['id'])}.html" style="text-decoration:none;color:#14231c"><table width="100%" cellpadding="0" cellspacing="0"><tr>
 <td width="72" valign="middle">{f'<img src="{html.escape(i["img"])}" width="64" height="64" alt="" style="display:block;width:64px;height:64px;object-fit:contain">' if i['img'] else '🛒'}</td>
@@ -110,7 +124,7 @@ def correo_bajas(items):
 <tr><td style="background:#fff;padding:12px 20px 20px"><table width="100%" cellpadding="0" cellspacing="0">{filas}</table>
 <p style="font-size:12px;color:#4b5a53">Precio más bajo de hoy entre los comercios comparados, sin descuentos de medio de pago. Confirmá siempre en el comercio.</p>
 <table cellpadding="0" cellspacing="0" style="margin:16px auto 0"><tr><td style="background:{AMARILLO};border-radius:999px"><a href="{WEB}#conviene" style="display:inline-block;padding:13px 24px;font-weight:800;color:#14231c;text-decoration:none">Ver dónde conviene comprar »</a></td></tr></table></td></tr>
-{pie("Recibís este correo porque marcaste estos productos con la 🔔 y activaste los avisos de baja de precio.")}
+{pie("Recibís este correo porque marcaste estos productos con la 🔔 y activaste los avisos de baja de precio.", baja)}
 </table></td></tr></table></body></html>"""
 
 
@@ -141,7 +155,8 @@ def bajas():
         items.sort(key=lambda i: -i["pct"])
         asunto = f"🔔 Bajó {items[0]['nombre'][:50]}" if len(items) == 1 else f"🔔 Bajaron {len(items)} productos que seguís"
         print(f"{'(prueba) ' if PRUEBA else ''}{mail}: {len(items)} productos")
-        brevo({"sender": REMITENTE, "to": [{"email": mail}], "subject": asunto, "htmlContent": correo_bajas(items), "headers": cabeceras(), "tags": ["bajas"]})
+        baja = enlace_baja(uid, d, ref, "bajas")
+        brevo({"sender": REMITENTE, "to": [{"email": mail}], "subject": asunto, "htmlContent": correo_bajas(items, baja), "headers": cabeceras(baja), "tags": ["bajas"]})
         enviados += 1
         if not PRUEBA:
             for i in items:
@@ -151,21 +166,34 @@ def bajas():
 
 
 def semanal():
-    cs.main()
+    """Un resumen por zona (CABA y GBA, o cada provincia), a quien eligió recibirlo según la zona guardada en su cuenta."""
+    por_zona = {}
+    for uid, mail, d, ref in usuarios("semanal"):
+        por_zona.setdefault(d.get("zona") or "amba", []).append({"to": {"email": mail}, "baja": enlace_baja(uid, d, ref, "semanal")})
     lunes = dt.date.today() + dt.timedelta(days=(7 - dt.date.today().weekday()) % 7)
-    cuerpo = (cs.RAIZ / "correo" / f"semana-{lunes.isoformat()}.html").read_text(encoding="utf-8")
-    cuerpo = cuerpo.replace("{{ unsubscribe }}", CUENTA).replace("Darme de baja", "Cambiar qué correos recibo o darme de baja")
-    destinos = [{"email": mail} for _, mail, d, _ in usuarios("semanal") if (d.get("zona") or "amba") == "amba"]   # por ahora el resumen es de CABA y GBA
-    if len(destinos) > TOPE_DIA:
-        print(f"⚠️ Hay {len(destinos)} suscriptos y el plan gratis permite {TOPE_DIA} por día: se manda a los primeros")
-        destinos = destinos[:TOPE_DIA]
-    asunto = f"📉 Las ofertas de la semana del {lunes.day}/{lunes.month} en SuperBarato"
-    for i in range(0, len(destinos), 900):   # Brevo: una llamada con un mensaje por persona (nadie ve los correos de los demás)
-        lote = destinos[i:i + 900]
-        print(f"{'(prueba) ' if PRUEBA else ''}Semanal a {len(lote)} personas")
-        brevo({"sender": REMITENTE, "subject": asunto, "htmlContent": cuerpo, "headers": cabeceras(), "tags": ["semanal"],
-               "messageVersions": [{"to": [x]} for x in lote]})
-    print(f"Correo semanal enviado a {len(destinos)} personas")
+    total = 0
+    for zona, destinos in sorted(por_zona.items(), key=lambda x: -len(x[1])):
+        if total >= TOPE_DIA:
+            print(f"⚠️ Tope diario alcanzado: {zona} queda sin enviar")
+            continue
+        try:
+            ruta, n = cs.main(zona)
+        except Exception as e:
+            print(f"⚠️ No se pudo armar el correo de {zona}: {e}")
+            continue
+        if n == 0:
+            print(f"{zona}: sin ofertas para mostrar, no se manda")
+            continue
+        cuerpo = ruta.read_text(encoding="utf-8").replace("{{ unsubscribe }}", BAJA_SEMANAL).replace("Darme de baja", "Dejar de recibir este correo")
+        destinos = destinos[:TOPE_DIA - total]
+        asunto = f"📉 Las ofertas de la semana del {lunes.day}/{lunes.month} en {cs.ZONAS.get(zona, 'tu zona')}"
+        for i in range(0, len(destinos), 900):   # Brevo: un mensaje por persona (nadie ve los correos de los demás)
+            lote = destinos[i:i + 900]
+            print(f"{'(prueba) ' if PRUEBA else ''}Semanal {zona} a {len(lote)} personas")
+            brevo({"sender": REMITENTE, "subject": asunto, "htmlContent": cuerpo, "headers": cabeceras(), "tags": ["semanal", zona],
+                   "messageVersions": [{"to": [x["to"]], "params": {"baja": x["baja"]}} for x in lote]})
+        total += len(destinos)
+    print(f"Correo semanal enviado a {total} personas")
 
 
 def mantener_clave():
