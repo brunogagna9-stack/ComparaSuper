@@ -1,4 +1,4 @@
-Librerías de código abierto usadas por ComparáSúper (copias locales, sin servidores de terceros):
+Librerías de código abierto usadas por SuperBarato (copias locales, sin servidores de terceros):
 - MiniSearch 7.2.0 (MIT) – buscador tolerante a errores: minisearch.js
 - Leaflet 1.9.4 (BSD-2) – mapa de sucursales; mapas de © colaboradores de OpenStreetMap: leaflet/
 - zxing-wasm 3.1.6 (MIT) – lector de códigos de barras: zxing-wasm/

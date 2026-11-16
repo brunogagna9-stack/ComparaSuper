@@ -1,4 +1,4 @@
-/* ComparáSúper — toda la web en un archivo. Lee site/data/*.json (los arma scripts/build_data.py) y site/config.json. */
+/* SuperBarato — toda la web en un archivo. Lee site/data/*.json (los arma scripts/build_data.py) y site/config.json. */
 "use strict";
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -856,7 +856,7 @@ function ticketTabla(lineas, res, esLista) {
 }
 
 /* ---------- LISTA DE COMPRAS COMPARTIDA DESDE OTRA APP O PEGADA ----------
-   Con la web instalada, en "Compartir" de WhatsApp, Notas, etc. aparece ComparáSúper (Web Share Target).
+   Con la web instalada, en "Compartir" de WhatsApp, Notas, etc. aparece SuperBarato (Web Share Target).
    Cada renglón ("2 leche", "yerba x1kg", "• aceite") se busca entre los productos. */
 function partirLista(t) {
   return (t || "").split(/\n|,|;|•|·|- (?=\S)/).map(x => x.replace(/^[\s\-*–—>✅☑️🔲⬜\d.)]*(?=\D)/u, m => (/^\s*\d+\s*$/.test(m) ? m : m.replace(/[\d.)]/g, ""))).trim()).filter(x => x.length >= 3)
@@ -1085,7 +1085,7 @@ function vNosotros() {
   ];
   $("#view").innerHTML = `<div class="wrap legal nosotros"><section class="blk first">
     <h1>👋 Conocenos</h1>
-    <p>ComparáSúper nació con una idea simple: que hacer las compras del súper cueste menos. Juntamos en un solo lugar los precios de los supermercados y mayoristas, sus ofertas y los descuentos de bancos, billeteras y tarjetas de cada día, para que sepas <b>dónde, qué día y cómo pagar</b> para gastar menos.</p>
+    <p>SuperBarato nació con una idea simple: que hacer las compras del súper cueste menos. Juntamos en un solo lugar los precios de los supermercados y mayoristas, sus ofertas y los descuentos de bancos, billeteras y tarjetas de cada día, para que sepas <b>dónde, qué día y cómo pagar</b> para gastar menos.</p>
     <p>Es un <b>proyecto independiente</b>: no tiene relación comercial con los comercios, las apps ni los bancos que aparecen, y ningún comercio paga para salir primero.</p>
     <h2 id="s-acerca">Acerca de</h2>
     <ul>
@@ -1117,11 +1117,11 @@ function vLegal() {
   const contacto = R.email ? `escribiendo a <a href="mailto:${esc(R.email)}">${esc(R.email)}</a> o desde <a href="#sugerencias">Contacto y sugerencias</a> (aclarando que es un pedido sobre tus datos: no se publica)` : `desde <a href="#sugerencias">Contacto y sugerencias</a>, aclarando que es un pedido sobre tus datos (esos mensajes no se publican)`;
   $("#view").innerHTML = `<div class="wrap legal"><section class="blk first">
     <h1>📄 Términos de uso y privacidad</h1><p class="sub">Última actualización: 15 de noviembre de 2026.</p>
-    <h2>Qué es ComparáSúper</h2>
-    <p>ComparáSúper es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen. Usar la página implica aceptar estos términos.</p>
+    <h2>Qué es SuperBarato</h2>
+    <p>SuperBarato es un comparador independiente y gratuito de precios de supermercados, mayoristas y tiendas online de ${enAMBA() ? "CABA y GBA" : esc(provNombre(PROV))}. <b>No vende productos</b>, no cobra comisiones y no tiene relación comercial con los comercios, bancos ni billeteras que aparecen. Usar la página implica aceptar estos términos.</p>
     <h2>Precios, descuentos y comparaciones</h2>
     <ul>
-      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b>, que las cadenas informan al Estado nacional. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto. Esos datos los publica la Subsecretaría de Defensa del Consumidor y Lealtad Comercial con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>; ComparáSúper los procesa, así que lo que mostramos no es la información oficial tal cual.</li>
+      <li>Los precios de las sucursales salen de la base oficial <b>SEPA (Precios Claros)</b>, que las cadenas informan al Estado nacional. Mostramos el precio más común entre las sucursales de la zona; en tu sucursal puede ser distinto. Esos datos los publica la Subsecretaría de Defensa del Consumidor y Lealtad Comercial con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>; SuperBarato los procesa, así que lo que mostramos no es la información oficial tal cual.</li>
       <li>Los precios online salen de las tiendas web de cada cadena y no incluyen el envío; cuando armás tu compra, lo sumamos aparte si la tienda lo informa.</li>
       <li>Los descuentos con bancos, billeteras y tarjetas los relevamos de las páginas oficiales y de notas periodísticas; cada uno indica su fuente y la fecha en que se verificó. Tienen topes, días y condiciones que pueden cambiar sin aviso.</li>
       <li>Las comparaciones (cuál es más barato, el <a href="#ranking">ranking de cadenas</a>, Tu inflación) se calculan con esos datos y con el método que explicamos en cada sección. Son información, no una recomendación de compra.</li>
@@ -1146,7 +1146,7 @@ function vLegal() {
     <p class="sub">El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita a intervalos no inferiores a seis meses, salvo que se acredite un interés legítimo al efecto conforme lo establecido en el artículo 14, inciso 3 de la Ley N° 25.326. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.</p>
     <h2>Otras condiciones</h2>
     <ul>
-      <li>El código y el diseño de ComparáSúper son del proyecto. Los datos de precios de SEPA se pueden reutilizar según su licencia CC BY 4.0, citando la fuente.</li>
+      <li>El código y el diseño de SuperBarato son del proyecto. Los datos de precios de SEPA se pueden reutilizar según su licencia CC BY 4.0, citando la fuente.</li>
       <li>Podemos actualizar estos términos; la fecha de arriba indica la última versión.</li>
       <li>Estos términos se rigen por las leyes de la República Argentina.</li>
     </ul>
@@ -1655,7 +1655,7 @@ function shareText(items, bst, day) {
     t += `\n\n💡 Lo más barato el ${DIAS[day].toLowerCase()}: todo en ${optName(bst)}, ${money(bst.total).replace(" ", " ")}`;
     if (bst.pay.promo) t += `\n💳 Pagando con ${medioName(bst.pay.promo)} (${bst.pay.promo.pct}%) — cómo pagar: ${pagoTxt(bst.pay.promo)}`;
   }
-  return t + `\n\nPrecios de ComparáSúper del ${D.updated.split("-").reverse().join("/")}; pueden cambiar.`;
+  return t + `\n\nPrecios de SuperBarato del ${D.updated.split("-").reverse().join("/")}; pueden cambiar.`;
 }
 function siteBase() { if (CFG.sitio_url) return CFG.sitio_url.replace(/#.*$/, ""); return location.href.replace(/#.*$/, ""); }
 const shareLink = items => siteBase() + "#l-" + items.map(({ p, qty }) => `${p.id}-${qty}`).join("-");
@@ -2150,7 +2150,7 @@ function modalNews() {
       <label class="fl">Correo electrónico<input type="email" id="nmail" required autocomplete="email" placeholder="tu@correo.com"></label>
       <fieldset><legend>Quiero recibir</legend>${temas.map(([v, t], i) => `<label class="ck"><input type="checkbox" name="tema" value="${v}" ${i < 2 ? "checked" : ""}> ${t}</label>`).join("")}</fieldset>
       <label class="fl">Zona<select class="sel" id="nzona">${(enAMBA() ? ["CABA", "GBA Norte", "GBA Oeste", "GBA Sur", "La Plata y alrededores"] : [provNombre(PROV)]).concat(PROVINCIAS.map(x => x.name).filter(n => !["Ciudad de Buenos Aires", provNombre(PROV)].includes(n))).map(z => `<option>${esc(z)}</option>`).join("")}</select></label>
-      <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de ComparáSúper y que mi correo se guarde en una planilla de Google para eso. No lo compartimos con nadie. <a href="#legal" data-close>Más detalles</a>.</label>
+      <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de SuperBarato y que mi correo se guarde en una planilla de Google para eso. No lo compartimos con nadie. <a href="#legal" data-close>Más detalles</a>.</label>
       <div class="ferr" id="nerr" role="alert"></div>
       <div class="mfoot"><button type="button" class="btn sec sm" data-close>Cancelar</button><button class="btn" type="submit">Registrarme</button></div>
     </form>`);
@@ -2332,7 +2332,7 @@ function anunciarVista(mover) {
   const h = location.hash.slice(1) || "inicio"; if (h.startsWith("p-")) return;
   const v = h.split(/[-?=]/)[0], h1 = $("#view h1");
   const nom = h1 ? h1.textContent.replace(/^[^\p{L}\d]+/u, "").trim() : "";
-  document.title = v === "inicio" || !nom ? TITULO0 : `${nom} · ComparáSúper`;
+  document.title = v === "inicio" || !nom ? TITULO0 : `${nom} · SuperBarato`;
   const quieto = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || "") || !$("#drawer").hidden || !$("#modal").hidden;
   if (mover && v !== VISTA_ANT && h1 && !quieto) { h1.tabIndex = -1; h1.focus({ preventScroll: true }); }
   if (h1) VISTA_ANT = v;
@@ -2624,7 +2624,7 @@ const saveFav = () => LS.set("cs_fav", [...FAV]);
 /* ---------- bienvenida y configuración en 3 preguntas ---------- */
 function modalBienvenida() {
   LS.set("cs_bienvenida", 1);
-  openModal(`<div class="wel"><div class="wic">👋</div><h2>¡Bienvenido a ComparáSúper!</h2>
+  openModal(`<div class="wel"><div class="wic">👋</div><h2>¡Bienvenido a SuperBarato!</h2>
     <p>Compará el mismo producto en ${D.stores.length} supermercados y mayoristas, con sus ofertas y los descuentos de tu banco o billetera según el día.</p>
     <p class="sub">Si contestás 3 preguntas (menos de un minuto), te mostramos los precios y descuentos que te sirven a vos.</p>
     <div class="wbtns"><button class="btn" id="wconf">⚙️ Configurar en 3 preguntas</button><button class="btn sec" id="wtour">🧭 Ver la guía rápida</button><button class="linkbtn" data-close>Ahora no</button></div></div>`);
@@ -2799,7 +2799,7 @@ function modalAgendar(id) {
   const desc = `${pr.pct ? pr.pct + "% de descuento" : pr.cuotas + " cuotas"} · ${topeTxt(pr)}. Cómo pagar: ${pagoTxt(pr)}. Vigente hasta el ${pr.hasta.split("-").reverse().join("/")}. Más info: ${(CFG.sitio_url || location.href.split("#")[0])}#pagos`;
   const rrule = `RRULE:FREQ=WEEKLY;BYDAY=${pr.dias.map(i => ICSD[i]).join(",")};UNTIL=${hasta}`;
   const gurl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent("🛒 " + tit)}&dates=${ymd(d0)}/${ymd(d1)}&details=${encodeURIComponent(desc)}&recur=${encodeURIComponent(rrule)}`;
-  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//ComparaSuper//ES", "BEGIN:VEVENT", `UID:${pr.id}-${Date.now()}@comparasuper`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
+  const ics = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//SuperBarato//ES", "BEGIN:VEVENT", `UID:${pr.id}-${Date.now()}@superbarato.com.ar`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, "").slice(0, 15)}Z`,
     `DTSTART;VALUE=DATE:${ymd(d0)}`, `DTEND;VALUE=DATE:${ymd(d1)}`, rrule, `SUMMARY:🛒 ${tit.replace(/[,;]/g, " ")}`, `DESCRIPTION:${desc.replace(/[,;]/g, " ").replace(/\n/g, "\\n")}`,
     "BEGIN:VALARM", "TRIGGER:-PT15H", "ACTION:DISPLAY", "DESCRIPTION:Hoy hay descuento en el súper", "END:VALARM", "END:VEVENT", "END:VCALENDAR"].join("\r\n");
   const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
@@ -2888,12 +2888,12 @@ function vComparar() {
 /* ---------- instalar como app ---------- */
 let INSTALL = null;
 addEventListener("beforeinstallprompt", e => { e.preventDefault(); INSTALL = e; $$(".inst").forEach(x => (x.hidden = false)); });
-addEventListener("appinstalled", () => { INSTALL = null; $$(".inst").forEach(x => (x.hidden = true)); toast("¡Listo! ComparáSúper quedó instalada"); });
+addEventListener("appinstalled", () => { INSTALL = null; $$(".inst").forEach(x => (x.hidden = true)); toast("¡Listo! SuperBarato quedó instalada"); });
 const yaInstalada = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone;
 async function instalar() {
   if (INSTALL) { INSTALL.prompt(); await INSTALL.userChoice; INSTALL = null; return; }
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  openModal(`<h2>📲 Instalar ComparáSúper</h2><p>Queda un ícono en la pantalla de tu celular, abre más rápido y podés ver tu carrito aunque no tengas señal en el súper.</p>
+  openModal(`<h2>📲 Instalar SuperBarato</h2><p>Queda un ícono en la pantalla de tu celular, abre más rápido y podés ver tu carrito aunque no tengas señal en el súper.</p>
     ${ios ? `<ol class="steps"><li>Abrí esta página en <b>Safari</b>.</li><li>Tocá el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li><li>Elegí <b>«Agregar a inicio»</b> y tocá <b>Agregar</b>.</li></ol>`
       : `<ol class="steps"><li>Abrí el menú del navegador (los tres puntitos <b>⋮</b>).</li><li>Tocá <b>«Instalar app»</b> o <b>«Agregar a la pantalla principal»</b>.</li><li>Confirmá con <b>Instalar</b>.</li></ol>`}
     <div class="mfoot"><span></span><button class="btn" data-close>Entendido</button></div>`);
@@ -2972,7 +2972,7 @@ async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(
 function botOpen(open) {
   $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
   if (open) ovOpen("chat", () => botOpen(false)); else ovDone("chat");
-  if (open && !BOT.msgs.length) { BOT.msgs.push({ who: "b", html: "¡Hola! Soy el asistente de ComparáSúper. Te ayudo a encontrar precios, descuentos por día y banco, y a usar la página. ¿Qué necesitás?" }); botRender(); }
+  if (open && !BOT.msgs.length) { BOT.msgs.push({ who: "b", html: "¡Hola! Soy el asistente de SuperBarato. Te ayudo a encontrar precios, descuentos por día y banco, y a usar la página. ¿Qué necesitás?" }); botRender(); }
   if (open) $("#chq").focus();
 }
 $("#botbtn").onclick = () => botOpen($("#chat").hidden);

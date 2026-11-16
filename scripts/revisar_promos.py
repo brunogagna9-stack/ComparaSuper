@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data"
-UA = {"User-Agent": "Mozilla/5.0 (compatible; ComparaSuper/0.3; revisión de promociones)"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; SuperBarato/0.3; revisión de promociones)"}
 DIAS = int(sys.argv[1]) if len(sys.argv) > 1 else 10
 
 

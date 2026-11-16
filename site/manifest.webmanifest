@@ -1,6 +1,6 @@
 {
-  "name": "ComparáSúper · Precios de supermercados",
-  "short_name": "ComparáSúper",
+  "name": "SuperBarato · Precios de supermercados",
+  "short_name": "SuperBarato",
   "description": "Compará precios de supermercados y mayoristas de todo el país, ofertas y descuentos de bancos y billeteras.",
   "lang": "es-AR",
   "start_url": "./#inicio",

@@ -1,4 +1,4 @@
-/* ComparáSúper — pantalla para elegir la provincia (mapa 3D con fotos, alfiler y zoom).
+/* SuperBarato — pantalla para elegir la provincia (mapa 3D con fotos, alfiler y zoom).
    Uso: abrirMapa({ actual: "AR-X", primera: true }) → Promise con el código elegido ("AR-X") o null si se cerró. */
 (function () {
   const PROVS = [
@@ -125,7 +125,7 @@
     const root = document.createElement("div");
     root.id = "pmapa"; root.setAttribute("role", "dialog"); root.setAttribute("aria-modal", "true"); root.setAttribute("aria-label", "Elegí tu provincia");
     root.innerHTML = `<div class="pm-in">
-      <div class="pm-top"><div class="pm-logo">🛒 Compará<span>Súper</span></div>${primera ? "" : '<button class="pm-x" type="button" data-pmx>✕ Cerrar</button>'}</div>
+      <div class="pm-top"><div class="pm-logo">🛒 Super<span>Barato</span></div>${primera ? "" : '<button class="pm-x" type="button" data-pmx>✕ Cerrar</button>'}</div>
       <h1>${primera ? "¡Bienvenido! ¿Desde qué provincia comprás?" : "Cambiar de provincia"}</h1>
       <p class="pm-sub">Elegí tu provincia en el mapa (o en la lista) y te mostramos solo los supermercados, precios y descuentos de ahí. La podés cambiar cuando quieras desde el botón 🗺️ de arriba.</p>
       <div class="pm-box"><div class="mapwrap">

@@ -1,4 +1,4 @@
-// Pruebas automáticas de ComparáSúper (Playwright, de Microsoft, código abierto).
+// Pruebas automáticas de SuperBarato (Playwright, de Microsoft, código abierto).
 // Corren solas en GitHub antes de publicar cada cambio de la web, en PC y en celular.
 // Para correrlas en tu compu: npm install && npx playwright install chromium && npm test
 const { defineConfig, devices } = require("@playwright/test");

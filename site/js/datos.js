@@ -1,4 +1,4 @@
-/* ComparáSúper: lee el archivo de productos. Lo usan la página y el proceso de fondo (buscador.js).
+/* SuperBarato: lee el archivo de productos. Lo usan la página y el proceso de fondo (buscador.js).
    Entiende los dos formatos: el de siempre ({products: [...]}) y el "por columnas" (v2), que arma
    scripts/build_data.py: pesa menos y se lee más rápido. */
 (function (g) {

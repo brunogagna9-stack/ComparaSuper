@@ -1,4 +1,4 @@
-/* ComparáSúper: funciona sin internet con lo último que se vio (por ejemplo, adentro del súper sin señal).
+/* SuperBarato: funciona sin internet con lo último que se vio (por ejemplo, adentro del súper sin señal).
    Usa Workbox (de Google, código abierto, licencia MIT), guardado en js/vendor/workbox/.
    - Página, código y datos de precios: primero la red (siempre lo más nuevo); si no hay señal o tarda
      demasiado, lo guardado.

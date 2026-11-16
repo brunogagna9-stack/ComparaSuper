@@ -1,4 +1,4 @@
-/* ComparáSúper: proceso de fondo (Web Worker).
+/* SuperBarato: proceso de fondo (Web Worker).
    Baja y lee los productos y arma el índice del buscador SIN trabar la pantalla: la página
    solo recibe la lista ya lista y le pregunta qué productos coinciden con lo que escribiste.
    Buscador: MiniSearch (licencia MIT, js/vendor/minisearch.js) con tolerancia a errores de

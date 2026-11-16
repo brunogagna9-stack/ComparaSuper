@@ -1,4 +1,4 @@
-# ComparáSúper (prototipo)
+# SuperBarato (prototipo)
 
 Comparador gratuito de precios de supermercados de Argentina, hecho con la misma base que ComparáTech:
 web estática en GitHub Pages + un proceso automático (GitHub Actions) que actualiza los datos todos los días.

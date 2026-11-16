@@ -41,7 +41,7 @@ function diseno(p, img) {
   const nombre = p.name.length > 70 ? p.name.slice(0, 68) + "…" : p.name;
   return h("div", { width: 1200, height: 630, display: "flex", flexDirection: "column", background: "#f4f7f5", fontFamily: "Jakarta" }, [
     h("div", { display: "flex", alignItems: "center", justifyContent: "space-between", background: VERDE, color: "#fff", padding: "26px 48px" }, [
-      h("div", { display: "flex", fontSize: 40, fontWeight: 800 }, [h("span", {}, "Compará"), h("span", { color: AMARILLO }, "Súper")]),
+      h("div", { display: "flex", fontSize: 40, fontWeight: 800 }, [h("span", {}, "Super"), h("span", { color: AMARILLO }, "Barato")]),
       h("div", { display: "flex", fontSize: 26, fontWeight: 700, opacity: 0.9 }, `Comparado en ${p.n} comercios`),
     ]),
     h("div", { display: "flex", flex: 1, alignItems: "center", padding: "26px 48px", gap: 44 }, [

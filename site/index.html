@@ -3,20 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ComparáSúper · Precios de supermercados</title>
+<title>SuperBarato · Precios de supermercados</title>
 <meta name="google-site-verification" content="24iJAJs0mW4ACd0ENeoT0kQnPo67h7M31oHgKuBHy18">
 <meta name="description" content="Compará precios de supermercados, mayoristas y apps de todo el país: el mismo producto en cada comercio, en el local y online, ofertas vigentes y descuentos por medio de pago de cada día.">
 <meta name="theme-color" content="#0e7a55">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ComparáSúper">
+<meta name="apple-mobile-web-app-title" content="SuperBarato">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="ComparáSúper">
-<meta property="og:title" content="ComparáSúper · Encontrá los mejores precios en un solo lugar">
+<meta property="og:site_name" content="SuperBarato">
+<meta property="og:title" content="SuperBarato · Encontrá los mejores precios en un solo lugar">
 <meta property="og:description" content="Compará precios de supermercados y mayoristas de todas las provincias, ofertas y descuentos de bancos y billeteras de cada día.">
-<meta property="og:url" content="https://brunogagna9-stack.github.io/ComparaSuper/">
-<meta property="og:image" content="https://brunogagna9-stack.github.io/ComparaSuper/img/og.png">
+<meta property="og:url" content="https://superbarato.com.ar/">
+<meta property="og:image" content="https://superbarato.com.ar/img/og.png">
 <meta name="twitter:card" content="summary_large_image">
 <script>try{var t=JSON.parse(localStorage.getItem("cs_tema"));if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
 <link rel="preload" href="fonts/plus-jakarta-sans-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
@@ -32,7 +32,7 @@
 <div id="pocos" class="demo" hidden></div>
 <header class="site">
   <div class="hin">
-    <a class="logo" href="#inicio" aria-label="ComparáSúper, ir al inicio"><span class="lg-ic" aria-hidden="true">🛒</span><span class="lt">Compará<span>Súper</span></span></a>
+    <a class="logo" href="#inicio" aria-label="SuperBarato, ir al inicio"><span class="lg-ic" aria-hidden="true">🛒</span><span class="lt">Super<span>Barato</span></span></a>
     <form class="hsearch" id="hform" role="search">
       <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
       <input id="q" type="search" placeholder="Buscá: leche, yerba, aceite…" aria-label="Buscar productos" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="qsug" aria-autocomplete="list">
@@ -76,15 +76,15 @@
 
 <footer class="site">
   <div class="fin">
-    <div class="fbrand"><div class="flogo">Compará<span>Súper</span></div>
+    <div class="fbrand"><div class="flogo">Super<span>Barato</span></div>
       <p>Compará precios de supermercados y mayoristas de todo el país, con sus ofertas y los descuentos de tu banco o billetera de cada día.</p>
       <p><button class="btn sm" data-news><svg class="ic" aria-hidden="true"><use href="#i-mail"/></svg> Recibir novedades por correo</button></p></div>
-    <nav aria-label="ComparáSúper"><h4>ComparáSúper</h4>
+    <nav aria-label="SuperBarato"><h4>SuperBarato</h4>
       <a href="#nosotros">Conocenos</a><a href="#nosotros-acerca">Acerca de</a><a href="#como">Cómo funciona</a><a href="#nosotros-datos">De dónde salen los precios</a><a href="#nosotros-preguntas">Preguntas frecuentes</a></nav>
     <nav aria-label="Ayuda y legales"><h4>Ayuda y legales</h4>
       <a href="#sugerencias">Contacto y sugerencias</a><a href="#legal">Términos de uso</a><a href="#legal-privacidad">Política de privacidad</a><a href="#nosotros-aviso">Aviso sobre precios</a></nav>
   </div>
-  <div class="fbot"><span>© <span id="year"></span> ComparáSúper · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</span>
+  <div class="fbot"><span>© <span id="year"></span> SuperBarato · Proyecto independiente, sin relación comercial con los comercios, las apps ni los bancos.</span>
     <span class="flic">Precios de sucursales: <a href="https://datos.gob.ar/dataset/produccion-precios-claros---base-sepa" target="_blank" rel="noopener">Precios Claros – Base SEPA</a>, Subsecretaría de Defensa del Consumidor y Lealtad Comercial, con licencia <a href="https://creativecommons.org/licenses/by/4.0/deed.es" target="_blank" rel="noopener">CC BY 4.0</a>. Los procesamos (precio más común por zona, cruce por código de barras) y no son datos oficiales tal como los mostramos.</span><span id="fupd"></span></div>
 </footer>
 
@@ -123,7 +123,7 @@
   <button class="fab bot" id="botbtn" type="button" aria-controls="chat" aria-expanded="false" title="Asistente virtual"><span class="fi" aria-hidden="true"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span><span class="ft">Asistente virtual</span></button>
 </div>
 <section class="chat" id="chat" role="dialog" aria-label="Asistente virtual" hidden>
-  <div class="chh"><span class="fi"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span><div><b>Asistente de ComparáSúper</b><small>Te ayudo con precios, descuentos y cómo usar la página</small></div><button class="x" id="chatx" type="button" aria-label="Cerrar el asistente">✕</button></div>
+  <div class="chh"><span class="fi"><svg class="ic" aria-hidden="true"><use href="#i-bot"/></svg></span><div><b>Asistente de SuperBarato</b><small>Te ayudo con precios, descuentos y cómo usar la página</small></div><button class="x" id="chatx" type="button" aria-label="Cerrar el asistente">✕</button></div>
   <div class="chm" id="chm" aria-live="polite"></div>
   <form class="chf" id="chf"><input id="chq" type="text" placeholder="Escribí tu pregunta…" autocomplete="off" aria-label="Tu pregunta"><button class="btn sm" type="submit">Enviar</button></form>
 </section>

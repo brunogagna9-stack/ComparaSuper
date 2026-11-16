@@ -31,7 +31,7 @@ CKAN = "https://datos.produccion.gob.ar/api/3/action/package_show?id={}"
 DATASETS = [("sepa-precios", True, "minoristas"), ("precios-claros-sepa-mayoristas", False, "mayoristas")]   # (id, obligatoria, base)
 PROVINCIAS = ["AR-C", "AR-B"]   # CABA y provincia de Buenos Aires (códigos ISO 3166-2)
 REGION = "CABA y provincia de Buenos Aires"
-UA = {"User-Agent": "ComparaSuper/0.1 (comparador independiente de precios)"}
+UA = {"User-Agent": "SuperBarato/0.1 (comparador independiente de precios)"}
 MIN_SUCURSALES = 2
 EXTRA_DIAS = 2       # cuántos días anteriores se revisan para completar cadenas que faltan en el archivo de hoy
 MAYORISTAS = set()   # se completa con data/stores.json (tipo "mayorista")              # un precio informado por una sola sucursal no se publica

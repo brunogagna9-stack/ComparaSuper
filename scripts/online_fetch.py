@@ -19,7 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-UA = {"User-Agent": "Mozilla/5.0 (compatible; ComparaSuper/0.2; comparador independiente de precios)", "Accept": "application/json"}
+UA = {"User-Agent": "Mozilla/5.0 (compatible; SuperBarato/0.2; comparador independiente de precios)", "Accept": "application/json"}
 LOTE = 50            # códigos por consulta
 PAUSA = 0.4          # segundos entre consultas a una misma tienda
 MAX_ERRORES = 15

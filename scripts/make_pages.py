@@ -42,15 +42,15 @@ def main():
             h, iid, f = img.split("/", 2)
             img = f"https://{hosts[int(h)]}/arquivos/ids/{iid}-300-300/{f}"
         t = html.escape(f"{p['name']}: desde {money(v)} en {stores.get(s, s)}")
-        desc = html.escape(f"Compará el precio en {len(p['offers'])} supermercados de CABA y GBA, con ofertas y descuentos por banco y billetera. ComparáSúper.")
+        desc = html.escape(f"Compará el precio en {len(p['offers'])} supermercados de CABA y GBA, con ofertas y descuentos por banco y billetera. SuperBarato.")
         dest = f"../#p-{p['id']}"
         if p["id"] in con_og:
             og.append({"id": p["id"], "name": p["name"], "precio": money(v), "store": stores.get(s, s), "n": len(p["offers"]), "img": img})
             img = f"{url}og/{p['id']}.jpg"
         page = f"""<!DOCTYPE html><html lang="es-AR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{t} · ComparáSúper</title><meta name="description" content="{desc}">
+<title>{t} · SuperBarato</title><meta name="description" content="{desc}">
 <link rel="canonical" href="{url}p/{p['id']}.html">
-<meta property="og:type" content="product"><meta property="og:site_name" content="ComparáSúper"><meta property="og:title" content="{t}">
+<meta property="og:type" content="product"><meta property="og:site_name" content="SuperBarato"><meta property="og:title" content="{t}">
 <meta property="og:description" content="{desc}"><meta property="og:url" content="{url}p/{p['id']}.html">{f'<meta property="og:image" content="{html.escape(img)}">' if img else ""}
 <meta name="twitter:card" content="{'summary_large_image' if p['id'] in con_og else 'summary'}">{'<meta property="og:image:width" content="800"><meta property="og:image:height" content="420">' if p['id'] in con_og else ""}
 <meta http-equiv="refresh" content="0;url={dest}"><script>location.replace("{dest}")</script></head>

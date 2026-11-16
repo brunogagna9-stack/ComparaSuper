@@ -1,5 +1,5 @@
 /**
- * ComparáSúper — recibe sugerencias, votos y registros de novedades, y publica las sugerencias aprobadas.
+ * SuperBarato — recibe sugerencias, votos y registros de novedades, y publica las sugerencias aprobadas.
  *
  * Va pegado en la planilla de Google (Extensiones > Apps Script) y se publica como "Aplicación web"
  * con acceso "Cualquier usuario". La dirección que da Google se pone en site/config.json → "apps_script_url".
