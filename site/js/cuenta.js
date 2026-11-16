@@ -6,9 +6,11 @@
    - La base de datos se usa por su API web (REST) con el token del usuario; las reglas de Firestore solo dejan
      que cada persona lea y cambie su propio documento. Los correos los manda scripts/enviar_avisos.py. */
 const Cuenta = (() => {
-  let FB = null, auth = null, user = null, doc = null, cargando = null;
+  let FB = null, auth = null, user = null, doc = null, cargando = null, appCheck = null;
   const oyentes = [];
   const cfg = () => (CFG && CFG.firebase) || null;
+  /* App Check: prueba invisible (reCAPTCHA de Google) de que el pedido sale de la web y no de un robot */
+  async function tokenAC() { if (!appCheck) return null; try { return (await FB.getToken(appCheck, false)).token; } catch { return null; } }
   const docUrl = uid => `https://firestore.googleapis.com/v1/projects/${cfg().projectId}/databases/(default)/documents/usuarios/${uid}`;
 
   /* ---- Firestore: valores con tipo <-> valores comunes ---- */
@@ -23,9 +25,9 @@ const Cuenta = (() => {
     : "mapValue" in f ? Object.fromEntries(Object.entries(f.mapValue.fields || {}).map(([k, x]) => [k, deFs(x)])) : null;
 
   async function api(metodo, campos) {
-    const token = await user.getIdToken();
+    const token = await user.getIdToken(), ac = await tokenAC();
     let url = docUrl(user.uid);
-    const op = { method: metodo, headers: { Authorization: "Bearer " + token } };
+    const op = { method: metodo, headers: { Authorization: "Bearer " + token, ...(ac ? { "X-Firebase-AppCheck": ac } : {}) } };
     if (campos) {
       url += "?" + Object.keys(campos).map(k => "updateMask.fieldPaths=" + encodeURIComponent(k)).join("&");
       op.headers["Content-Type"] = "application/json";
@@ -53,7 +55,9 @@ const Cuenta = (() => {
       s.src = "js/vendor/firebase-auth.js"; s.async = true;
       s.onload = () => {
         FB = self.FBAuth;
-        const app = FB.initializeApp(cfg());
+        const { appCheck: claveAC, ...fbcfg } = cfg();
+        const app = FB.initializeApp(fbcfg);
+        if (claveAC) try { appCheck = FB.initializeAppCheck(app, { provider: new FB.ReCaptchaEnterpriseProvider(claveAC), isTokenAutoRefreshEnabled: true }); } catch (e) { console.warn("App Check", e); }
         auth = FB.initializeAuth(app, { persistence: [FB.indexedDBLocalPersistence, FB.browserLocalPersistence], popupRedirectResolver: FB.browserPopupRedirectResolver });
         auth.languageCode = "es";
         let primera = true;
@@ -127,6 +131,7 @@ const Cuenta = (() => {
             <div class="mfoot">${crear ? `<button type="button" class="linkbtn" id="cmodo">Ya tengo cuenta</button>` : `<button type="button" class="linkbtn" id="colv">Olvidé mi contraseña</button>`}
               <button class="btn" type="submit">${crear ? "Crear cuenta" : "Ingresar"}</button></div>
             ${crear ? "" : `<p class="sub" style="text-align:center;margin-top:10px">¿No tenés cuenta? <button type="button" class="linkbtn" id="cmodo">Crear una</button></p>`}
+            <p class="sub recap">Protegido por reCAPTCHA de Google: se aplican su <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a> y sus <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Condiciones</a>.</p>
           </form>`);
         const err = $("#cerr"), acepto = () => { if ($("#cok").checked) return true; err.textContent = "Para seguir tenés que aceptar los términos y la política de privacidad."; return false; };
         const prefs = () => (crear ? { semanal: $("#csem").checked, bajas: $("#cbaj").checked } : null);
@@ -205,6 +210,7 @@ const Cuenta = (() => {
 
   return {
     get user() { return user; }, get doc() { return doc; }, activa: () => !!cfg(),
+    tokenAC: async () => { await cargar(); return tokenAC(); },
     cambios: f => oyentes.push(f), abrir, cargar, iniciar, guardar, marcar, desmarcar, avisos, salir, borrar, reenviar, recargar, zona,
   };
 })();

@@ -30,5 +30,5 @@
       }
     }
   },
-  "javascript": { "globals": ["BarcodeDetector", "READY", "BUSC", "D", "modalScan", "L", "maplibregl", "autoAnimate", "FloatingUIDOM", "EmblaCarousel", "EmblaCarouselAutoplay", "PhotoSwipe", "ZXing", "ZXingWASM", "Tesseract", "uPlot", "qrcode", "MiniSearch", "idbKeyval", "importScripts", "decodificar", "driver", "leafletGestureHandling", "abrirMapa", "provNombre", "provCorto", "PROVINCIAS", "cerrarMapa", "Cuenta", "CFG", "LS", "$", "esc", "toast", "openModal", "closeModal", "enAMBA", "PCARP"] }
+  "javascript": { "globals": ["BarcodeDetector", "READY", "BUSC", "D", "modalScan", "L", "maplibregl", "autoAnimate", "FloatingUIDOM", "EmblaCarousel", "EmblaCarouselAutoplay", "PhotoSwipe", "ZXing", "ZXingWASM", "Tesseract", "uPlot", "qrcode", "MiniSearch", "idbKeyval", "importScripts", "decodificar", "driver", "leafletGestureHandling", "abrirMapa", "provNombre", "provCorto", "PROVINCIAS", "cerrarMapa", "Cuenta", "CFG", "LS", "$", "esc", "toast", "openModal", "closeModal", "enAMBA", "PCARP", "setTab", "vLegalPagina"] }
 }

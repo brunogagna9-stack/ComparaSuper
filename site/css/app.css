@@ -1336,3 +1336,4 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .go.sm{font-size:12px;padding:4px 9px}
 .pbtns{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
 .basesrow{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0;align-items:center}.bk-l{font-size:13px;font-weight:600}
+.grecaptcha-badge{visibility:hidden}.recap{font-size:11px;text-align:center;margin-top:8px}

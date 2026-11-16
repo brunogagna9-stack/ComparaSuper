@@ -95,7 +95,8 @@
     "projectId": "superbarato-589da",
     "storageBucket": "superbarato-589da.firebasestorage.app",
     "messagingSenderId": "966638885867",
-    "appId": "1:966638885867:web:197bc9b0d6278dd412d7ae"
+    "appId": "1:966638885867:web:197bc9b0d6278dd412d7ae",
+    "appCheck": "6Lf72CMuAAAAAGGd1YYF6MBHI9w-fE_x5b4SLuw1"
   },
   "_comentario_firebase": "Cuentas de usuario (Firebase Authentication + Firestore). Esta configuración es pública por diseño; la seguridad la dan las reglas de firestore.rules y los dominios autorizados en Firebase."
 }
