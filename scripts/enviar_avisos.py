@@ -168,6 +168,18 @@ def semanal():
     print(f"Correo semanal enviado a {len(destinos)} personas")
 
 
+def mantener_clave():
+    """Brevo vence las claves que pasan 90 días sin usarse: una consulta mínima por día la mantiene activa."""
+    if PRUEBA:
+        return
+    try:
+        req = urllib.request.Request("https://api.brevo.com/v3/smtp/statistics/aggregatedReport?days=1", headers={"api-key": os.environ["BREVO_API_KEY"], "Accept": "application/json"})
+        urllib.request.urlopen(req, timeout=30).read()
+    except Exception as e:
+        print("⚠️ No se pudo consultar Brevo (¿clave vencida, sin permisos o con bloqueo por IP?):", e)
+
+
 if __name__ == "__main__":
     modo = next((a for a in sys.argv[1:] if not a.startswith("--")), "bajas")
+    mantener_clave()
     {"bajas": bajas, "semanal": semanal}[modo]()
