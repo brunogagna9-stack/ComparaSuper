@@ -242,6 +242,10 @@ const base = (o, c) => (c === "online" ? o.po : o.p);
 const promoOf = (o, c) => (c === "online" ? o.promoo : o.promo);
 const chans = o => ["tienda", "online"].filter(c => base(o, c) && (S.canal === "ambos" || S.canal === c));
 const allChans = o => ["tienda", "online"].filter(c => base(o, c));
+/* mayoristas: la base oficial da el precio por unidad llevando el bulto cerrado (o.bulto unidades), no el de una suelta.
+   Ese precio solo entra en las cuentas si llevás al menos un bulto, y no cuenta como "el más barato" de una unidad. */
+const bultoDe = (o, c) => (c === "tienda" && o.bulto > 1 ? o.bulto : 0);
+const usable = (o, c, qty = 1) => base(o, c) && !(bultoDe(o, c) > qty);
 /* precio llevando 1 unidad (la promo solo cuenta si no exige llevar más de 1) */
 function price1(o, c) { const pr = promoOf(o, c); return pr && pr.n <= 1 ? pr.pu : base(o, c); }
 /* la opción más barata de un producto: {o, c, v} */
@@ -251,8 +255,9 @@ function best(p, filter = null) {
   for (const o of p.offers) {
     if (filter && !filter.has(o.s)) continue;
     if (o.anom && sanos) continue;
-    for (const c of chans(o)) { const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }
+    for (const c of chans(o)) { if (bultoDe(o, c)) continue; const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }
   }
+  if (!b) for (const o of p.offers) for (const c of chans(o)) { if (filter && !filter.has(o.s)) continue; const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }   // solo hay precios por bulto
   return b || { o: p.offers[0], c: allChans(p.offers[0])[0], v: price1(p.offers[0], allChans(p.offers[0])[0]) };
 }
 const hasPromo = p => p.offers.some(o => o.promo || o.promoo);
@@ -411,7 +416,7 @@ function basketAt(sid, c, items, day) {
   let reg = 0, sub = 0; const miss = [], lines = [];
   for (const { p, qty } of items) {
     const o = offerAt(p, sid);
-    if (!o || !base(o, c)) { miss.push(p); continue; }
+    if (!o || !usable(o, c, qty)) { miss.push(p); continue; }
     const lc = lineCost(o, c, qty); reg += qty * base(o, c); sub += lc.total; lines.push({ p, qty, o, lc });
   }
   const pay = payDiscount(sid, day, c, sub, true, reg), env = lines.length ? shipping(sid, c, sub) : 0;
@@ -427,7 +432,7 @@ function bestSplit(items, day) {
     const A = [], B = []; let ok = true;
     for (const it of items) {
       const oa = offerAt(it.p, a.sid), ob = offerAt(it.p, b.sid);
-      const ca = oa && base(oa, a.c) ? lineCost(oa, a.c, it.qty).total : Infinity, cb = ob && base(ob, b.c) ? lineCost(ob, b.c, it.qty).total : Infinity;
+      const ca = oa && usable(oa, a.c, it.qty) ? lineCost(oa, a.c, it.qty).total : Infinity, cb = ob && usable(ob, b.c, it.qty) ? lineCost(ob, b.c, it.qty).total : Infinity;
       if (ca === Infinity && cb === Infinity) { ok = false; break; }
       (ca <= cb ? A : B).push(it);
     }
@@ -446,13 +451,13 @@ function bestSplit(items, day) {
    Como ir a muchos lugares incluye la posibilidad de ir a uno o a dos, nunca puede dar más caro que esas opciones. */
 function bestMulti(items, day, bst, split) {
   const opts = options();
-  const bruto = items.reduce((a, { p, qty }) => a + Math.min(...opts.map(x => { const o = offerAt(p, x.sid); return o && base(o, x.c) ? lineCost(o, x.c, qty).total : Infinity; })), 0);
+  const bruto = items.reduce((a, { p, qty }) => a + Math.min(...opts.map(x => { const o = offerAt(p, x.sid); return o && usable(o, x.c, qty) ? lineCost(o, x.c, qty).total : Infinity; })), 0);
   if (!isFinite(bruto) || !bruto) return null;
   const armar = tasa => {
     const g = new Map();
     for (const it of items) {
       let m = null;
-      opts.forEach((x, i) => { const o = offerAt(it.p, x.sid); if (!o || !base(o, x.c)) return; const v = lineCost(o, x.c, it.qty).total * (1 - tasa(x)); if (!m || v < m.v) m = { v, i }; });
+      opts.forEach((x, i) => { const o = offerAt(it.p, x.sid); if (!o || !usable(o, x.c, it.qty)) return; const v = lineCost(o, x.c, it.qty).total * (1 - tasa(x)); if (!m || v < m.v) m = { v, i }; });
       if (!m) return null;
       g.set(m.i, [...(g.get(m.i) || []), it]);
     }
@@ -524,7 +529,7 @@ function card(p) {
     <div class="tags">${tags.join("")}</div>
     <h3>${esc(p.name)}</h3>
     <div><div class="from">Más barato en ${where(b)}</div>
-      <div class="price">${money(b.v)}</div>
+      <div class="price">${money(b.v)}${b.c === "online" ? '<span class="sub env"> + envío</span>' : ""}</div>
       <div class="unit">${unitTxt(p, b.v)}${dn ? ` · <span class="chg dn">▼ ${Math.abs(dn.chg.pct)}% en ${esc(ST[dn.s].name)}</span>` : ""}</div></div>
     <div class="meta"><span class="sub">en ${n} ${n === 1 ? "comercio" : "comercios"}</span>
       ${addCtl(p.id)}</div>
@@ -1477,7 +1482,7 @@ function qtyRow(p, qty, kind) {
   const hint = qtyHint(p, qty, sid || null);
   return `<div class="litem" style="view-transition-name:q${kind}${p.id}">${prodImg(p, "e")}
     <div><div class="n" data-open="${p.id}">${esc(p.name)}</div>
-      <div class="sub">${at ? `Elegido en <b>${esc(chanName(sid, at.c))}</b>: ${money(at.v)} c/u <button class="linkbtn" data-unpref="${p.id}">quitar elección</button>` : `Desde ${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · en ${p.offers.length} comercios`}</div>
+      <div class="sub">${at ? `Elegido en <b>${esc(chanName(sid, at.c))}</b>: ${money(at.v)} c/u <button class="linkbtn" data-unpref="${p.id}">quitar elección</button>` : `Desde ${money(b.v)} en ${esc(chanName(b.o.s, b.c))}${b.c === "online" ? " (+ envío)" : ""} · en ${p.offers.length} comercios`}</div>
       ${hint ? `<div class="qhint">🏷️ ${esc(hint)}</div>` : ""}</div>
     <div class="qty"><button data-q="${kind}|${p.id}" data-d="-1" aria-label="Uno menos">−</button><span>${qty}</span><button data-q="${kind}|${p.id}" data-d="1" aria-label="Uno más">+</button></div>
     <button class="rm" data-rm="${kind}|${p.id}" aria-label="Sacar">✕</button></div>`;
@@ -1745,6 +1750,13 @@ function vConviene() {
         <div class="daysel">${DIAS.map((d, i) => `<button class="${i === day ? "on" : ""}" data-ld="${i}">${DCORTO[i]}${i === HOY ? " (hoy)" : ""}</button>`).join("")}</div>
         <div style="margin-top:10px">${canalChips()}</div>
         <p class="sub" style="margin:10px 0 0">Descuentos de pago: ${MEDIOS ? `solo con <b>tus ${MEDIOS.length} medios</b>` : "<b>todos</b> (no elegiste tus medios)"} · <a href="#" data-medios>cambiar</a></p></section></div>
+    ${(() => {   // el precio más bajo de algún producto es online, pero con el envío conviene otra opción: lo decimos para que no confunda
+      if (!bst) return "";
+      const on = [...new Set(items.map(({ p }) => best(p)).filter(b => b.c === "online" && !(b.o.s === bst.sid && bst.c === "online")).map(b => b.o.s))];
+      if (!on.length) return "";
+      const txt = on.map(s => `${esc(chanName(s, "online"))} (envío estimado ${money((ST[s].online || {}).envio || 0)}${(ST[s].online || {}).retiro ? ", o retiro en sucursal" : ""})`).join(", ");
+      return `<p class="note">💡 Algunos productos tienen su precio más bajo online en ${txt}. Acá sumamos el envío, y con eso conviene otra opción. Si retirás en la sucursal, mirá su fila en la tabla sin contar el envío.</p>`;
+    })()}
     <div class="sumgrid">${card1}${card2}${card3}${card4}</div>
     ${splitTable}${optTable}</div>`;
   bindPlanner();
@@ -1885,7 +1897,7 @@ async function openProduct(id) {
   const watching = id in AVISOS;
   // el más barato pagando hoy con un descuento de medio de pago
   let bp = null;
-  for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; }
+  for (const o of p.offers) for (const c of chans(o)) { if (bultoDe(o, c)) continue; const pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; }
   const pq = promoQty(p), q = LISTA[id] || 0, hint = q ? qtyHint(p, q, PREF[id]) : "";
   const link = o => {
     const u0 = o.url || (o.lk && ST[o.s].online && ST[o.s].online.vtex ? `https://${ST[o.s].online.vtex}/${o.lk}/p` : null);
@@ -1896,7 +1908,7 @@ async function openProduct(id) {
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
     const pr = promoOf(o, c), pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c));
-    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>
+    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>${bultoDe(o, c) ? ` <span class="tag sm">📦 c/u llevando el bulto de ${o.bulto}</span>` : ""}${c === "online" ? ' <span class="sub">+ envío</span>' : ""}
       ${pr ? `<span class="tag sm">🏷️ ${esc(pr.txt)}: ${money(pr.pu)} c/u${pr.n > 1 ? ` llevando ${pr.n}` : ""}</span>` : ""}
       ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span> ${acumBadge(pay.promo, true)}` : ""}</div>`;
   };
@@ -1912,6 +1924,7 @@ async function openProduct(id) {
     <div class="db">
       <div class="box best">
         <div><div class="sub">Más barato sin descuentos ${tip("sindto")}</div><div class="big">${money(b.v)}</div><div class="sub">${where(b)}${b.c === "online" ? " · más envío" : ` · <a data-mapa="${b.o.s}" href="${esc(mapaUrl(b.o.s))}" target="_blank" rel="noopener" title="Sucursal más cercana en Google Maps">${ic("navigation")} Cómo llegar</a>`}</div><div class="sub">${unitTxt(p, b.v)} ${unitTxt(p, b.v) ? tip("kg") : ""}</div></div>
+        ${(() => { const mb = p.offers.filter(o => bultoDe(o, "tienda") && !o.anom && o.p < b.v).sort((x, y) => x.p - y.p)[0]; return mb ? `<div class="sub bultonote">📦 En ${esc(ST[mb.s].name)}: ${money(mb.p)} c/u, pero llevando el bulto de ${mb.bulto}.</div>` : ""; })()}
         ${bp && bp.v < b.v ? `<div class="bestpay"><div class="sub">Pagando hoy con descuento ${tip("condto")}</div><div class="big">${money(bp.v)}</div><div class="sub">${storeChip(bp.o.s, bp.c)} con <b>${esc(medioName(bp.pay.promo))}</b></div><div class="sub">${pagoIcon(bp.pay.promo)} ${esc(pagoTxt(bp.pay.promo))}</div></div>` : ""}
         ${pq.length ? `<div class="qnote">🏷️ ${esc(hint || qtyHint(p, 1))}</div>` : ""}
         <div class="bbtn">
@@ -1993,31 +2006,50 @@ const loadUP = () => UP_P || (UP_P = new Promise((ok, ko) => {
   const l = document.createElement("link"); l.rel = "stylesheet"; l.href = "js/vendor/uplot/uPlot.min.css"; document.head.appendChild(l);
   const s = document.createElement("script"); s.src = "js/vendor/uplot/uPlot.iife.min.js"; s.onload = () => ok(window.uPlot); s.onerror = () => { UP_P = null; ko(); }; document.head.appendChild(s);
 }));
+/* comercios que la persona sacó del gráfico (se recuerda entre productos). null = nunca eligió: se muestran los 5 más baratos */
+let GRAF_OFF = LS.get("cs_graf_off", null);
 async function chartU(p, dias) {
   const el = $("#chart"); if (!el) return;
   let h, U;
   try { [h, U] = await Promise.all([hist(), loadUP()]); } catch { return chart(p); }   // sin la librería: el gráfico simple
   if (!$("#chart") || openProduct.id !== p.id) return;
   const ser = histSer(h, p.id) || {}, n = h.dates.length, desde = dias ? Math.max(0, n - dias) : 0;
-  const sids = D.stores.map(s => s.id).filter(s => ser[s] && ser[s].slice(desde).some(Boolean));
+  const ultimo = s => { const v = ser[s].slice(desde); for (let i = v.length - 1; i >= 0; i--) if (v[i]) return v[i]; return Infinity; };
+  const sids = D.stores.map(s => s.id).filter(s => ser[s] && ser[s].slice(desde).some(Boolean)).sort((a, b) => ultimo(a) - ultimo(b));   // del más barato al más caro
   if (n - desde < 2 || !sids.length) { el.innerHTML = '<div class="sub">Todavía no hay historial suficiente. Se completa día a día.</div>'; return; }
+  const may = s => { const o = p.offers.find(x => x.s === s); return !!(o && bultoDe(o, "tienda")); };   // precio por bulto (mayoristas)
+  const unidad = sids.filter(s => !may(s));
+  const off = new Set(GRAF_OFF || sids.filter(s => may(s) || unidad.indexOf(s) >= 5));   // sin elección propia: los 5 más baratos por unidad
+  if (sids.every(s => off.has(s))) off.clear();
   const xs = h.dates.slice(desde).map(d => Date.parse(d + "T12:00:00-03:00") / 1000);
   const css = getComputedStyle(document.documentElement), mut = css.getPropertyValue("--mut").trim() || "#888", line = css.getPropertyValue("--line").trim() || "#ddd";
   const eje = { stroke: mut, grid: { stroke: line, width: 1 }, ticks: { stroke: line, width: 1 }, font: "11px " + getComputedStyle(document.body).fontFamily };
   el.innerHTML = `<div class="ugraf"></div><div class="uinfo sub" aria-live="polite">Tocá o pasá el mouse por el gráfico para ver el precio de cada día.</div>
-    <div class="uley">${sids.map(sd => `<span><i style="background:${ST[sd].color || "#16a34a"}"></i>${esc(ST[sd].name)}</span>`).join("")}</div><p class="sr">${resumenHist(h.dates.slice(desde), Object.fromEntries(sids.map(s => [s, ser[s].slice(desde)])), sids)}</p>`;
+    <div class="uley-h"><span class="sub">Tocá un comercio para sacarlo o sumarlo al gráfico:</span>
+      <span class="uley-acc"><button type="button" class="linkbtn" data-gall>Todos</button> · <button type="button" class="linkbtn" data-gtop>Los 3 más baratos</button></span></div>
+    <div class="uley" role="group" aria-label="Comercios del gráfico">${sids.map((sd, k) => `<button type="button" class="ugb${off.has(sd) ? " off" : ""}" data-gs="${sd}" aria-pressed="${!off.has(sd)}">
+      <i class="${may(sd) ? "dash" : ""}" style="--c:${ST[sd].color || "#16a34a"}"></i>${esc(ST[sd].name)} <b>${isFinite(ultimo(sd)) ? money(ultimo(sd)) : ""}</b>${may(sd) ? ` <span class="sub">c/u por bulto de ${p.offers.find(x => x.s === sd).bulto}</span>` : ""}</button>`).join("")}</div>
+    <p class="sub ucap">Precios de lista de cada día (en el local, u online si el comercio no tiene local), sin ofertas ni descuentos con medios de pago. Por eso pueden no coincidir con el precio más barato de arriba.</p>
+    <p class="sr">${resumenHist(h.dates.slice(desde), Object.fromEntries(sids.map(s => [s, ser[s].slice(desde)])), sids)}</p>`;
   const info = $(".uinfo", el), fecha = t => new Date(t * 1000).toLocaleDateString("es-AR", { weekday: "short", day: "numeric", month: "numeric" });
   const datos = [xs, ...sids.map(s => ser[s].slice(desde).map(v => v || null))];
-  new U({
+  const u = new U({
     width: el.clientWidth || 600, height: 220, cursor: { drag: { x: false, y: false }, points: { size: 8 } }, legend: { show: false },
     scales: { x: { time: true } },
-    hooks: { setCursor: [u => { const i = u.cursor.idx; if (i == null) return; const filas = sids.map((sd, k) => [sd, datos[k + 1][i]]).filter(x => x[1]).sort((a, b) => a[1] - b[1]);
-      info.innerHTML = `<b>${fecha(xs[i])}</b>: ` + filas.map(([sd, v]) => `${esc(ST[sd].name)} ${money(v)}`).join(" · "); }] },
+    hooks: { setCursor: [u => { const i = u.cursor.idx; if (i == null) return; const filas = sids.map((sd, k) => [sd, datos[k + 1][i]]).filter(x => x[1] && !off.has(x[0])).sort((a, b) => a[1] - b[1]);
+      info.innerHTML = `<b>${fecha(xs[i])}</b>: ` + filas.map(([sd, v], k) => k === 0 ? `<b>${esc(ST[sd].name)} ${money(v)}</b>` : `${esc(ST[sd].name)} ${money(v)}`).join(" · "); }] },
     axes: [{ ...eje, splits: () => xs.length <= 10 ? xs : xs.filter((_, i) => i % Math.ceil(xs.length / 8) === 0), values: (u, v) => v.map(t => { const d = new Date(t * 1000); return `${d.getDate()}/${d.getMonth() + 1}`; }) },
       { ...eje, size: 64, values: (u, v) => v.map(x => money(x)) }],
     series: [{ value: (u, t) => (t == null ? "" : new Date(t * 1000).toLocaleDateString("es-AR", { day: "numeric", month: "numeric" })) },
-      ...sids.map(s => ({ label: ST[s].name, stroke: ST[s].color || "#16a34a", width: 2.2, spanGaps: true, points: { show: n - desde <= 15, size: 6 }, value: (u, v) => (v == null ? "—" : money(v)) }))],
+      ...sids.map(s => ({ label: ST[s].name, show: !off.has(s), stroke: ST[s].color || "#16a34a", width: 2.4, dash: may(s) ? [6, 4] : undefined, spanGaps: true, points: { show: n - desde <= 15, size: 6 }, value: (u, v) => (v == null ? "—" : money(v)) }))],
   }, datos, $(".ugraf", el));
+  const aplicar = () => {
+    sids.forEach((s, k) => { u.setSeries(k + 1, { show: !off.has(s) }); const b = $(`[data-gs="${s}"]`, el); b.classList.toggle("off", off.has(s)); b.setAttribute("aria-pressed", String(!off.has(s))); });
+    GRAF_OFF = [...new Set([...(GRAF_OFF || []).filter(s => !sids.includes(s)), ...off])]; LS.set("cs_graf_off", GRAF_OFF);   // recuerda también los de otros productos
+  };
+  for (const b of $$("[data-gs]", el)) b.onclick = () => { const s = b.dataset.gs; if (off.has(s)) off.delete(s); else if (sids.filter(x => !off.has(x)).length > 1) off.add(s); else toast("Dejá al menos un comercio en el gráfico"); aplicar(); };
+  $("[data-gall]", el).onclick = () => { off.clear(); aplicar(); };
+  $("[data-gtop]", el).onclick = () => { off.clear(); sids.filter(s => may(s) || unidad.indexOf(s) >= 3).forEach(s => off.add(s)); aplicar(); };
 }
 /* texto del gráfico de historial para quien no lo ve: precio más bajo hoy, y mínimo y máximo del período */
 function resumenHist(dates, ser, vis) {

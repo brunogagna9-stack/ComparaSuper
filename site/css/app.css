@@ -1307,3 +1307,15 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .skip{position:absolute;left:8px;top:-60px;z-index:1000;background:#0e7a55;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700}
 .skip:focus{top:8px;outline:3px solid #f59e0b;outline-offset:2px}
 #view h1:focus{outline:none}
+
+/* gráfico de historial: leyenda con botones para sacar o sumar comercios */
+.uley-h{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;margin:10px 0 6px;font-size:13px}
+.uley{display:flex;flex-wrap:wrap;gap:6px}
+.ugb{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card,#fff);color:inherit;border-radius:999px;padding:6px 10px;font:inherit;font-size:13px;cursor:pointer;min-height:36px}
+.ugb i{width:14px;height:3px;border-radius:2px;background:var(--c);flex:none}
+.ugb i.dash{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 8px)}
+.ugb.off{opacity:.55;text-decoration:line-through}
+.ugb.off b{font-weight:500}
+.ugb:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
+.bultonote{margin-top:6px}
+.price .env{font-size:12px;font-weight:500}
