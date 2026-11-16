@@ -1830,7 +1830,7 @@ async function vSugerencias() {
   setTab("sugerencias");
   const cfg = CFG.sugerencias || {};
   $("#view").innerHTML = `<div class="wrap"><section class="blk">
-    <div class="toolbar"><div><h1>💬 Dejanos tu sugerencia</h1><span class="sub">¿Qué le falta a la página? Las sugerencias se publican después de revisarlas, y todos pueden votarlas.</span></div></div>
+    <div class="toolbar"><div><h1>💬 Dejanos tu sugerencia</h1><span class="sub">¿Qué le falta a la página? Las sugerencias se publican después de revisarlas, y todos pueden votarlas.${(CFG.responsable || {}).email ? ` ¿Preferís escribirnos en privado? <a href="mailto:${esc(CFG.responsable.email)}">${esc(CFG.responsable.email)}</a>` : ""}</span></div></div>
     <div class="sggrid">
       <form class="box nform" id="sform" novalidate><h3>Nueva sugerencia</h3>
         <label class="fl">Tu idea<textarea id="stxt" maxlength="500" rows="5" placeholder="Por ejemplo: que se pueda ordenar por precio por kilo en el carrito"></textarea></label>
@@ -3010,6 +3010,7 @@ listaCompartida();
   loadProducts().catch(() => new Promise(() => {})).then(() => { saveLista(); refreshAvisos(); setTimeout(avisoBajas, 1500); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
+  if ((CFG.responsable || {}).email) { const m = CFG.responsable.email, f = $("#fcontacto"); if (f) f.innerHTML = ` · Contacto: <a href="mailto:${esc(m)}">${esc(m)}</a>`; }
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;
   $("#mdot").hidden = !MEDIOS;
   saveLista(); refreshAvisos(); updUbic(); route();

@@ -83,5 +83,10 @@
     "desde": "2026-12-01",
     "hasta": "2026-12-31",
     "activo": true
+  },
+  "responsable": {
+    "nombre": "Bruno Gagna",
+    "domicilio": "Ciudad de Buenos Aires",
+    "email": "contacto@superbarato.com.ar"
   }
 }
