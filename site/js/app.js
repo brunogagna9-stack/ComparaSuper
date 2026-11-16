@@ -29,7 +29,7 @@ const DIR = () => (enAMBA() ? "data/" : `data/p/${PCARP()}/`);          // preci
 const PK = k => (enAMBA() ? k : `${k}_${PROV}`);                        // carrito y avisos: uno por provincia
 let LISTA = LS.get(PK("cs_lista"), {});          // {idProducto: cantidad}
 let MEDIOS = LS.get("cs_medios", null);      // null = no configurado (se muestran todos)
-let AVISOS = LS.get(PK("cs_avisos"), {});        // {idProducto: precio cuando se pidió el aviso}
+let AVISOS = {};        // {idProducto: precio cuando se pidió el aviso} — se guardan en la cuenta (js/cuenta.js)
 
 /* ---------- tema claro / oscuro ---------- */
 /* librerías que se bajan solo cuando hacen falta */
@@ -520,6 +520,7 @@ function setQty(id, q, sid) {
 }
 const addToList = id => setQty(id, (LISTA[id] || 0) + 1);
 function refreshAvisos() {
+  if (!D) return { ids: [], bajaron: [] };
   const ids = Object.keys(AVISOS).filter(id => BY[id]);
   const bajaron = ids.filter(id => best(BY[id]).v < AVISOS[id]);
   $("#abtn").hidden = !ids.length;
@@ -723,8 +724,8 @@ function vInicio() {
       <div class="stiles">${D.stores.map(tile).join("")}</div></section>
 
     <section class="blk news" id="novedades-blk"><div><h2>📬 Recibí las mejores ofertas de la semana</h2>
-      <p>Te mandamos por correo los descuentos bancarios de cada semana y los productos que más bajaron. Gratis, sin spam y te das de baja cuando quieras.</p></div>
-      <button class="btn" data-news>Quiero recibir novedades</button></section>
+      <p>Creá tu cuenta gratis y elegí qué recibir: las ofertas y descuentos bancarios de cada semana, y un aviso cuando baja un producto que marcaste. Sin spam: te das de baja cuando quieras.</p></div>
+      <button class="btn" data-news>Crear mi cuenta</button></section>
   </div>`;
   $$("[data-iday]").forEach(b => b.onclick = () => { S.iday = +b.dataset.iday; vInicio(); });
   const sem = $("[data-semana]"); if (sem) sem.onclick = () => { S.pday = day; };
@@ -1131,10 +1132,11 @@ function vLegal() {
     <h2 id="s-privacidad">Privacidad: qué datos usamos</h2>
     <ul>
       ${resp}
-      <li><b>No necesitás crear una cuenta.</b> Tu carrito, tus medios de pago, tus avisos de baja de precio, tus listas, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran. Si compartís una lista, el enlace lleva los productos que elegiste.</li>
+      <li><b>Sin cuenta</b> podés usar toda la página. Tu carrito, tus medios de pago, tus listas, la vista elegida y el tema se guardan <b>solo en tu navegador</b> (almacenamiento local) y no se mandan a ningún lado. Si borrás los datos del navegador, se borran.</li>
+      <li><b>Cuenta (opcional):</b> solo hace falta para marcar productos con la 🔔 y para recibir correos. Si creás una, guardamos tu correo, la zona, qué correos elegiste recibir (ofertas de la semana y/o avisos de baja) y los productos que marcaste. Si entrás con Google, Google nos comparte solo tu correo y tu nombre; nunca vemos tu contraseña. Las cuentas y esos datos los guarda <b>Firebase, de Google</b> (en servidores de Brasil y de otros países), y los correos se envían con <b>Brevo</b> (Francia, Unión Europea). Usamos tus datos solo para mandarte lo que elegiste: no los vendemos ni los compartimos. Cada correo trae cómo dejar de recibirlo, y desde <a href="#cuenta">Mi cuenta</a> podés cambiar qué recibís o <b>borrar tu cuenta</b> con todos sus datos cuando quieras.</li>
       <li><b>Ubicación:</b> si la marcás, se usa en tu navegador para calcular los comercios cercanos y no se guarda en ningún servidor. Solo si tocás «Cómo llegar» se abre Google Maps con tu ubicación y el destino.</li>
       <li><b>Cámara:</b> al escanear un código de barras o leer un ticket, la imagen se procesa en tu celular y no se sube a ningún lado.</li>
-      <li><b>Sugerencias, votos y novedades:</b> si dejás una sugerencia (con tu nombre, si querés) o tu correo para recibir novedades, se guardan en una planilla privada de Google del responsable del sitio, en servidores de Google que pueden estar fuera de la Argentina; al enviarlos, aceptás que se guarden ahí. Dar estos datos es voluntario: si no los das, podés usar toda la página igual. Las sugerencias solo se publican después de ser revisadas. Los votos son anónimos. Tu correo se usa únicamente para mandarte las novedades que elegiste, no se vende ni se comparte con nadie, y podés pedir la baja cuando quieras.</li>
+      <li><b>Sugerencias y votos:</b> si dejás una sugerencia (con tu nombre, si querés), se guarda en una planilla privada de Google del responsable del sitio, en servidores de Google que pueden estar fuera de la Argentina; al enviarlos, aceptás que se guarden ahí. Dar estos datos es voluntario: si no los das, podés usar toda la página igual. Las sugerencias solo se publican después de ser revisadas. Los votos son anónimos.</li>
       <li><b>Servicios externos:</b> como cualquier página web, al cargarse pide archivos a otros servicios, que reciben tu dirección IP y el tipo de navegador: GitHub Pages (aloja la página), wsrv.nl (achica las fotos), los sitios de los comercios (fotos de productos), OpenStreetMap y OpenFreeMap (mapas), jsDelivr (lector de tickets), GoatCounter (estadísticas) y Google (formularios). No les mandamos tus datos personales.</li>
       <li><b>Estadísticas de visitas:</b> contamos visitas de forma anónima con GoatCounter (qué secciones se usan, desde qué tipo de dispositivo y cuántas veces se toca un enlace hacia cada tienda), sin cookies y sin datos personales.</li>
       <li><b>Publicidad:</b> si hay anuncios, siempre están marcados como «Publicidad» y nunca cambian los precios, el orden ni qué comercio aparece como más barato.</li>
@@ -1142,7 +1144,7 @@ function vLegal() {
       <li>El <b>asistente virtual</b> funciona dentro de tu navegador: lo que le escribís no se envía a ningún lado.</li>
     </ul>
     <h2>Tus derechos</h2>
-    <p>Podés pedir acceder a tus datos, corregirlos, actualizarlos o borrarlos (tu correo o una sugerencia tuya) ${contacto}. Respondemos en los plazos de la Ley 25.326 de Protección de Datos Personales: hasta 10 días corridos para el acceso y 5 días hábiles para corregir o borrar.</p>
+    <p>Podés pedir acceder a tus datos, corregirlos, actualizarlos o borrarlos (tu cuenta, tu correo o una sugerencia tuya; la cuenta también la podés borrar vos desde <a href="#cuenta">Mi cuenta</a>) ${contacto}. Respondemos en los plazos de la Ley 25.326 de Protección de Datos Personales: hasta 10 días corridos para el acceso y 5 días hábiles para corregir o borrar.</p>
     <p class="sub">El titular de los datos personales tiene la facultad de ejercer el derecho de acceso a los mismos en forma gratuita a intervalos no inferiores a seis meses, salvo que se acredite un interés legítimo al efecto conforme lo establecido en el artículo 14, inciso 3 de la Ley N° 25.326. La Agencia de Acceso a la Información Pública, en su carácter de Órgano de Control de la Ley N° 25.326, tiene la atribución de atender las denuncias y reclamos que interpongan quienes resulten afectados en sus derechos por incumplimiento de las normas vigentes en materia de protección de datos personales.</p>
     <h2>Otras condiciones</h2>
     <ul>
@@ -1979,7 +1981,14 @@ async function openProduct(id) {
     $("#pcopy").onclick = () => navigator.clipboard.writeText(url).then(() => toast("Link copiado"));
   };
   $("#vermas").onclick = () => { openProduct.mas = !openProduct.mas; const st = dr.scrollTop; openProduct(id); dr.scrollTop = st; };
-  $("#watch").onclick = () => { if (id in AVISOS) { delete AVISOS[id]; toast("Ya no te avisamos"); } else { AVISOS[id] = b.v; toast("Te avisamos con la 🔔 cuando baje"); } LS.set(PK("cs_avisos"), AVISOS); refreshAvisos(); openProduct(id); };
+  $("#watch").onclick = async () => {
+    const btn = $("#watch"); btn.disabled = true;
+    try {
+      if (id in AVISOS) { await Cuenta.desmarcar(id); toast("Ya no te avisamos"); }
+      else if (await Cuenta.marcar(id, b.v, p.name)) toast(Cuenta.doc && Cuenta.doc.bajas ? "Listo: te avisamos por correo cuando baje" : "Listo: lo ves con la 🔔. Para recibirlo por correo, activalo en Mi cuenta", 4000);
+    } catch { toast("No se pudo guardar. Revisá tu conexión y probá de nuevo."); }
+    if (!$("#drawer").hidden && openProduct.id === id) openProduct(id);
+  };
   const url = "#p-" + id;
   if (!ovEsta("drawer")) {
     if (location.hash !== url) ovOpen("drawer", closeDrawer, url);
@@ -2137,47 +2146,61 @@ function avisoBajas() {
 }
 function modalAvisos() {
   const { ids, bajaron } = refreshAvisos();
-  openModal(`<h2>🔔 Mis avisos</h2><p class="sub">Te marcamos los productos que bajaron desde que pediste el aviso. ¿Lo querés por correo? <a href="#" data-news>Registrate para recibir novedades</a>.</p>
+  openModal(`<h2>🔔 Mis avisos</h2><p class="sub">Te marcamos los productos que bajaron desde que pediste el aviso. ${Cuenta.doc && Cuenta.doc.bajas ? "También te avisamos por correo." : `¿Lo querés por correo? Activalo en <a href="#cuenta" data-close>Mi cuenta</a>.`}</p>
     <div class="alts" style="margin-top:12px">${ids.map(id => { const p = BY[id], now = best(p).v, d = bajaron.includes(id);
       return `<button class="alt" data-open="${id}"><span><b>${esc(p.name)}</b><br><span class="sub">Cuando lo guardaste: ${money(AVISOS[id])}</span></span><span style="text-align:right"><b>${money(now)}</b><br>${d ? `<span class="chg dn">▼ bajó ${money(AVISOS[id] - now)}</span>` : now > AVISOS[id] ? '<span class="chg up">▲ subió</span>' : '<span class="sub">igual</span>'}</span></button>`; }).join("")}</div>
     <div class="mfoot"><span></span><button class="btn sec sm" data-close>Cerrar</button></div>`);
 }
-/* registro para recibir novedades: se guarda en un formulario de Google (ver site/config.json y README) */
-function modalNews() {
-  const temas = [["semanal", "Resumen de ofertas y descuentos bancarios"], ["nuevos", "Nuevos comercios y funciones de la página"]];
-  openModal(`<h2>📬 Recibir novedades</h2><p class="sub">Dejanos tu correo y elegí qué te interesa. Te vamos a escribir cuando haya novedades (todavía no mandamos correos automáticos), y podés darte de baja cuando quieras.</p>
-    <form id="nform" class="nform" novalidate>
-      <label class="fl">Correo electrónico<input type="email" id="nmail" required autocomplete="email" placeholder="tu@correo.com"></label>
-      <fieldset><legend>Quiero recibir</legend>${temas.map(([v, t], i) => `<label class="ck"><input type="checkbox" name="tema" value="${v}" ${i < 2 ? "checked" : ""}> ${t}</label>`).join("")}</fieldset>
-      <label class="fl">Zona<select class="sel" id="nzona">${(enAMBA() ? ["CABA", "GBA Norte", "GBA Oeste", "GBA Sur", "La Plata y alrededores"] : [provNombre(PROV)]).concat(PROVINCIAS.map(x => x.name).filter(n => !["Ciudad de Buenos Aires", provNombre(PROV)].includes(n))).map(z => `<option>${esc(z)}</option>`).join("")}</select></label>
-      <label class="ck"><input type="checkbox" id="nok" required> Acepto recibir correos de SuperBarato y que mi correo se guarde en una planilla de Google para eso. No lo compartimos con nadie. <a href="#legal" data-close>Más detalles</a>.</label>
-      <div class="ferr" id="nerr" role="alert"></div>
-      <div class="mfoot"><button type="button" class="btn sec sm" data-close>Cancelar</button><button class="btn" type="submit">Registrarme</button></div>
-    </form>`);
-  $("#nform").onsubmit = async e => {
-    e.preventDefault();
-    const mail = $("#nmail").value.trim(), err = $("#nerr");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail)) { err.textContent = "Revisá el correo: parece incompleto."; $("#nmail").focus(); return; }
-    if (!$("#nok").checked) { err.textContent = "Para registrarte tenés que aceptar recibir los correos."; return; }
-    const cfg = (CFG.novedades || {});
-    if (API()) {
-      try { await apiPost({ tipo: "novedades", email: mail, temas: $$("input[name=tema]:checked").map(i => i.value).join(", "), zona: $("#nzona") ? $("#nzona").value : "" });
-        LS.set("cs_news", mail);
-        $("#modal").innerHTML = `<button class="mx" type="button" data-close aria-label="Cerrar">✕</button><h2>✅ ¡Listo!</h2><p>Registramos <b>${esc(mail)}</b>. Vas a recibir las novedades que elegiste.</p><div class="mfoot"><span></span><button class="btn" data-close>Cerrar</button></div>`;
-      } catch { err.textContent = "No pudimos enviar el registro. Revisá tu conexión y probá de nuevo."; }
-      return;
-    }
-    if (!cfg.form_action) { err.innerHTML = "⚙️ El registro todavía no está conectado (prototipo): falta configurar el formulario en <code>config.json</code>. Tu correo <b>no</b> se guardó."; return; }
-    const fd = new FormData();
-    fd.append(cfg.campo_email, mail);
-    if (cfg.campo_temas) $$("input[name=tema]:checked").forEach(i => fd.append(cfg.campo_temas, i.value));
-    if (cfg.campo_zona) fd.append(cfg.campo_zona, $("#nzona").value);
-    try {
-      await fetch(cfg.form_action, { method: "POST", mode: "no-cors", body: fd });
-      LS.set("cs_news", mail);
-      $("#modal").innerHTML = `<h2>✅ ¡Listo!</h2><p>Registramos <b>${esc(mail)}</b>. Vas a recibir las novedades que elegiste.</p><div class="mfoot"><span></span><button class="btn" data-close>Cerrar</button></div>`;
-    } catch { err.textContent = "No pudimos enviar el registro. Revisá tu conexión y probá de nuevo."; }
+/* ---------- Mi cuenta: qué correos recibir, productos marcados, cerrar sesión y borrar la cuenta ---------- */
+function vCuenta() {
+  setTab("cuenta");
+  const u = Cuenta.user, d = Cuenta.doc || {};
+  if (!Cuenta.activa()) { $("#view").innerHTML = `<div class="wrap"><section class="blk first"><h1>Mi cuenta</h1><p>Muy pronto vas a poder crear tu cuenta.</p></section></div>`; return; }
+  if (!u) {
+    $("#view").innerHTML = `<div class="wrap"><section class="blk first cuenta"><h1>👤 Mi cuenta</h1>
+      <p>Con una cuenta gratis podés:</p><ul class="ok-list"><li>🔔 Marcar productos y enterarte cuando bajan de precio.</li><li>📬 Recibir por correo las ofertas de la semana, si querés.</li><li>📱 Ver tus productos marcados desde el celular o la computadora.</li></ul>
+      <p>Vos elegís qué correos recibir, y lo podés cambiar cuando quieras.</p>
+      <div class="sbtns"><button class="btn" id="cu-crear">Crear cuenta</button><button class="btn sec" id="cu-ing">Ingresar</button></div></section></div>`;
+    $("#cu-crear").onclick = () => Cuenta.abrir({ modo: "crear" });
+    $("#cu-ing").onclick = () => Cuenta.abrir({ modo: "ingresar" });
+    if (LS.get("cs_sesion", false) && !vCuenta.esperando) { vCuenta.esperando = true; Cuenta.cargar().then(() => { vCuenta.esperando = false; if (location.hash === "#cuenta") vCuenta(); }).catch(() => {}); }
+    return;
+  }
+  const google = u.providerData.some(x => x.providerId === "google.com");
+  const ids = Object.keys(AVISOS), { bajaron } = refreshAvisos();
+  $("#view").innerHTML = `<div class="wrap"><section class="blk first cuenta"><h1>👤 Mi cuenta</h1>
+    <p>Ingresaste como <b>${esc(u.email)}</b>${google ? " (con Google)" : ""}.</p>
+    ${u.emailVerified ? "" : `<div class="note">✉️ <b>Confirmá tu correo</b> para que te podamos escribir: te mandamos un enlace a ${esc(u.email)}. Revisá también Spam o Promociones.
+      <div class="sbtns" style="margin-top:8px"><button class="btn sm sec" id="cu-reenv">Mandar el correo de nuevo</button><button class="btn sm sec" id="cu-ya">Ya lo confirmé</button></div></div>`}
+    <h2>📬 Qué querés recibir por correo</h2>
+    <label class="sw"><input type="checkbox" id="cu-sem" ${d.semanal ? "checked" : ""}><span><b>Ofertas de la semana</b><br><span class="sub">Los lunes: lo que bajó, las mejores promos y qué banco o billetera conviene cada día.</span></span></label>
+    <label class="sw"><input type="checkbox" id="cu-baj" ${d.bajas ? "checked" : ""}><span><b>Avisos de baja de precio</b><br><span class="sub">Un correo cuando baja un producto que marcaste con la 🔔 (como máximo uno por día).</span></span></label>
+    <p class="sub" id="cu-est" role="status"></p>
+    <h2>🔔 Productos que seguís${enAMBA() ? "" : ` en ${esc(provNombre(PROV))}`}</h2>
+    ${ids.length ? `<p>${ids.length} producto${ids.length > 1 ? "s" : ""}${bajaron.length ? ` · <b class="okc">${bajaron.length} bajaron</b>` : ""}. <button class="linkbtn" id="cu-av">Ver la lista</button></p>`
+      : `<p class="sub">Todavía no marcaste ninguno. Abrí un producto y tocá «Avisarme si baja».</p>`}
+    <h2>Tu cuenta</h2>
+    <div class="sbtns"><button class="btn sec" id="cu-salir">Cerrar sesión</button><button class="btn sec peligro" id="cu-borrar">Borrar mi cuenta</button></div>
+    <p class="sub">Si borrás la cuenta, eliminamos tu correo, tus preferencias y tus productos marcados. Más detalles en la <a href="#legal-privacidad">política de privacidad</a>.</p>
+  </section></div>`;
+  const est = $("#cu-est");
+  const pref = async () => { est.textContent = "Guardando…"; try { await Cuenta.guardar({ semanal: $("#cu-sem").checked, bajas: $("#cu-baj").checked, zona: Cuenta.zona() }); toast("✅ Guardado"); } catch { est.textContent = "No se pudo guardar. Revisá tu conexión y probá de nuevo."; } };
+  $("#cu-sem").onchange = pref; $("#cu-baj").onchange = pref;
+  if ($("#cu-av")) $("#cu-av").onclick = modalAvisos;
+  if ($("#cu-reenv")) $("#cu-reenv").onclick = () => Cuenta.reenviar().catch(() => toast("Esperá un momento antes de pedirlo de nuevo"));
+  if ($("#cu-ya")) $("#cu-ya").onclick = async () => { await Cuenta.recargar().catch(() => {}); if (!Cuenta.user.emailVerified) toast("Todavía no figura confirmado. Abrí el enlace del correo y probá de nuevo.", 4000); };
+  $("#cu-salir").onclick = () => Cuenta.salir();
+  $("#cu-borrar").onclick = () => {
+    openModal(`<h2>¿Borrar tu cuenta?</h2><p>Vamos a eliminar tu correo, tus preferencias y los productos que seguís. No se puede deshacer.</p>
+    <div class="mfoot"><button class="btn sec sm" data-close>Cancelar</button><button class="btn peligro" id="cu-sib">Sí, borrar mi cuenta</button></div>`);
+    $("#cu-sib").onclick = async () => { try { if (await Cuenta.borrar()) { closeModal(); location.hash = "#inicio"; } } catch { toast("No se pudo borrar. Probá de nuevo en un momento."); } };
   };
+}
+/* "Recibir novedades": ahora se elige desde la cuenta (js/cuenta.js) */
+function modalNews() {
+  if (!Cuenta.activa()) { toast("Muy pronto vas a poder recibir las novedades por correo"); return; }
+  if (Cuenta.user) { location.hash = "#cuenta"; return; }
+  Cuenta.abrir({ modo: "crear", semanal: true, motivo: "Creá tu cuenta gratis y elegí qué correos querés recibir: las ofertas de la semana, los avisos de los productos que marcás, o los dos." }).then(u => { if (u) location.hash = "#cuenta"; });
 }
 
 /* menú "⋯ Más opciones" de la ficha: se cierra al tocar afuera o al elegir algo */
@@ -2267,7 +2290,7 @@ function route() {
   if (!/^#(buscar|c-)/.test(location.hash)) { S.fopen = false; ovForget("filtros"); document.body.classList.remove("noscroll"); }
   if (!D) return;   // todavía cargando: load() llama a route() al terminar
   const h = location.hash.slice(1) || "inicio";
-  if (!READY && !/^(inicio|pagos|como|legal|sugerencias|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
+  if (!READY && !/^(inicio|pagos|como|legal|sugerencias|cuenta|nosotros.*|legal.*)?$/.test(h) && !(TOPR && /^(buscar|c-)/.test(h))) {   // super, comparar… esperan los productos
     $("#view").innerHTML = `<div class="wrap loading"><div class="sk sk-h"></div>${esqueleto(8)}<span class="sr">Cargando productos…</span></div>`;
     loadProducts().then(() => route()).catch(() => {}); return;
   }
@@ -2281,7 +2304,7 @@ function route() {
   const [v0, sec] = v.split("-");
   if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
   if (!READY && TOPR && v === "buscar") setTimeout(() => { const h1 = $("#view h1"); if (h1 && !READY && !$("#cargando")) h1.insertAdjacentHTML("afterend", '<div class="sub" id="cargando">⏳ Mostrando los más comparados mientras cargamos el resto…</div>'); });
-  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar, ranking: vRanking }[v] || vInicio)();
+  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, cuenta: vCuenta, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar, ranking: vRanking }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
 }
@@ -3010,6 +3033,14 @@ listaCompartida();
   loadProducts().catch(() => new Promise(() => {})).then(() => { saveLista(); refreshAvisos(); setTimeout(avisoBajas, 1500); if (!LS.get("cs_bienvenida", 0) && /^#?(inicio)?$/.test(location.hash)) setTimeout(() => { if (!LS.get("cs_bienvenida") && /^#?(inicio)?$/.test(location.hash) && $("#modal").hidden) modalBienvenida(); }, 600); });
   $("#demo").hidden = !D.demo;
   $("#year").textContent = new Date().getFullYear();
+  Cuenta.cambios(u => {
+    AVISOS = Cuenta.avisos(); refreshAvisos();
+    const ub = $("#ubtn"); if (ub) { ub.hidden = !Cuenta.activa(); $(".hl", ub).textContent = u ? "Mi cuenta" : "Ingresar"; ub.title = u ? `Mi cuenta (${u.email})` : "Ingresar o crear cuenta"; }
+    if (location.hash === "#cuenta") vCuenta();
+    if (!$("#drawer").hidden && openProduct.id) openProduct(openProduct.id);
+  });
+  { const ub = $("#ubtn"); if (ub) ub.hidden = !Cuenta.activa(); }
+  Cuenta.iniciar();
   if ((CFG.responsable || {}).email) { const m = CFG.responsable.email, f = $("#fcontacto"); if (f) f.innerHTML = ` · Contacto: <a href="mailto:${esc(m)}">${esc(m)}</a>`; }
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;
   $("#mdot").hidden = !MEDIOS;

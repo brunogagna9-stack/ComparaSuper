@@ -1,0 +1,41 @@
+name: Correos a usuarios
+# Todos los días: avisos de baja de precio. Los lunes, además, las ofertas de la semana.
+# Necesita los secretos FIREBASE_SA y BREVO_API_KEY (ver scripts/enviar_avisos.py). Sin ellos, no hace nada.
+on:
+  schedule:
+    - cron: "17 13 * * *"   # 10:17 de Argentina, después de la actualización de precios de la mañana
+  workflow_dispatch:
+    inputs:
+      modo:
+        description: "bajas o semanal"
+        default: "bajas"
+      prueba:
+        description: "Solo mostrar, sin mandar (true/false)"
+        default: "true"
+concurrency: { group: correos, cancel-in-progress: false }
+permissions: { contents: read }
+jobs:
+  correos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: ¿Están los secretos?
+        id: sec
+        env: { A: "${{ secrets.FIREBASE_SA }}", B: "${{ secrets.BREVO_API_KEY }}" }
+        run: if [ -n "$A" ] && [ -n "$B" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Faltan los secretos FIREBASE_SA y/o BREVO_API_KEY: no se manda nada."; fi
+      - name: Instalar
+        if: steps.sec.outputs.ok == '1'
+        run: pip install firebase-admin==6.*
+      - name: Mandar
+        if: steps.sec.outputs.ok == '1'
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SA }}
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+        run: |
+          P=""; [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prueba }}" = "true" ] && P="--prueba"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then python3 scripts/enviar_avisos.py "${{ inputs.modo }}" $P; exit; fi
+          python3 scripts/enviar_avisos.py bajas
+          if [ "$(TZ=America/Argentina/Buenos_Aires date +%u)" = "1" ]; then python3 scripts/enviar_avisos.py semanal; fi

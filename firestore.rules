@@ -1,0 +1,24 @@
+rules_version = '2';
+// SuperBarato: cada persona solo puede leer, cambiar o borrar SU documento (usuarios/{su id}).
+// Los correos los manda un proceso del servidor (scripts/enviar_avisos.py), que no pasa por estas reglas.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /usuarios/{uid} {
+      function esDuenio() { return request.auth != null && request.auth.uid == uid; }
+      function valido() {
+        let d = request.resource.data;
+        return d.keys().hasOnly(['email', 'semanal', 'bajas', 'zona', 'acepto', 'avisos', 'actualizado', 'enviados', 'ultimoEnvio'])
+          && (!('semanal' in d) || d.semanal is bool)
+          && (!('bajas' in d) || d.bajas is bool)
+          && (!('zona' in d) || (d.zona is string && d.zona.size() <= 10))
+          && (!('email' in d) || (d.email is string && d.email.size() <= 200))
+          && (!('avisos' in d) || (d.avisos is map && d.avisos.size() <= 300));
+      }
+      allow read, delete: if esDuenio();
+      allow create, update: if esDuenio() && valido();
+    }
+    match /{otro=**} {
+      allow read, write: if false;
+    }
+  }
+}

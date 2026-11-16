@@ -88,5 +88,14 @@
     "nombre": "Bruno Gagna",
     "domicilio": "Ciudad de Buenos Aires",
     "email": "contacto@superbarato.com.ar"
-  }
+  },
+  "firebase": {
+    "apiKey": "AIzaSyAX0yty3ZNV-__NvtXmZo91UEprkNR4xrc",
+    "authDomain": "superbarato-589da.firebaseapp.com",
+    "projectId": "superbarato-589da",
+    "storageBucket": "superbarato-589da.firebasestorage.app",
+    "messagingSenderId": "966638885867",
+    "appId": "1:966638885867:web:197bc9b0d6278dd412d7ae"
+  },
+  "_comentario_firebase": "Cuentas de usuario (Firebase Authentication + Firestore). Esta configuración es pública por diseño; la seguridad la dan las reglas de firestore.rules y los dominios autorizados en Firebase."
 }
