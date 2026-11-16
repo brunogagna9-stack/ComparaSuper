@@ -25,7 +25,8 @@ jobs:
       - name: ¿Están los secretos?
         id: sec
         env: { A: "${{ secrets.FIREBASE_SA }}", B: "${{ secrets.BREVO_API_KEY }}" }
-        run: if [ -n "$A" ] && [ -n "$B" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Faltan los secretos FIREBASE_SA y/o BREVO_API_KEY: no se manda nada."; fi
+        run: |
+          if [ -n "$A" ] && [ -n "$B" ]; then echo "ok=1" >> "$GITHUB_OUTPUT"; else echo "Faltan los secretos FIREBASE_SA o BREVO_API_KEY, no se manda nada."; fi
       - name: Instalar
         if: steps.sec.outputs.ok == '1'
         run: pip install firebase-admin==6.*
