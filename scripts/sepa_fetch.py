@@ -240,6 +240,7 @@ def summarize(zip_path, stores, provincias=PROVINCIAS, seen=None, only=None):
 def main():
     stores = json.loads((ROOT / "data" / "stores.json").read_text(encoding="utf-8"))["stores"]
     items, seen, date = [], set(), dt.date.today().isoformat()
+    fechas = {}   # cadena -> fecha del archivo del que salieron sus precios (puede ser de días anteriores si ese día no informó)
     if len(sys.argv) > 1:
         items = summarize(Path(sys.argv[1]), stores, seen=seen)
     else:
@@ -264,6 +265,9 @@ def main():
                     print("Descargando", res["url"], "" if k == 0 else f"(para completar: {sorted(missing)})")
                     download(res["url"], tmp / "sepa.zip")
                     got = summarize(tmp / "sepa.zip", stores, seen=seen, only=missing)
+                    f_res = (res.get("last_modified") or res.get("created") or date)[:10]
+                    for st_id in {i["store"] for i in got}:
+                        fechas.setdefault(st_id, f_res)
                     print(f"  {dataset}: {len(got)} precios de {sorted({i['store'] for i in got})}")
                     items += got
                 except Exception as e:
@@ -305,7 +309,7 @@ def main():
     prev.update({k: sorted(v) for k, v in nuevas.items()})
     suc_path.write_text(json.dumps(prev, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     print(f"Sucursales con ubicación: {sum(len(v) for v in prev.values())} de {len(prev)} cadenas")
-    out = {"date": date, "source": "sepa", "region": REGION, "items": items}
+    out = {"date": date, "source": "sepa", "region": REGION, "items": items, "fechas": fechas}
     (raw / f"sepa-{date}.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
     print(f"OK: {len(items)} precios de {len({i['ean'] for i in items})} productos ({date})")
 

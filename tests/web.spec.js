@@ -101,3 +101,22 @@ for (const [nombre, hash] of [["Inicio", "#inicio"], ["Productos", "#buscar"], [
     expect(graves.map(v => `${v.id}: ${v.help} (${v.nodes.length}) ${v.nodes.slice(0, 2).map(n => n.target.join(" ")).join(" | ")}`)).toEqual([]);
   });
 }
+
+test("el buscador entiende tamaños («yerba 1kg») y avisa cuando no hay ese tamaño", async ({ page }) => {
+  await page.goto("#inicio"); await page.waitForFunction(() => typeof READY !== "undefined" && READY && BUSC.ok, null, { timeout: 45000 });
+  await page.fill("#q", "yerba 1kg"); await page.press("#q", "Enter");
+  await expect(page.locator("#rcount")).toContainText("de 1 kg");
+  await expect(page.locator("#view .prod h3").first()).toContainText(/1\s*k/i);
+  await page.fill("#q", "yerba 37 kg"); await page.press("#q", "Enter");
+  await expect(page.locator("#rcount")).toContainText("No hay productos de 37 kg");
+});
+
+test("sin medios de pago elegidos, ¿Dónde conviene? no resta descuentos de tarjetas en el total", async ({ page }) => {
+  await page.goto("#conviene"); await page.waitForFunction(() => typeof READY !== "undefined" && READY, null, { timeout: 45000 });
+  await page.getByText("probá con la canasta básica").first().click();
+  const card = page.locator(".sumc").first();
+  await expect(card).toBeVisible();
+  await expect(card).not.toContainText("Pagando con");
+  await expect(page.locator("#view")).toContainText("no se restan");
+});
+

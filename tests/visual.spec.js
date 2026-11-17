@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 });
 const listo = page => page.waitForFunction(() => typeof READY !== "undefined" && READY, null, { timeout: 45000 });
 const opciones = page => ({ animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.01,
-  mask: [page.locator("#fupd"), page.locator(".anuncio"), page.locator("#pbtn .cnt"), page.locator(".fabs")] });
+  mask: [page.locator("#fupd"), page.locator("#avisodatos"), page.locator(".anuncio"), page.locator("#pbtn .cnt"), page.locator(".fabs")] });
 
 for (const [nombre, hash] of [["conocenos", "#nosotros"], ["terminos", "#legal"], ["como-funciona", "#como"]]) {
   test(`@visual ${nombre}`, async ({ page }) => {

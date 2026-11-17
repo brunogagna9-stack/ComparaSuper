@@ -541,6 +541,7 @@ def main():
     meta = {"imghosts": IMGHOSTS, "updated": last["date"], "source": last.get("source", "sepa"), "region": last.get("region", ""),
             "demo": last.get("source") == "demo",
             "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota", "promos_url")} | {"online": public_online(s.get("online"))}
+                       | {"fecha": (last.get("fechas") or {}).get(s["id"], last["date"])}   # de cuándo son sus precios de sucursal
                        for s in stores if s["id"] in {o["s"] for p in products for o in p["offers"]}],
             "cats": [{"id": c[0], "name": c[1], "emoji": c[2]} for c in CATS] + [{"id": OTROS[0], "name": OTROS[1], "emoji": OTROS[2]}]}
     # Para que la web cargue rápido: meta.json (chico, se muestra el inicio enseguida), products.json sin los

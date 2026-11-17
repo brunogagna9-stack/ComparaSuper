@@ -38,8 +38,19 @@ const OPC_MS = {
   searchOptions: { boost: { name: 2 }, combineWith: "AND", prefix: t => t.length >= 2, fuzzy: t => (t.length >= 6 ? 0.2 : t.length >= 4 ? 1 : 0) },
 };
 function vocabular(L) { VOC = new Map(); for (const p of L) for (const w of new Set(partir(p.name + " " + p.brand))) if (w.length > 2 && !/\d/.test(w)) VOC.set(w, (VOC.get(w) || 0) + 1); }
-const NOM = new Map(), POP = new Map();   // nombre de cada producto y en cuántos comercios está (para desempatar)
-const nombres = L => { for (const p of L) { NOM.set(p.id, `${p.name} ${p.brand || ""}`); POP.set(p.id, p.offers.length); } };
+const NOM = new Map(), POP = new Map(), TAM = new Map();   // nombre, en cuántos comercios está (para desempatar) y tamaño (cantidad y unidad base)
+const nombres = L => { for (const p of L) { NOM.set(p.id, `${p.name} ${p.brand || ""}`); POP.set(p.id, p.offers.length); if (p.bq && p.bu) TAM.set(p.id, [p.bq, p.bu]); } };
+/* tamaño escrito en la búsqueda: "1 l", "1lt", "500 g", "1,5 litros", "900cc" → {q, u} en kg, l o un; el resto se busca como texto */
+const UNID = [[/^(kg|kgs|kilo|kilos|k)$/, 1, "kg"], [/^(g|gr|grs|gramos?)$/, 0.001, "kg"], [/^(l|lt|lts|litros?)$/, 1, "l"], [/^(ml|cc|cm3|mililitros?)$/, 0.001, "l"], [/^(u|un|uni|unidad(es)?)$/, 1, "un"]];
+function leerTam(q) {
+  const m = nrm(q).match(/(\d+(?:[.,]\d+)?)\s*(kgs?|kilos?|k|grs?|gramos?|g|lts?|litros?|l|ml|cc|cm3|mililitros?|unidad(?:es)?|uni|un|u)\b/);
+  if (!m) return { tam: null, resto: q };
+  const n = parseFloat(m[1].replace(",", ".")), u = UNID.find(([re]) => re.test(m[2]));
+  return { tam: u ? { q: n * u[1], u: u[2] } : null, resto: nrm(q).replace(m[0], " ") };
+}
+const mismoTam = (id, t) => { const x = TAM.get(id); return x && x[1] === t.u && Math.abs(x[0] - t.q) / t.q <= 0.03; };
+/* ¿la palabra buscada aparece de verdad en el nombre o la marca? (si no, los resultados son solo parecidos) */
+const aparece = (id, w) => partir(NOM.get(id) || "").some(t => t.startsWith(w) || fon(t).startsWith(fon(w)));
 function indexar(L) {
   nombres(L);
   vocabular(L);
@@ -49,16 +60,21 @@ function indexar(L) {
 }
 
 function buscar(q) {
-  const words = partir(q);
-  if (!words.length) return { ids: [], fix: "", comp: [] };
-  let r = MS.search(words.join(" ")), fix = "";
+  const { tam, resto } = leerTam(q);
+  const words = partir(resto);
+  if (!words.length && !tam) return { ids: [], fix: "", comp: [] };
+  let r = words.length ? MS.search(words.join(" ")) : [...TAM.keys()].map(id => ({ id })), fix = "";
   if (!r.length) {   // nada: probar corrigiendo cada palabra con las que existen en los productos
     const fixed = words.map(corregir);
     if (fixed.join(" ") !== words.join(" ")) { fix = fixed.join(" "); r = MS.search(fix); }
   }
-  const last = words[words.length - 1], head = words.slice(0, -1);
-  const comp = [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" "));
-  return { ids: r.map(x => x.id), fix, comp };
+  let ids = r.map(x => x.id), sinTam = false;
+  if (tam) { const f = ids.filter(id => mismoTam(id, tam)); if (f.length) ids = f; else sinTam = true; }   // de ese tamaño; si no hay, se avisa y se muestran todos
+  const ws = (fix ? fix.split(" ") : words).filter(w => w.length >= 3 && !/\d/.test(w));
+  const aprox = ws.filter(w => !ids.slice(0, 30).some(id => aparece(id, w)));   // palabras que no están en ningún resultado
+  const last = words[words.length - 1] || "", head = words.slice(0, -1);
+  const comp = last ? [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" ")) : [];
+  return { ids, fix, comp, aprox, tam: tam && { ...tam, sin: sinTam } };
 }
 
 /* los tickets abrevian mucho ("LECH SERENIS ENT"): se buscan las palabras de a una menos hasta encontrar algo */

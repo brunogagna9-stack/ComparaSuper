@@ -69,6 +69,9 @@ applyTheme(LS.get("cs_tema", "light"));
 
 /* ---------- datos ---------- */
 let D, P, BY = {}, ST = {}, HIST, CFG = {};
+const DIAS_VIEJO = 3;
+const viejo = (o, c) => c === "tienda" && ST[o.s] && ST[o.s].viejo;   // precio de sucursal de una cadena que dejó de informar
+const fechaDM = iso => iso.split("-").reverse().slice(0, 2).join("/");
 /* Carga en dos pasos para que la página aparezca enseguida:
    1) meta.json + descuentos (pocos KB) → se muestra el inicio;
    2) products.json (los ~25.000 productos) en segundo plano; links.json (enlaces a las tiendas) cuando hace falta. */
@@ -191,6 +194,9 @@ async function load() {
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
   ST = Object.fromEntries(D.stores.map(s => [s.id, s]));
+  /* cada cadena informa sus precios por su cuenta: si una no informa hace más de DIAS_VIEJO días, sus precios de sucursal
+     se siguen mostrando con el aviso "desactualizado", pero no cuentan para "el más barato" ni para las cuentas */
+  for (const st of D.stores) { st.dias = st.fecha ? Math.round((new Date(D.updated) - new Date(st.fecha)) / 864e5) : 0; st.viejo = st.dias > DIAS_VIEJO; }
   for (const [id, c] of Object.entries(P.comercios || {})) if (!ST[id] && !FUERA.has(id)) ST[id] = { id, name: c.name, tipo: "super", color: "#64748b", comercio: true, lista: c.lista || null };
   P.medioBy = Object.fromEntries(P.medios.map(m => [m.id, m]));
   const hoyIso = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);   // fecha de Argentina
@@ -252,10 +258,11 @@ function price1(o, c) { const pr = promoOf(o, c); return pr && pr.n <= 1 ? pr.pu
 function best(p, filter = null) {
   let b = null;
   const sanos = p.offers.some(o => !o.anom && (!filter || filter.has(o.s)));   // un precio mal cargado no cuenta como "el más barato"
+  const frescos = p.offers.some(o => (!filter || filter.has(o.s)) && chans(o).some(c => !viejo(o, c)));
   for (const o of p.offers) {
     if (filter && !filter.has(o.s)) continue;
     if (o.anom && sanos) continue;
-    for (const c of chans(o)) { if (bultoDe(o, c)) continue; const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }
+    for (const c of chans(o)) { if (bultoDe(o, c) || (frescos && viejo(o, c))) continue; const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }
   }
   if (!b) for (const o of p.offers) for (const c of chans(o)) { if (filter && !filter.has(o.s)) continue; const v = price1(o, c); if (!b || v < b.v) b = { o, c, v }; }   // solo hay precios por bulto
   return b || { o: p.offers[0], c: allChans(p.offers[0])[0], v: price1(p.offers[0], allChans(p.offers[0])[0]) };
@@ -434,7 +441,7 @@ function envLinea(sid) { const t = envFuente(sid); return t ? `<div class="sub e
 function options() {   // cada súper en cada canal (local / online) según el filtro elegido
   const out = [];
   for (const s of D.stores) {
-    if (!isApp(s.id) && (S.canal !== "online")) out.push({ sid: s.id, c: "tienda" });
+    if (!isApp(s.id) && (S.canal !== "online") && !s.viejo) out.push({ sid: s.id, c: "tienda" });   // con precios viejos no entra en las cuentas
     if (s.online && S.canal !== "tienda") out.push({ sid: s.id, c: "online" });
   }
   return out;
@@ -446,8 +453,10 @@ function basketAt(sid, c, items, day) {
     if (!o || !usable(o, c, qty)) { miss.push(p); continue; }
     const lc = lineCost(o, c, qty); reg += qty * base(o, c); sub += lc.total; lines.push({ p, qty, o, lc });
   }
-  const pay = payDiscount(sid, day, c, sub, true, reg), env = lines.length ? shipping(sid, c, sub) : 0;
-  return { sid, c, reg, sub, promoSave: reg - sub, pay, env, total: sub - pay.disc + env, miss, lines };
+  /* si la persona no eligió sus medios de pago, el total NO resta descuentos de pago (puede no tener esa tarjeta):
+     el mejor descuento posible se muestra aparte, como "si pagás con…" */
+  const posible = payDiscount(sid, day, c, sub, true, reg), pay = MEDIOS ? posible : { disc: 0, promo: null }, env = lines.length ? shipping(sid, c, sub) : 0;
+  return { sid, c, reg, sub, promoSave: reg - sub, pay, posible: MEDIOS ? null : posible, env, total: sub - pay.disc + env, miss, lines };
 }
 const rankAll = (items, day) => options().map(x => basketAt(x.sid, x.c, items, day)).filter(b => b.lines.length)
   .sort((a, b) => (a.miss.length - b.miss.length) || (a.total - b.total));
@@ -1190,11 +1199,12 @@ const matchW = (p, w) => p._t.includes(w) || p._f.includes(fon(w));
 const MARCA_PROPIA = /^(carrefour|cuisine ?& ?co|dia\b|great value|coto\b|check\b|best choice|jumbo\b|vea\b|disco\b)/;
 function results() {
   let words = nrm(S.q).split(/\s+/).filter(Boolean), ids = null;
-  S.qfix = "";
+  S.qfix = ""; S.qaprox = []; S.qtam = null;
   if (words.length && BUSC.ok && READY) {   // el proceso de fondo ya tiene el índice: le preguntamos
     const k = nrm(S.q).trim(), res = buscarFondo(S.q, () => { if (nrm(S.q).trim() === k && vBuscar.draw && $("#res")) vBuscar.draw(); });
     if (!res) return null;   // en camino: se dibuja al llegar
     ids = new Set(res.ids); if (res.fix) { S.qfix = res.fix; words = res.fix.split(" "); }
+    S.qaprox = res.aprox || []; S.qtam = res.tam || null; words = words.filter(w => !/\d/.test(w) && w.length > 1);
   } else {
     vocab();
     const base = p => (!S.cat || p.cat === S.cat);
@@ -1221,6 +1231,8 @@ function results() {
   return list.sort(sorters[S.sort] || sorters.relev);
 }
 const PAGE = 48;
+const filtrosActivos = () => !!(S.cat || S.stores.size || S.onlyPromo || S.sintacc || S.propia || S.favf || S.cerca);
+const tamTxt = t => t.u === "kg" ? (t.q < 1 ? `${Math.round(t.q * 1000)} g` : `${String(t.q).replace(".", ",")} kg`) : t.u === "l" ? (t.q < 1 ? `${Math.round(t.q * 1000)} ml` : `${String(t.q).replace(".", ",")} l`) : `${t.q} unidades`;
 /* paginado con números: 1 2 3 … 10 */
 function pager(total, page, id, per = PAGE) {
   const pages = Math.ceil(total / per); if (pages <= 1) return "";
@@ -1278,14 +1290,18 @@ function vBuscar() {
     const r = results();
     if (!r) { $("#res").innerHTML = esqueleto(8); return; }
     animar($("#res"));
-    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">Mostramos resultados para <b>«${esc(S.qfix)}»</b> (buscaste «${esc(S.q)}»)</span>` : ""}`;
+    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">No encontramos «${esc(S.q)}»: mostramos resultados para <b>«${esc(S.qfix)}»</b>, que se parece</span>` : ""}`
+      + (S.qtam ? (S.qtam.sin ? ` · <span class="qfix">No hay productos de <b>${esc(tamTxt(S.qtam))}</b>: te mostramos todos los tamaños</span>` : ` · de ${esc(tamTxt(S.qtam))}`) : "")
+      + (r.length && S.qaprox && S.qaprox.length ? `<div class="note" style="margin-top:8px">No encontramos <b>«${esc(S.qaprox.join(" "))}»</b>${S.qaprox.length === 1 ? "" : " juntos"}: estos productos son solo <b>parecidos</b>. Puede que esa marca o producto no esté en los comercios que comparamos.</div>` : "");
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
     const pg = S.bpage || 1, slice = r.slice((pg - 1) * per, pg * per);
     $("#res").innerHTML = (slice.length ? (S.vista === "l" ? `<div class="lst">${slice.map(lrow).join("")}</div>` : `<div class="grid v-${S.vista}">${slice.map(card).join("")}</div>`)
-      : `<div class="empty">No encontramos productos con esos filtros.<br><br><button class="btn sec sm" id="clr">Limpiar filtros</button></div>`)
+      : (filtrosActivos() ? `<div class="empty">No encontramos productos con esos filtros.<br><br><button class="btn sec sm" id="clr">Limpiar filtros</button></div>`
+        : `<div class="empty">No encontramos <b>«${esc(S.q)}»</b> en los comercios que comparamos.<br><span class="sub">Probá con menos palabras, sin la marca, o con otra forma de escribirlo (por ejemplo «leche» en vez de «leche descremada»).</span><br><br><a class="btn sec sm" href="#buscar" id="vertodo">Ver todos los productos</a></div>`))
       + `<div class="more">${pager(r.length, pg, "b", per)}</div>`;
     $$("[data-pg]", $("#res")).forEach(b => b.onclick = () => { S.bpage = +b.dataset.pg.split("|")[1]; draw(); $("#view").scrollIntoView({ behavior: "smooth" }); });
     const c = $("#clr"); if (c) c.onclick = () => { S.q = ""; $("#q").value = ""; S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; vBuscar(); };
+    const vt = $("#vertodo"); if (vt) vt.onclick = e => { e.preventDefault(); S.q = ""; $("#q").value = ""; setHash("#buscar"); vBuscar(); };
     $("#stall").textContent = S.stores.size ? "ver todos" : ""; $("#stall").hidden = !S.stores.size;
     const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.cerca ? 1 : 0) + (S.favf ? 1 : 0) + (S.sintacc ? 1 : 0) + (S.propia ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
     $("#fopen").textContent = nf ? `Filtros (${nf})` : "Filtros";
@@ -1704,7 +1720,9 @@ function vConviene() {
   const pct = (a, b2) => b2 ? Math.round(a / b2 * 100) : 0;
 
   const card1 = bst ? `<div class="sumc win"><div class="k">① Todo en un solo comercio</div><div class="t">${esc(optName(bst))}</div><div class="big">${money(bst.total)}</div>
-      ${bst.pay.promo ? `<div class="sv">💳 Pagando con <b>${esc(medioName(bst.pay.promo))}</b> (−${money(bst.pay.disc)})<br>${pagoIcon(bst.pay.promo)} ${esc(pagoTxt(bst.pay.promo))} ${acumBadge(bst.pay.promo, true)}</div>` : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
+      ${bst.pay.promo ? `<div class="sv">💳 Pagando con <b>${esc(medioName(bst.pay.promo))}</b> (−${money(bst.pay.disc)})<br>${pagoIcon(bst.pay.promo)} ${esc(pagoTxt(bst.pay.promo))} ${acumBadge(bst.pay.promo, true)}</div>`
+        : bst.posible && bst.posible.promo ? `<div class="sv">Precio sin descuentos de pago. 💳 Si tenés <b>${esc(medioName(bst.posible.promo))}</b>, quedaría en <b>${money(bst.total - bst.posible.disc)}</b> (−${money(bst.posible.disc)}). <a href="#" data-medios>Elegí tus medios</a> para calcularlo con los tuyos.</div>`
+        : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
       ${bst.c === "online" ? `<div class="sv">🚚 ${bst.env ? `Incluye envío ${money(bst.env)}` : "Envío gratis con esta compra"}${envLinea(bst.sid)}</div>` : ""}
       ${cartBtn(bst) ? `<div style="margin-top:10px">${cartBtn(bst)}</div>` : ""}</div>`
     : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>Ningún comercio tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.</p></div>`;
@@ -1746,7 +1764,7 @@ function vConviene() {
       <section class="box"><h3>¿Cuándo y cómo comprás?</h3>
         <div class="daysel">${DIAS.map((d, i) => `<button class="${i === day ? "on" : ""}" data-ld="${i}">${DCORTO[i]}${i === HOY ? " (hoy)" : ""}</button>`).join("")}</div>
         <div style="margin-top:10px">${canalChips()}</div>
-        <p class="sub" style="margin:10px 0 0">Descuentos de pago: ${MEDIOS ? `solo con <b>tus ${MEDIOS.length} medios</b>` : "<b>todos</b> (no elegiste tus medios)"} · <a href="#" data-medios>cambiar</a></p></section></div>
+        <p class="sub" style="margin:10px 0 0">Descuentos de pago: ${MEDIOS ? `solo con <b>tus ${MEDIOS.length} medios</b>` : "<b>no se restan</b> porque no elegiste tus medios (te mostramos aparte cuánto podrías ahorrar)"} · <a href="#" data-medios>cambiar</a></p></section></div>
     ${(() => {   // el precio más bajo de algún producto es online, pero con el envío conviene otra opción: lo decimos para que no confunda
       if (!bst) return "";
       const on = [...new Set(items.map(({ p }) => best(p)).filter(b => b.c === "online" && !(b.o.s === bst.sid && bst.c === "online")).map(b => b.o.s))];
@@ -1905,7 +1923,7 @@ async function openProduct(id) {
   const chanLine = (o, c) => {
     const v = base(o, c); if (!v) return "";
     const pr = promoOf(o, c), pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c));
-    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>${bultoDe(o, c) ? ` <span class="tag sm">📦 c/u llevando el bulto de ${o.bulto}</span>` : ""}${c === "online" ? ` <span class="sub">+ envío${(ST[o.s].online || {}).envio ? " " + money(ST[o.s].online.envio) : ""}</span>` : ""}
+    return `<div class="sline"><span class="k">${c === "online" ? "🛒 Online " + tip("online") : "🏬 En el local " + tip("local")}</span> <b>${money(v)}</b>${viejo(o, c) ? ` <span class="tag sm warn" title="Esta cadena no informa precios a la base oficial desde el ${fechaDM(ST[o.s].fecha)}: no lo contamos como el más barato">⚠️ Desactualizado · del ${fechaDM(ST[o.s].fecha)}</span>` : ""}${bultoDe(o, c) ? ` <span class="tag sm">📦 c/u llevando el bulto de ${o.bulto}</span>` : ""}${c === "online" ? ` <span class="sub">+ envío${(ST[o.s].online || {}).envio ? " " + money(ST[o.s].online.envio) : ""}</span>` : ""}
       ${pr ? `<span class="tag sm">🏷️ ${esc(pr.txt)}: ${money(pr.pu)} c/u${pr.n > 1 ? ` llevando ${pr.n}` : ""}</span>` : ""}
       ${pay.promo ? `<span class="tag g sm">💳 Hoy ${money(price1(o, c) - pay.disc)} con ${esc(medioName(pay.promo))}</span> ${acumBadge(pay.promo, true)}` : ""}${c === "online" ? envLinea(o.s) : ""}</div>`;
   };
@@ -3051,6 +3069,14 @@ listaCompartida();
   Cuenta.iniciar();
   if ((CFG.responsable || {}).email) { const m = CFG.responsable.email, f = $("#fcontacto"); if (f) f.innerHTML = ` · Contacto: <a href="mailto:${esc(m)}">${esc(m)}</a>`; }
   $("#fupd").textContent = `Precios del ${D.updated.split("-").reverse().join("/")} · ${D.region}`;
+  { // aviso si la base oficial no publicó precios nuevos hace días (no usamos la fecha de la base como prueba de que sigan vigentes)
+    const hoyAR = new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10), atraso = Math.round((new Date(hoyAR) - new Date(D.updated)) / 864e5);
+    const viejas = D.stores.filter(st => st.viejo).map(st => st.name);
+    const av = $("#avisodatos"), partes = [];
+    if (atraso >= 2) partes.push(`⚠️ <b>Los precios de sucursales son del ${fechaDM(D.updated)}</b>: la base oficial no publicó datos nuevos en ${atraso} días. Pueden haber cambiado.`);
+    if (viejas.length) partes.push(`⚠️ ${viejas.length === 1 ? "La cadena" : "Las cadenas"} <b>${esc(viejas.join(", "))}</b> no ${viejas.length === 1 ? "informa" : "informan"} precios hace más de ${DIAS_VIEJO} días: ${viejas.length === 1 ? "la mostramos" : "las mostramos"} como «desactualizado» y no ${viejas.length === 1 ? "cuenta" : "cuentan"} para «el más barato».`);
+    if (av && partes.length) { av.innerHTML = partes.join("<br>"); av.hidden = false; }
+  }
   $("#mdot").hidden = !MEDIOS;
   saveLista(); refreshAvisos(); updUbic(); route();
 }).catch(err => { $("#view").innerHTML = `<div class="wrap"><div class="empty" style="margin:40px 0">No se pudieron cargar los precios. Probá recargar la página.<br><span class="sub">${esc(err.message)}</span></div></div>`; });
