@@ -14,7 +14,7 @@ const { ExpirationPlugin } = workbox.expiration;
 const { CacheableResponsePlugin } = workbox.cacheableResponse;
 
 const APP = `${VERSION}-app`, DATOS = `${VERSION}-datos`;
-const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/buscador.js", "js/motor.js", "js/mapa.js", "fonts/plus-jakarta-sans-latin-wght-normal.woff2", "js/vendor/minisearch.js", "js/vendor/floating-ui.js", "js/vendor/auto-animate.js", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
+const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/buscador.js", "js/motor.js", "js/asistente.js", "js/ticket.js", "js/mapa.js", "fonts/plus-jakarta-sans-latin-wght-normal.woff2", "js/vendor/minisearch.js", "js/vendor/floating-ui.js", "js/vendor/auto-animate.js", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
 
 self.addEventListener("install", e => { e.waitUntil(caches.open(APP).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => {

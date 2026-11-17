@@ -153,3 +153,61 @@ test("una búsqueda sin resultados lo dice claro y ofrece buscar cada palabra", 
   await page.locator("[data-solo='mani']").click();
   await expect(page.locator("#res .prod, #res .lrow").first()).toBeVisible();
 });
+
+test("ticket: lo leído se puede corregir (texto, producto, cantidad, precio, quitar y agregar) y el ahorro sale recién al confirmar", async ({ page }) => {
+  await page.goto("#inicio"); await listo(page);
+  // lo que devolvería el lector de tickets (OCR): dos renglones bien y uno mal leído
+  // (en texto: son funciones de la página, no de la prueba)
+  await page.evaluate(`(async () => {
+    await lib("js/ticket.js");
+    const lineas = [{ txt: "YERBA PLAYADITO 1KG", cant: 1, precio: 9999 }, { txt: "ARROZ GALLO 1KG", cant: 1, precio: 5000 }, { txt: "XQZ KWW", cant: 1, precio: 100 }];
+    openModal('<h2>Ticket</h2><div id="tkres"></div>');
+    ticketTabla(lineas, (await matchTicket(lineas)) || []);
+  })()`);
+  const res = page.locator("#tkres");
+  await expect(res.locator(".tksum")).toContainText("Revisá cada uno");
+  await expect(res).not.toContainText("Podrías ahorrar");
+  await expect(res.locator("[data-tkdel]")).toHaveCount(3);
+  await res.locator("[data-tkdel='2']").click();                       // quitar el mal leído
+  await expect(res.locator("[data-tkdel]")).toHaveCount(2);
+  await res.locator("[data-tkc='0']").fill("2"); await res.locator("[data-tkc='0']").press("Enter");
+  await res.locator("[data-tkpr='1']").fill("4500"); await res.locator("[data-tkpr='1']").press("Enter");
+  await res.locator("#tkadd").click();                                  // agregar uno que faltó
+  await res.locator("[data-tkt='2']").fill("leche entera"); await res.locator("[data-tkt='2']").press("Tab");
+  await expect(res.locator("[data-tksel='2']")).toBeVisible();
+  await expect(res.locator("[data-tkc='0']")).toHaveValue("2");
+  await expect(res.locator("[data-tkpr='1']")).toHaveValue("4500");
+  await res.locator("#tkok").click();
+  await expect(res.locator(".tksum")).toContainText(/Podrías ahorrar|Compraste bien/);
+  await expect(res.locator("#tkplan")).toBeVisible();
+});
+
+test("comparar por kilo: normaliza presentaciones distintas, dice cuánto más cuesta y avisa si se miden distinto", async ({ page }) => {
+  await page.goto("#inicio"); await listo(page);
+  await page.evaluate(`(async () => {
+    const r = await buscarProm("yerba", false), ps = r.ids.map(id => BY[id]).filter(p => p && tamOK(p) && p.bu === "kg");
+    const a = ps.find(p => Math.abs(p.bq - 0.5) < 0.01), b = ps.find(p => Math.abs(p.bq - 1) < 0.01);
+    const l = (await buscarProm("leche", false)).ids.map(id => BY[id]).find(p => p && tamOK(p) && p.bu === "l");
+    CMP = [a.id, b.id, l.id]; vComparar();
+  })()`);
+  await expect(page.locator(".cmpc")).toHaveCount(3);
+  await expect(page.locator("#view")).toContainText("menor precio por kg");
+  await expect(page.locator("#view")).toContainText(/\d+% más por kg|Casi igual por kg/);
+  await expect(page.locator("#view .note")).toContainText("Se miden distinto");
+  await expect(page.locator("#view")).not.toContainText("menor precio por litro");   // una sola leche: no hay con quién comparar
+});
+
+test("asistente: entiende preguntas naturales, usa la ficha abierta y no inventa descuentos sin medios", async ({ page }) => {
+  await page.goto("#inicio"); await listo(page);
+  await page.evaluate(`lib("js/asistente.js")`);
+  const pregunta = async q => page.evaluate(`botResponder(${JSON.stringify(q)})`);
+  expect(await pregunta("¿Dónde consigo el aceite más barato?")).toMatch(/[Aa]ceite/);
+  expect(await pregunta("Buscame una yerba de buena calidad y económica")).toContain("No tenemos calificaciones de calidad");
+  expect(await pregunta("¿Qué ofertas tengo con mi tarjeta?")).toContain("necesito saber tus medios de pago");
+  expect(await pregunta("¿Qué súper me conviene para mi carrito?")).toContain("carrito está vacío");
+  expect(await pregunta("Comparame yerba playadito y yerba taragui")).toContain("para comparar");
+  // con la ficha de un producto abierta, no hace falta escribir su nombre
+  const nombre = await page.evaluate(`(async () => { const id = (await buscarProm("arroz", false)).ids[0]; await openProduct(id); return BY[id].name; })()`);
+  expect(await pregunta("¿dónde está más barato?")).toContain(nombre.replace(/&/g, "&amp;"));
+  expect(await pregunta("¿cuánto ahorro comprando acá?")).not.toContain("carrito");
+});

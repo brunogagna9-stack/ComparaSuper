@@ -33,6 +33,15 @@
   "gzip": true
  },
  {
+  "name": "Asistente y lector de tickets (asistente.js y ticket.js, se bajan al usarlos)",
+  "path": [
+   "site/js/asistente.js",
+   "site/js/ticket.js"
+  ],
+  "limit": "11 kB",
+  "gzip": true
+ },
+ {
   "name": "Cuentas (cuenta.js; la librería de Firebase se baja solo al ingresar)",
   "path": "site/js/cuenta.js",
   "limit": "6 kB",

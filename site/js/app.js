@@ -241,7 +241,9 @@ function prodImg(p, cls) {
   return p.img ? `<div class="${cls} hasimg"><img src="${esc(fotoChica(p.img))}" data-orig="${esc(p.img)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="fotoFalla(this,'${e}')"></div>`
     : `<div class="${cls}" aria-hidden="true">${e}</div>`;
 }
-const perUnit = (p, price) => p.bq ? price / p.bq : null;
+/* precio por kilo, litro o unidad; null si el tamaño no está o es dudoso (p. ej. "4 l" leído como 200 l) */
+const tamOK = p => p.bq > 0 && (p.bu === "un" ? p.bq <= 1000 : p.bq <= 50);
+const perUnit = (p, price) => (tamOK(p) ? price / p.bq : null);
 const unitTxt = (p, price) => { const u = perUnit(p, price); return u ? `${money(u)} por ${UNIT[p.bu] || p.bu}` : ""; };
 /* cada oferta puede tener precio en el local (p) y/o online (po); c = "tienda" | "online" */
 const base = (o, c) => (c === "online" ? o.po : o.p);
@@ -812,113 +814,14 @@ function anuncio(lugar) {
    Se baja solo cuando lo usás (unos 4 MB la primera vez). Lee el ticket en tu celular: la foto no se manda a ningún lado. */
 let TS_P = null;
 const loadTS = () => TS_P || (TS_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js"; s.onload = () => ok(window.Tesseract); s.onerror = () => { TS_P = null; ko(); }; document.head.appendChild(s); }));
-const NO_PROD = /total|subtotal|iva\b|efectivo|tarjeta|vuelto|cambio|cuit|ticket|factura|fecha|hora|cajer|caja\b|descuento|bonif|redondeo|pago|saldo|debito|credito|qr\b|mercado ?pago|gracias|cliente|consumidor|items?\b|art[ií]culos|domicilio|ing\.? ?br|p\.?v\.?|nro|n[º°]/i;
-function leerTicket(txt) {
-  const out = [];
-  for (let l of txt.split(/\n+/)) {
-    l = l.replace(/\s+/g, " ").trim();
-    const m = l.match(/^(.*?)[\s$]*(\d{1,3}(?:[.,]\d{3})*[.,]\d{2})\s*[A-Z%]{0,3}$/);   // termina en un precio: "LECHE SERENIS 1L 1.234,50"
-    if (!m || NO_PROD.test(m[1]) || m[1].replace(/[^a-záéíóúñ]/gi, "").length < 4) continue;
-    let nombre = m[1], cant = 1;
-    const q = nombre.match(/^(\d+(?:[.,]\d+)?)\s*[xX*]\s*/); if (q) { cant = Math.round(parseFloat(q[1].replace(",", "."))) || 1; nombre = nombre.slice(q[0].length); }
-    const precio = parseFloat(m[2].replace(/[.,](?=\d{3}\b)/g, "").replace(",", "."));
-    if (precio > 0 && precio < 1e7) out.push({ txt: nombre.trim(), cant, precio });
-  }
-  return out;
-}
-const matchTicket = lineas => new Promise(ok => {
-  if (!BUSC.w || !BUSC.ok) return ok(null);
-  const id = ++BUSC.n; (BUSC.tk = BUSC.tk || {})[id] = ok;
-  BUSC.w.postMessage({ t: "ticket", id, lineas: lineas.map(l => l.txt) });
-});
-function modalTicket() {
-  openModal(`<h2>🧾 ¿Cuánto te hubieras ahorrado?</h2>
-    <p class="sub">Sacale una foto al ticket del súper y te decimos cuánto te hubiera salido lo mismo comprando cada cosa donde está más barato. La foto se lee en tu celular y no se manda a ningún lado.</p>
-    <label class="btn" style="display:inline-flex;gap:8px;cursor:pointer;margin:6px 0">📷 Sacar o elegir foto del ticket<input type="file" id="tkfile" accept="image/*" capture="environment" hidden></label>
-    <p class="sub">Consejo: el ticket estirado, derecho, con buena luz y que se lea entero.</p>
-    <div id="tkres" role="status"></div>`);
-  $("#tkfile").onchange = async e => {
-    const f = e.target.files[0]; if (!f) return;
-    const box = $("#tkres"), est = t => { box.innerHTML = `<div class="tkprog"><div class="spin"></div>${t}</div>`; };
-    est("Preparando el lector de tickets… (la primera vez tarda un poco más)");
-    try {
-      await loadProducts();
-      const T = await loadTS();
-      const w = await T.createWorker("spa", 1, { logger: m => { if (m.status === "recognizing text" && $("#tkres")) est(`Leyendo el ticket… ${Math.round(m.progress * 100)}%`); } });
-      const { data } = await w.recognize(f); await w.terminate();
-      const lineas = leerTicket(data.text || "");
-      if (!lineas.length) { box.innerHTML = `<div class="warn">No pudimos leer productos con precio en la foto. Probá con más luz, el ticket derecho y más cerca.</div>`; return; }
-      est("Buscando cada producto…");
-      const res = await matchTicket(lineas);
-      if (!$("#tkres")) return;
-      ticketTabla(lineas, res || []);
-    } catch { box.innerHTML = `<div class="warn">No se pudo leer el ticket. Revisá tu conexión (la primera vez se baja el lector) y probá de nuevo.</div>`; }
-  };
-}
-/* tamaño escrito en el renglón del ticket ("1KG", "750CC", "500 GR") en kg o litros, para elegir la presentación correcta */
-function tamTicket(t) {
-  const m = nrm(t).match(/(\d+(?:[.,]\d+)?)\s*(kgs?|k|grs?|g|lts?|l|ml|cc|cm3)\b/); if (!m) return null;
-  const n = parseFloat(m[1].replace(",", ".")), u = m[2];
-  return /^(kgs?|k)$/.test(u) ? { q: n, u: "kg" } : /^(grs?|g)$/.test(u) ? { q: n / 1000, u: "kg" } : /^(lts?|l)$/.test(u) ? { q: n, u: "l" } : { q: n / 1000, u: "l" };
-}
-function ticketTabla(lineas, res, esLista) {
-  // primero el tamaño que dice el renglón (si lo dice); después, el más parecido al texto (lo ordena el proceso de fondo)
-  const orden = (l, ids) => { const t = tamTicket(l.txt); const d = id => { const p = BY[id]; return !t ? 0 : p.bq && p.bu === t.u ? Math.round(Math.abs(p.bq - t.q) / t.q * 10) : 99; };
-    return [...ids].sort((a, b) => d(a) - d(b)).slice(0, 6); };   // a igual tamaño, se respeta el orden por parecido del texto
-  const filas = lineas.map((l, i) => ({ ...l, ids: orden(l, (res[i] && res[i].ids.filter(id => BY[id])) || []), sel: 0, on: !!(res[i] && res[i].ids.length) }));
-  const draw = () => {
-    let pag = 0, mej = 0, n = 0;
-    const html = filas.map((f, i) => {
-      const p = f.on && BY[f.ids[f.sel]], b = p && best(p);
-      if (p) { pag += f.precio; mej += esLista ? b.v * f.cant : Math.min(f.precio, b.v * f.cant); n++; }
-      return `<div class="tkrow${p ? "" : " off"}"><div class="tkl"><span class="sub">«${esc(f.txt)}»${f.cant > 1 ? ` × ${f.cant}` : ""}${esLista ? "" : ` · pagaste ${money(f.precio)}`}</span>
-        ${f.ids.length ? `<select class="sel" data-tksel="${i}" aria-label="Producto">${f.ids.map((id, k) => `<option value="${k}" ${k === f.sel && f.on ? "selected" : ""}>${esc(BY[id].name)}</option>`).join("")}<option value="-1" ${f.on ? "" : "selected"}>No es ninguno</option></select>` : `<span class="sub">No lo reconocimos</span>`}</div>
-        <div class="tkp">${p ? `<b>${money(b.v * f.cant)}</b><br><span class="sub">en ${esc(ST[b.o.s].name)}</span>` : ""}</div></div>`;
-    }).join("");
-    const ah = pag - mej;
-    $("#tkres").innerHTML = esLista ? `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos.</div><div class="big">Desde ${money(mej)}</div><div class="sub">comprando cada uno donde está más barato. Tocá abajo para ver en qué comercio y qué día te conviene todo junto.</div>` : "No reconocimos productos. Probá escribiéndolos de otra forma."}</div>
-      <p class="sub">Revisá que cada producto sea el correcto; si no, elegí otro de la lista.</p>${html}
-      <div class="mfoot"><span></span>${n ? `<button class="btn" id="tkplan">${ic("chart-column")} Ver dónde conviene esta compra</button>` : ""}</div>` : `<div class="tksum">${n ? `<div>Reconocimos <b>${n}</b> de ${filas.length} productos. Pagaste <b>${money(pag)}</b> por ellos.</div>
-        <div class="big">${ah > 0 ? `Podrías ahorrar ${money(ah)}` : "¡Compraste bien!"}</div><div class="sub">comprando cada uno donde está más barato (${money(mej)}), sin contar descuentos con tu banco.</div>` : "No reconocimos productos. Elegilos de la lista si alguno aparece."}</div>
-      <p class="sub">Los tickets abrevian los nombres: revisá que cada producto sea el correcto.</p>${html}
-      <div class="mfoot"><span></span>${n ? `<button class="btn" id="tkplan">📊 Ver dónde conviene esta compra</button>` : ""}</div>`;
-    $$("[data-tksel]").forEach(s => s.onchange = () => { const f = filas[+s.dataset.tksel], v = +s.value; f.on = v >= 0; if (v >= 0) f.sel = v; draw(); });
-    const pb = $("#tkplan"); if (pb) pb.onclick = () => { PLAN = {}; for (const f of filas) if (f.on && BY[f.ids[f.sel]]) PLAN[f.ids[f.sel]] = (PLAN[f.ids[f.sel]] || 0) + f.cant; savePlan(); closeModal(); irA("conviene"); };
-  };
-  draw();
-}
-
-/* ---------- LISTA DE COMPRAS COMPARTIDA DESDE OTRA APP O PEGADA ----------
-   Con la web instalada, en "Compartir" de WhatsApp, Notas, etc. aparece SuperBarato (Web Share Target).
-   Cada renglón ("2 leche", "yerba x1kg", "• aceite") se busca entre los productos. */
-function partirLista(t) {
-  return (t || "").split(/\n|,|;|•|·|- (?=\S)/).map(x => x.replace(/^[\s\-*–—>✅☑️🔲⬜\d.)]*(?=\D)/u, m => (/^\s*\d+\s*$/.test(m) ? m : m.replace(/[\d.)]/g, ""))).trim()).filter(x => x.length >= 3)
-    .map(x => { let cant = 1; const a = x.match(/^(\d{1,2})\s*(?:x\s*)?(?=\D)/i) || x.match(/\s+x\s*(\d{1,2})$/i); if (a) { cant = +a[1] || 1; x = x.replace(a[0], " ").trim(); } return { txt: x, cant, precio: 0 }; })
-    .slice(0, 60);
-}
-function modalLista(texto, auto) {
-  openModal(`<h2>${ic("receipt")} ${auto ? "Recibimos tu lista" : "Pegá tu lista de compras"}</h2>
-    <p class="sub">Un producto por renglón (por ejemplo «2 leche», «yerba 1kg», «aceite»). Te mostramos qué producto es cada uno y después calculamos dónde te conviene comprar todo.</p>
-    <textarea class="ta" id="lstxt" rows="7" placeholder="leche&#10;2 yerba&#10;aceite girasol&#10;galletitas">${esc(texto || "")}</textarea>
-    <div class="mfoot"><span></span><button class="btn" id="lsgo">Buscar los productos</button></div><div id="tkres" role="status"></div>`);
-  const go = async () => {
-    const lineas = partirLista($("#lstxt").value);
-    if (!lineas.length) { $("#tkres").innerHTML = `<div class="warn">Escribí al menos un producto.</div>`; return; }
-    $("#tkres").innerHTML = `<div class="tkprog"><div class="spin"></div>Buscando cada producto…</div>`;
-    await loadProducts();
-    for (let i = 0; i < 40 && !BUSC.ok && BUSC.w; i++) await new Promise(r => setTimeout(r, 250));   // el buscador termina de armarse
-    const res = await matchTicket(lineas);
-    if ($("#tkres")) ticketTabla(lineas, res || [], true);
-  };
-  $("#lsgo").onclick = go;
-  if (texto) go();
-}
+/* el lector de tickets y la lista pegada están en js/ticket.js: se bajan solo cuando alguien los usa */
+const conTicket = f => lib("js/ticket.js").then(f, () => toast("No se pudo cargar. Revisá tu conexión y probá de nuevo."));
 /* abierta desde "Compartir" de otra app: la dirección trae ?texto=… */
 function listaCompartida() {
   const q = new URLSearchParams(location.search), t = [q.get("titulo"), q.get("texto"), q.get("enlace")].filter(Boolean).join("\n").trim();
   if (!t) return;
   history.replaceState(null, "", location.pathname + (location.hash || "#conviene"));
-  setTimeout(() => modalLista(t, true), 300);
+  setTimeout(() => conTicket(() => window.modalLista(t, true)), 300);
 }
 
 /* ---------- FOTO AMPLIADA (PhotoSwipe, licencia MIT): se puede pellizcar para acercar ---------- */
@@ -1221,7 +1124,7 @@ const PAGE = 48;
 const filtrosActivos = () => !!(S.cat || S.stores.size || S.onlyPromo || S.sintacc || S.propia || S.favf || S.cerca);
 /* sin resultados con varias palabras: ofrecer buscar cada una por separado ("aceite de maní" → «aceite», «maní») */
 const porPalabra = () => { const ws = nrm(S.q).split(/[^a-z0-9ñ]+/).filter(w => w.length > 2 && !/^(con|sin|del|los|las|para)$/.test(w)); return ws.length > 1 ? `<div class="cbtns" style="justify-content:center;margin-top:12px">${ws.map(w => `<button type="button" class="btn sec sm" data-solo="${esc(w)}">Buscar solo «${esc(w)}»</button>`).join("")}</div>` : ""; };
-const tamTxt = t => t.u === "kg" ? (t.q < 1 ? `${Math.round(t.q * 1000)} g` : `${String(t.q).replace(".", ",")} kg`) : t.u === "l" ? (t.q < 1 ? `${Math.round(t.q * 1000)} ml` : `${String(t.q).replace(".", ",")} l`) : `${t.q} unidades`;
+const tamTxt = t => t.u === "kg" ? (t.q < 1 ? `${Math.round(t.q * 1000)} g` : `${String(t.q).replace(".", ",")} kg`) : t.u === "l" ? (t.q < 1 ? `${Math.round(t.q * 1000)} ml` : `${String(t.q).replace(".", ",")} l`) : `${t.q} ${t.q === 1 ? "unidad" : "unidades"}`;
 /* paginado con números: 1 2 3 … 10 */
 function pager(total, page, id, per = PAGE) {
   const pages = Math.ceil(total / per); if (pages <= 1) return "";
@@ -2341,8 +2244,8 @@ document.addEventListener("click", e => {
   if (e.target.closest("[data-news]")) { e.preventDefault(); modalNews(); return; }
   if (e.target.closest("[data-marcarmapa]")) { e.preventDefault(); MAPA.marcar = true; closeModal(); if (location.hash === "#mapa") vMapa(); else irA("mapa"); return; }
   const zb = e.target.closest("[data-zoom]"); if (zb) { e.preventDefault(); zoomFoto(BY[zb.dataset.zoom]); return; }
-  if (e.target.closest("[data-pegar]")) { e.preventDefault(); modalLista(""); return; }
-  if (e.target.closest("[data-ticket]")) { e.preventDefault(); scanStop(); if (!$("#bsheet").hidden) masShow(false); modalTicket(); return; }
+  if (e.target.closest("[data-pegar]")) { e.preventDefault(); conTicket(() => window.modalLista("")); return; }
+  if (e.target.closest("[data-ticket]")) { e.preventDefault(); scanStop(); if (!$("#bsheet").hidden) masShow(false); conTicket(() => window.modalTicket()); return; }
   const cn = e.target.closest("[data-canal]"); if (cn) { S.canal = cn.dataset.canal; route(); return; }
   if (e.target.closest("[data-canasta]")) { e.preventDefault(); canasta().forEach(({ p }) => (PLAN[p.id] = PLAN[p.id] || 1)); savePlan(); toast("Canasta básica cargada para comparar"); location.hash === "#conviene" ? route() : (location.hash = "conviene"); return; }
   const pl = e.target.closest("[data-plan]"); if (pl) { const id = pl.dataset.plan; PLAN[id] = (PLAN[id] || 0) + 1; savePlan(); if (pl.hasAttribute("data-replan")) vConviene(); const h = qtyHint(BY[id], PLAN[id]); toast(`Sumado a ¿Dónde conviene mi compra? 📊 (${PLAN[id]})${h ? " · " + h : ""}`, h ? 4500 : 2400); return; }
@@ -2617,7 +2520,7 @@ document.addEventListener("visibilitychange", () => {
 
 /* ---------- explicaciones con la "i" ---------- */
 const GLOS = {
-  kg: ["Precio por kilo o por litro", "Cuánto sale 1 kg o 1 litro de ese producto. Sirve para comparar paquetes de distinto tamaño: el más barato por kilo es el que más rinde."],
+  kg: ["Precio por kilo, litro o unidad", "Cuánto sale 1 kg, 1 litro o 1 unidad de ese producto. Sirve para comparar paquetes de distinto tamaño. Solo se puede comparar entre productos que se miden igual (kilos con kilos, litros con litros), y no dice nada de la calidad."],
   sindto: ["Precio sin descuentos", "El precio de góndola, sin contar promos de bancos ni billeteras. Ya incluye las ofertas del propio comercio, si hay."],
   condto: ["Pagando con descuento", "Lo que te queda pagando hoy con un banco, billetera o tarjeta que tenga promo en ese comercio. Tenés que pagar como dice «Cómo pagar»."],
   oferta: ["Oferta del comercio", "Una rebaja que pone el propio súper (2x1, 2da al 70%, % de descuento). La tenés pagues como pagues."],
@@ -2880,17 +2783,31 @@ function vComparar() {
   const ps = CMP.map(id => BY[id]).filter(Boolean);
   if (!ps.length) { $("#view").innerHTML = `<div class="wrap"><section class="blk first"><h1>⚖️ Comparar productos</h1><div class="cv"><div class="empty" style="padding:40px">Abrí un producto y tocá <b>«⚖️ Comparar»</b> (en «⋯ Más opciones») para sumarlo acá (hasta 4).<br><br><a class="btn" href="#buscar">Buscar productos</a></div>${ayudaVacia("cmp")}</div></section></div>`; cmpBar(); return; }
   const rows = ps.map(p => { const b = best(p); let bp = null; for (const o of p.offers) for (const c of chans(o)) { const pay = payDiscount(o.s, HOY, c, price1(o, c), true, base(o, c)); const v = price1(o, c) - pay.disc; if (pay.promo && (!bp || v < bp.v)) bp = { o, c, v, pay }; } return { p, b, bp, u: perUnit(p, b.v), of: p.offers.find(o => o.promo || o.promoo) }; });
-  const minU = Math.min(...rows.filter(r => r.u).map(r => r.u)), minV = Math.min(...rows.map(r => r.b.v));
+  // por kilo/litro/unidad: solo entre los que se miden igual; el más barato de cada medida es la referencia
+  const minV = Math.min(...rows.map(r => r.b.v)), minU = {}, ref = {};
+  for (const r of rows) if (r.u && (minU[r.p.bu] === undefined || r.u < minU[r.p.bu])) { minU[r.p.bu] = r.u; ref[r.p.bu] = r; }
+  const medidas = Object.keys(minU), deMedida = u => rows.filter(r => r.u && r.p.bu === u).length;
+  const tipos = new Set(ps.map(p => tipoDe(p)[0]));
+  const avisos = [medidas.length > 1 ? `Se miden distinto (${medidas.map(u => UNIT[u] === "unidad" ? "por unidad" : "por " + UNIT[u]).join(", ")}): el precio por kilo, litro o unidad se compara solo entre los que se miden igual.` : "",
+    rows.some(r => !r.u) ? "De algún producto no sabemos el tamaño exacto, así que no calculamos su precio por kilo o litro." : "",
+    tipos.size > 1 ? "Ojo: no son el mismo tipo de producto. El precio por kilo o litro sirve de referencia, pero no reemplaza comparar calidad, marca o uso." : ""].filter(Boolean);
+  const unidad = r => { if (!r.u) return "—"; const u = r.p.bu, m = minU[u], n = deMedida(u), dif = (r.u / m - 1) * 100;
+    if (n < 2) return `<b>${unitTxt(r.p, r.b.v)}</b>`;
+    if (r === ref[u]) return `<b class="okc">${unitTxt(r.p, r.b.v)}</b> <span class="tag g sm">menor precio por ${UNIT[u]}</span>`;
+    const igual = m * r.p.bq, ah = r.b.v - igual;
+    return `<b>${unitTxt(r.p, r.b.v)}</b><br><span class="sub">${dif >= 0.5 ? `${Math.round(dif)}% más por ${UNIT[u]} que ${esc(ref[u].p.name.replace(/\.+$/, ""))}.` : "Casi igual por " + UNIT[u] + "."}${ah >= 1 ? ` La misma cantidad (${esc(tamTxt({ q: r.p.bq, u }))}) en la otra presentación sale ${money(igual)}: ${money(ah)} menos.` : ""}</span>`; };
   $("#view").innerHTML = `<div class="wrap"><section class="blk first"><div class="blk-h"><h1>⚖️ Comparar productos</h1><button class="btn sec sm" id="cmpclr">Vaciar</button></div>
-    <div class="cmpgrid" style="--n:${rows.length}">${rows.map(({ p, b, bp, u, of }) => `<article class="cmpc${u && u === minU ? " gana" : ""}">
+    ${avisos.length ? `<div class="note" style="margin-bottom:12px">${avisos.map(esc).join("<br>")}</div>` : ""}
+    <div class="cmpgrid" style="--n:${rows.length}">${rows.map(r => { const { p, b, bp, u, of } = r; return `<article class="cmpc${u && r === ref[p.bu] && deMedida(p.bu) > 1 ? " gana" : ""}">
       <button class="rm" data-cmpq="${p.id}" aria-label="Sacar de la comparación">✕</button>
       <div data-open="${p.id}" role="button" tabindex="0">${prodImg(p, "ph")}<h3>${esc(p.name)}</h3></div>
-      <dl><dt>Más barato ${tip("sindto")}</dt><dd><b class="${b.v === minV ? "okc" : ""}">${money(b.v)}</b><br>${where(b)}</dd>
-      <dt>Por kilo o litro ${tip("kg")}</dt><dd>${u ? `<b class="${u === minU ? "okc" : ""}">${unitTxt(p, b.v)}</b>${u === minU ? ' <span class="tag g sm">rinde más</span>' : ""}` : "—"}</dd>
+      <dl><dt>Presentación</dt><dd>${tamOK(p) ? esc(tamTxt({ q: p.bq, u: p.bu })) : "—"}</dd>
+      <dt>Más barato ${tip("sindto")}</dt><dd><b class="${b.v === minV ? "okc" : ""}">${money(b.v)}</b><br>${where(b)}</dd>
+      <dt>Por kilo, litro o unidad ${tip("kg")}</dt><dd>${unidad(r)}</dd>
       <dt>Pagando hoy ${tip("condto")}</dt><dd>${bp && bp.v < b.v ? `${money(bp.v)}<br><span class="sub">en ${esc(ST[bp.o.s].name)} con ${esc(medioName(bp.pay.promo))}</span>` : "—"}</dd>
       <dt>Oferta ${tip("oferta")}</dt><dd>${of ? esc((of.promo || of.promoo).txt) + ` <span class="sub">(${esc(ST[of.s].name)})</span>` : "—"}</dd>
       <dt>Comercios</dt><dd>${p.offers.length}</dd></dl>
-      <div class="cmpa">${addCtl(p.id)}</div></article>`).join("")}</div>
+      <div class="cmpa">${addCtl(p.id)}</div></article>`; }).join("")}</div>
     ${rows.length < 4 ? `<p class="sub" style="margin-top:14px">Podés sumar ${4 - rows.length} más desde la ficha de cualquier producto.</p>` : ""}</section></div>`;
   $("#cmpclr").onclick = () => { CMP = []; LS.set(PK("cs_cmp"), CMP); vComparar(); };
   $$("[data-cmpq]").forEach(b => b.onclick = () => { CMP = CMP.filter(x => x !== b.dataset.cmpq); LS.set(PK("cs_cmp"), CMP); vComparar(); });
@@ -2933,70 +2850,22 @@ document.addEventListener("click", e => { if (e.target.closest("[data-instalar]"
 if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 
 /* ---------- ASISTENTE VIRTUAL ----------
-   Funciona dentro de la página, sin servicios externos: entiende preguntas sobre precios, descuentos,
-   comercios y cómo usar cada sección, y responde con los datos cargados. */
-const BOT = { msgs: [] };
-const DIAS_N = ["domingo", "lunes", "martes", "miercoles", "jueves", "viernes", "sabado"];
-const STOP = new Set("donde esta mas barato barata baratos baratas precio precios cuanto cuesta cuestan sale salen vale valen conviene comprar compro el la los las un una unos unas de del en que para por con y o me mi hay a al es son busco buscar quiero necesito super supermercado hoy ahora".split(" "));
-const BOT_TEMAS = [
-  [/carrit|lista/, () => `<b>🛒 Mi carrito</b>: tocá el <b>+</b> de cualquier producto para sumarlo; si ya está, aparecen <b>− cantidad +</b>. En la ficha del producto, con <b>«Ver más supermercados»</b> podés elegir de qué súper agregarlo. Desde el carrito lo compartís por WhatsApp o correo. <a href="#carrito">Ir a mi carrito</a>`],
-  [/conviene|calcul|compar.*compra|mezcl/, () => `<b>📊 ¿Dónde conviene mi compra?</b>: cargá productos (o traé tu carrito) y te muestra cuánto sale todo en un comercio, mezclando dos, y el mejor día con tus medios de pago. <a href="#conviene">Abrir</a>`],
-  [/medio|tarjeta mia|mis tarjetas|mis bancos/, () => `<b>💳 Mis medios</b>: arriba a la derecha marcás tus bancos, billeteras y tarjetas, y te mostramos solo los descuentos que podés usar. <button class="linkbtn" data-medios>Elegir mis medios</button>`],
-  [/ubicaci|cerca|barrio|localidad|gps/, () => `<b>📍 Ubicación</b>: tocá «Elegí tu ubicación» debajo del logo. Podés usar el GPS o escribir tu barrio, y te mostramos los comercios cercanos y sus promos. <button class="linkbtn" data-ubic>Marcar mi ubicación</button>`],
-  [/aviso|alerta|baje|bajo de precio|avisame/, () => `<b>🔔 Avisos</b>: en la ficha de un producto tocá «Avisarme si baja». Cuando baje, aparece una campanita arriba con el número de productos que bajaron.`],
-  [/sugerenc|reclam|idea|mejora/, () => `<b>💬 Sugerencias</b>: tocá el globo de abajo a la derecha o <a href="#sugerencias">entrá acá</a>. Se publican después de revisarlas y todos pueden votarlas.`],
-  [/oscuro|claro|tema|color de la pagina/, () => `Arriba tenés el botón <b>Modo Oscuro / Modo Claro</b> para cambiar los colores.`],
-  [/vista|columna|lista de productos|iconos/, () => `En <a href="#buscar">Productos</a> el botón <b>«Ver»</b> cambia entre íconos grandes (3 columnas), íconos chicos (5 columnas) o lista de 50.`],
-  [/de donde|datos|fuente|actualiz|confiable|sepa|oficial/, () => `Los precios de las sucursales vienen de la <b>base oficial SEPA</b> que informan las cadenas todos los días; los online, de la tienda web de cada cadena. Los descuentos los relevamos de páginas oficiales y notas, y cada uno dice su fuente. Se actualiza todos los días. Datos del ${esc(D.updated.split("-").reverse().join("/"))}.`],
-  [/envio|online|delivery|a domicilio/, () => `Mostramos el precio <b>online</b> de cada cadena aparte del de la sucursal. El envío se suma en «¿Dónde conviene?». Si una tienda online tiene todos tus productos, te armamos el carrito allá con un botón.`],
-  [/oferta|2x1|3x2|2da|segunda unidad/, () => `En <a href="#ofertas">Ofertas</a> están todas las ofertas vigentes de los comercios, con un banner de las destacadas. Las que van por cantidad (2x1, 2da al 70%) te avisan cuántas unidades llevar cuando sumás al carrito.`],
-  [/jubilad|anses|pension/, () => { const ps = P.promos.filter(pr => (pr.requiere || []).includes("jubilados") || pr.medio === "jubilados"); return `Para jubilados hay ${ps.length} descuentos cargados. Marcá «Jubilados y pensionados» en <button class="linkbtn" data-medios>Mis medios</button> para verlos en los precios.`; }],
-];
-function botPromos(q) {
-  const n = nrm(q);
-  let day = DIAS_N.findIndex(d => n.includes(d)); if (/manana/.test(n)) day = (HOY + 1) % 7; if (day < 0 && /hoy/.test(n)) day = HOY;
-  const w = t => new RegExp("(^|[^a-z0-9])" + t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(n);
-  const meds = P.medios.filter(m => m.id !== "todos" && m.id !== "credito" && (w(nrm(m.name).replace(/^(banco|tarjeta) /, "").replace(/ \(.*\)$/, "")) || (m.id.length > 3 && w(m.id))));
-  const sts = D.stores.filter(st => st.id === "dia" ? /(en|del|de|al) dia([^a-z]|$)|supermercados? dia|dia%/.test(n) : (w(nrm(st.name)) || w(st.id)));
-  if (day < 0 && !meds.length && !sts.length) day = HOY;
-  let ps = P.promos.filter(pr => pr.pct > 0 && (day < 0 || pr.dias.includes(day)) && (!meds.length || meds.some(m => pr.medio === m.id || (pr.bancos || []).includes(m.id))) && (!sts.length || sts.some(st => pr.stores.includes(st.id))));
-  ps = ps.sort((a, b) => b.pct - a.pct);
-  const tit = [day >= 0 ? (day === HOY ? "hoy " + DIAS[day].toLowerCase() : "el " + DIAS[day].toLowerCase()) : "esta semana", meds.length ? "con " + meds.map(m => m.name).join(" o ") : "", sts.length ? "en " + sts.map(x => x.name).join(" o ") : ""].filter(Boolean).join(" ");
-  if (!ps.length) return `No encontré descuentos ${esc(tit)}. Mirá la semana completa en <a href="#pagos">Descuentos por día</a>.`;
-  return `Descuentos ${esc(tit)} (${ps.length}):<ul>${ps.slice(0, 6).map(pr => `<li><b>${pr.pct}%</b> con ${esc(medioName(pr))} en ${esc(pr.stores.map(x => ST[x] ? ST[x].name : x).join(", "))}${day < 0 ? ` · ${pr.dias.length === 7 ? "todos los días" : pr.dias.map(d => DCORTO[d]).join(", ")}` : ""} · ${esc(topeTxt(pr))}<br><span class="sub">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</span></li>`).join("")}</ul>${ps.length > 6 ? `<a href="#pagos">Ver todos en Descuentos por día</a>` : ""}`;
-}
-async function botProductos(q) {
-  const words = nrm(q).replace(/[¿?¡!.,]/g, " ").split(/\s+/).filter(w => w.length > 1 && !STOP.has(w));
-  if (!words.length) return null;
-  const r = await buscarProm(words.join(" "), false), hits = r.ids.slice(0, 3).map(id => BY[id]).filter(Boolean);
-  if (!hits.length) return null;
-  return `Esto encontré:${hits.map(p => { const b = best(p); return `<div class="bprod">${prodImg(p, "li")}<div><b>${esc(p.name)}</b><br>Más barato: <b>${money(b.v)}</b> en ${esc(chanName(b.o.s, b.c))} <span class="sub">(${p.offers.length} comercios)</span></div><div class="bpa"><button class="linkbtn" data-open="${p.id}">Ver</button>${addCtl(p.id)}</div></div>`; }).join("")}
-    <a href="#buscar" data-botq="${esc(words.join(" "))}">Ver todos los resultados</a>`;
-}
-function botFormas(q) {
-  const n = nrm(q), f = Object.values(P.formas_pago).find(f => { const t = nrm(f.t); return (/modo/.test(n) && /modo/.test(t)) || (/nfc|contactless|celular/.test(n) && /nfc/.test(t)) || (/qr/.test(n) && /qr de la billetera/.test(t)); });
-  return f ? `<b>${f.i} ${esc(f.t)}</b>: ${esc(f.d)}` : null;
-}
-async function botResponder(q) {
-  const n = nrm(q).trim();
-  if (!n) return "";
-  if (/^(hola|buenas|buen dia|buenas tardes|buenas noches|hey)\b/.test(n) && n.length < 20) return "¡Hola! Preguntame, por ejemplo: «¿dónde está más barata la yerba?», «descuentos del jueves», «promos con Galicia» o «¿cómo armo mi carrito?».";
-  if (/gracias/.test(n) && n.length < 25) return "¡De nada! Si necesitás algo más, preguntame.";
-  if (/(como|que es).*(pago|pagar|modo|qr|nfc|contactless)|pagar con (qr|nfc|el celular)/.test(n)) { const r = botFormas(q); if (r) return r; }
-  const promoQ = /descuent|promo|reintegro|beneficio|banco|billetera|tarjeta|cuenta dni|mercado pago|modo|que dia|dia conviene/.test(n) && !/carrit|mis medios/.test(n);
-  if (promoQ) return botPromos(q);
-  for (const [re, f] of BOT_TEMAS) if (re.test(n)) return f();
-  const st = D.stores.find(x => n === nrm(x.name) || n === x.id);
-  if (st) return `${esc(st.name)}: ${D.products.filter(p => offerAt(p, st.id)).length} productos comparados.${st.online ? ` Tiene tienda online (${esc(st.online.nombre || "")}).` : ""}<br>${botPromos(st.name)}`;
-  return (await botProductos(q)) || `No estoy seguro de haber entendido 🤔. Puedo ayudarte con:<ul><li>Precios: «¿dónde está más barato el aceite?»</li><li>Descuentos: «promos del sábado», «descuentos con BBVA», «promos en Coto»</li><li>Cómo usar la página: carrito, ¿dónde conviene?, mis medios, ubicación, avisos</li></ul>`;
-}
-const BOT_CHIPS = ["¿Qué descuentos hay hoy?", "¿Dónde está más barata la yerba?", "¿Cómo armo mi carrito?", "¿Cómo pago con MODO?", "Comercios cerca de mí"];
+   Funciona dentro de la página, sin servicios externos. Lo que entiende y responde está en js/asistente.js,
+   que se baja la primera vez que alguien le pregunta algo. */
+const BOT = { msgs: (() => { try { return JSON.parse(sessionStorage.getItem("cs_bot")) || []; } catch { return []; } })() };   // la charla sigue al cambiar de sección
+const BOT_CHIPS = ["¿Qué descuentos puedo aprovechar hoy?", "¿Dónde consigo el aceite más barato?", "¿Qué súper me conviene para mi carrito?", "¿Cómo pago con MODO?"];
 function botRender() {
   $("#chm").innerHTML = BOT.msgs.map(m => `<div class="cm ${m.who}">${m.html}</div>`).join("")
     + (BOT.msgs.length <= 1 ? `<div class="cchips">${BOT_CHIPS.map(c => `<button type="button" class="chip" data-botask="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : "");
   $("#chm").scrollTop = 1e6;
+  try { sessionStorage.setItem("cs_bot", JSON.stringify(BOT.msgs.slice(-30))); } catch {}
 }
-async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(); await loadProducts(); BOT.msgs.push({ who: "b", html: await botResponder(q) }); botRender(); }
+async function botAsk(q) {
+  BOT.msgs.push({ who: "u", html: esc(q) }); botRender();
+  let r;
+  try { await loadProducts(); await lib("js/asistente.js"); r = await window.botResponder(q); } catch { r = "No pude responder ahora: revisá tu conexión y probá de nuevo."; }
+  BOT.msgs.push({ who: "b", html: r }); botRender();
+}
 function botOpen(open) {
   $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
   if (open) ovOpen("chat", () => botOpen(false)); else ovDone("chat");

@@ -9,8 +9,9 @@ test.beforeEach(async ({ page }) => {
   });
 });
 const listo = page => page.waitForFunction(() => typeof READY !== "undefined" && READY, null, { timeout: 45000 });
-const opciones = page => ({ animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.01,
-  mask: [page.locator("#fupd"), page.locator("#avisodatos"), page.locator(".anuncio"), page.locator("#pbtn .cnt"), page.locator(".fabs")] });
+// el aviso de "precios de hace N días" depende de la fecha de los datos: se oculta para que no corra la página
+const opciones = page => ({ animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.01, style: "#avisodatos{display:none!important}",
+  mask: [page.locator("#fupd"), page.locator(".anuncio"), page.locator("#pbtn .cnt"), page.locator(".fabs")] });
 
 for (const [nombre, hash] of [["conocenos", "#nosotros"], ["terminos", "#legal"], ["como-funciona", "#como"]]) {
   test(`@visual ${nombre}`, async ({ page }) => {
