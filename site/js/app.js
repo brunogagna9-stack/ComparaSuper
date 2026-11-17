@@ -1506,13 +1506,13 @@ async function vRanking() {
   const fila = (c, k) => {
     const dif = c.indice - 100, txt = Math.abs(dif) < 0.5 ? "en el promedio" : `${Math.abs(dif).toLocaleString("es-AR", { maximumFractionDigits: 1 })}% ${dif < 0 ? "más barato" : "más caro"}`;
     const pa = ant && ant.puestos[c.s], mov = pa ? (pa > k + 1 ? `subió ${pa - k - 1} ${pa - k - 1 === 1 ? "puesto" : "puestos"}` : pa < k + 1 ? `bajó ${k + 1 - pa} ${k + 1 - pa === 1 ? "puesto" : "puestos"}` : "mismo puesto") : "";
-    const raro = c.tipo !== "mayorista" && Math.abs(dif) > 15;
+    const raro = c.tipo !== "mayorista" && Math.abs(dif) > 15, cob = c.n / r.productos, poca = cob < 0.3, vieja = ST[c.s] && ST[c.s].viejo;
     const w = Math.max(4, Math.min(100, 50 + dif * 2.5));
     return `<tr><th scope="row" class="rk-n">${k + 1}</th>
-      <td class="rk-c">${ST[c.s] ? storeChip(c.s) : `<b>${esc(c.nombre)}</b>`}${raro ? ` <span class="rk-w" title="Diferencia muy grande">⚠️<span class="sr">diferencia muy grande, revisá la nota</span></span>` : ""}</td>
+      <td class="rk-c">${ST[c.s] ? storeChip(c.s) : `<b>${esc(c.nombre)}</b>`}${raro ? ` <span class="rk-w" title="Diferencia muy grande">⚠️<span class="sr">diferencia muy grande, revisá la nota</span></span>` : ""}${poca ? `<div class="sub">Compara pocos productos: tomalo con cuidado</div>` : ""}${vieja ? `<div class="sub">⚠️ Hoy sus precios están desactualizados</div>` : ""}</td>
       <td class="rk-i"><b>${c.indice.toLocaleString("es-AR", { minimumFractionDigits: 1 })}</b><div class="rk-bar" aria-hidden="true"><span class="${dif < 0 ? "dn" : "up"}" style="width:${w}%"></span></div></td>
       <td class="rk-x">${txt}${mov ? `<div class="sub">${mov}</div>` : ""}</td>
-      <td class="rk-p sub">${c.n.toLocaleString("es-AR")}</td></tr>`;
+      <td class="rk-p sub">${c.n.toLocaleString("es-AR")}<br>(${Math.round(cob * 100)}% del total)</td></tr>`;
   };
   const tabla = (titulo, lista, id) => lista.length ? `<section class="box rk" aria-labelledby="${id}"><h2 id="${id}">${titulo}</h2>
     <div class="rk-wrap"><table class="rk-t"><caption class="sr">${titulo}: de la más barata a la más cara. Índice 100 es el precio típico.</caption>
@@ -1529,7 +1529,7 @@ async function vRanking() {
     ${tabla("Mayoristas", may, "rk-may")}
     <section class="box"><h2>Cómo se calcula</h2>
       <p>Para cada producto que venden al menos 3 cadenas, comparamos el precio promedio del mes de cada una con el precio del medio entre todas. El <b>índice</b> junta esas comparaciones: <b>100</b> es el precio típico, <b>95</b> quiere decir 5% más barato y <b>105</b>, 5% más caro. Como se compara producto por producto, una cadena no sale más cara solo por vender productos más caros.</p>
-      <p>Usamos el precio de lista (sin descuentos de bancos ni billeteras ni ofertas por cantidad), y solo entran las cadenas con al menos 100 productos comparables. Los mayoristas van aparte porque muchas veces venden por bulto o con compra mínima.</p>
+      <p>Usamos el precio de lista (sin descuentos de bancos ni billeteras ni ofertas por cantidad), y solo entran las cadenas con al menos 100 productos comparables. La columna <b>Productos</b> dice con cuántos se calculó cada una: si son pocos (menos del 30% del total), el puesto es menos seguro, porque puede depender de qué productos vende. Los mayoristas van aparte porque muchas veces venden por bulto o con compra mínima.</p>
       ${hayRaro ? "<p>⚠️ Cuando una cadena se aleja mucho del resto puede ser por precios realmente más bajos o porque los datos que informa a la base oficial están desactualizados. Conviene confirmar en la sucursal.</p>" : ""}
       ${ant ? "" : "<p class=\"sub\">El cambio de puesto frente al mes anterior aparece cuando haya datos de un mes completo.</p>"}</section>
   </div>`;
@@ -1638,6 +1638,11 @@ function vConviene() {
       })).join("")}</tbody>
       <tfoot>${split.parts.map(b => `<tr><td colspan="2">Subtotal en ${esc(optName(b))}${b.pay.promo ? ` <span class="sub">· 💳 ${esc(medioName(b.pay.promo))} −${money(b.pay.disc)} (${esc(pagoTxt(b.pay.promo))})</span>` : ""}${b.env ? ` <span class="sub">· envío ${money(b.env)}</span>${envLinea(b.sid)}` : ""}</td><td class="r"><b>${money(b.total)}</b></td><td class="r">${cartBtn(b, true)}</td></tr>`).join("")}</tfoot></table></div></section>` : "";
 
+  // de un vistazo: cuánto sale todo en cada comercio que tiene todos los productos (el más barato, en verde)
+  const top8 = full.slice(0, 8), maxT = top8.length ? top8[top8.length - 1].total : 0;
+  const barras = top8.length > 1 ? `<section class="box cvbar" aria-label="Total de la compra en cada comercio"><h3>Cuánto sale todo en cada comercio · ${DIAS[day]}</h3>
+    ${top8.map(b => `<div class="cvb${b === bst ? " cv1" : ""}"><span class="cvn">${esc(optName(b))}</span><span class="cvt"><span style="width:${Math.max(6, Math.round(b.total / maxT * 100))}%"></span></span><span class="cvv"><b>${money(b.total)}</b>${b === bst ? "" : `<small>+${money(b.total - bst.total)} (+${pct(b.total - bst.total, bst.total)}%)</small>`}</span></div>`).join("")}
+    <p class="sub" style="margin:8px 0 0">${MEDIOS ? "Con tus medios de pago." : "Sin descuentos de pago: elegí tus medios para sumarlos."} Solo comercios que tienen todos tus productos${rk.length > full.length ? `; ${rk.length - full.length} más no tienen alguno (los ves en la tabla de abajo)` : ""}.</p></section>` : "";
   const shown = rk.slice(0, 15);
   const optTable = `<section class="box"><h3>Todas las opciones comprando todo en un solo lugar · ${DIAS[day]}</h3>
     <div class="tscroll"><table class="cmp opt"><thead><tr><th>#</th><th>Comercio</th><th class="r">Sin descuentos</th><th class="r">Ofertas</th><th>Medio de pago del día</th><th class="r">Envío</th><th class="r">Total</th><th class="r">Diferencia</th><th></th></tr></thead><tbody>
@@ -1646,7 +1651,7 @@ function vConviene() {
       <td class="${b.pay.promo ? "" : "nil"}" data-l="Medio de pago">${b.pay.promo ? `<span class="okc">−${money(b.pay.disc)}</span> ${esc(medioName(b.pay.promo))} ${b.pay.promo.pct}%<div class="sub">${esc(pagoTxt(b.pay.promo))} ${acumBadge(b.pay.promo, true)}</div>` : '<span class="sub">—</span>'}</td>
       <td class="r${b.c === "online" ? "" : " nil"}" data-l="Envío">${b.c === "online" ? `${b.env ? money(b.env) : "gratis"}<div class="sub envf">${envFuente(b.sid, true)}</div>` : "—"}</td>
       <td class="r"><b>${money(b.total)}</b>${b.miss.length ? '<div class="sub">sin lo que falta</div>' : ""}</td>
-      <td class="r" data-l="Diferencia">${b.miss.length || !bst ? "" : b === bst ? '<span class="tag g sm">la mejor</span>' : `+${money(b.total - bst.total)}`}</td>
+      <td class="r" data-l="Diferencia">${b.miss.length || !bst ? "" : b === bst ? '<span class="tag g sm">la mejor</span>' : `+${money(b.total - bst.total)}<div class="sub">+${pct(b.total - bst.total, bst.total)}%</div>`}</td>
       <td>${cartBtn(b, true)}</td></tr>`).join("")}</tbody></table></div>
     ${rk.length > shown.length ? `<p class="sub">Y ${rk.length - shown.length} opciones más caras.</p>` : ""}
     <p class="sub">El botón «Armar el carrito» abre la tienda online con los productos ya cargados; ahí elegís envío o retiro y pagás. Solo aparece en las tiendas online que lo permiten (Carrefour, ChangoMás, Día, Disco, Jumbo y Vea) y cuando tienen todos los productos.</p>
@@ -1665,7 +1670,7 @@ function vConviene() {
       const txt = on.map(s => `${esc(chanName(s, "online"))} (envío ${money((ST[s].online || {}).envio || 0)}, ${envFuente(s, true)}${(ST[s].online || {}).retiro ? ", o retiro en sucursal" : ""})`).join(", ");
       return `<p class="note">💡 Algunos productos tienen su precio más bajo online en ${txt}. Acá sumamos el envío, y con eso conviene otra opción. Si retirás en la sucursal, mirá su fila en la tabla sin contar el envío.</p>`;
     })()}
-    <div class="sumgrid">${card1}${card2}${card3}${card4}</div>
+    <div class="sumgrid">${card1}${card2}${card3}${card4}</div>${barras}
     ${splitTable}${optTable}</div>`;
   bindPlanner();
   $$("[data-ld]").forEach(b => b.onclick = e => { e.preventDefault(); S.lday = +b.dataset.ld; vConviene(); });
@@ -2698,9 +2703,9 @@ function vSuper() {
     (g[sid] = g[sid] || []).push({ p, qty, v });
   }
   const tot = items.length, hechos = items.filter(i => TACH[i.p.id]).length;
-  const falta = Object.values(g).flat().filter(x => !TACH[x.p.id]).reduce((a, x) => a + x.v, 0);
+  const falta = Object.values(g).flat().filter(x => !TACH[x.p.id]).reduce((a, x) => a + x.v, 0), llevo = Object.values(g).flat().filter(x => TACH[x.p.id]).reduce((a, x) => a + x.v, 0);
   $("#view").innerHTML = `<div class="wrap super"><div class="shead"><div><h1>🛍️ En el súper</h1><div class="sbar"><span style="width:${Math.round(hechos / tot * 100)}%"></span></div>
-      <p class="sub"><b>${hechos} de ${tot}</b> en el chango${hechos < tot ? ` · falta aprox. <b>${money(falta)}</b>` : " · ¡ya tenés todo! 🎉"}</p></div>
+      <p class="sub" aria-live="polite"><b>${hechos} de ${tot}</b> en el chango${hechos ? ` (aprox. <b>${money(llevo)}</b>)` : ""}${hechos < tot ? ` · falta aprox. <b>${money(falta)}</b>` : " · ¡ya tenés todo! 🎉"}</p></div>
       <div class="sbtns"><button class="btn sec sm" id="sreset">Destachar todo</button><a class="btn sm" href="#carrito">Salir</a></div></div>
     ${Object.entries(g).map(([sid, xs]) => `<section class="sgrp"><h2>${storeChip(sid)}</h2>${xs.sort((a, b) => (TACH[a.p.id] ? 1 : 0) - (TACH[b.p.id] ? 1 : 0)).map(({ p, qty, v }) => `
       <label class="sitem${TACH[p.id] ? " done" : ""}" style="view-transition-name:t${p.id}"><input type="checkbox" data-tach="${p.id}" ${TACH[p.id] ? "checked" : ""}>${prodImg(p, "si")}

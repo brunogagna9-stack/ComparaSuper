@@ -24,6 +24,10 @@ def main():
     url = (cfg.get("sitio_url") or "").rstrip("/") + "/"
     d = json.loads((SITE / "data" / "products.json").read_text(encoding="utf-8"))
     stores = {s["id"]: s["name"] for s in d["stores"]}
+    # cadenas que no informan precios de sucursal hace más de 3 días: esos precios no cuentan para "desde $X"
+    import datetime as _dt
+    hoy = _dt.date.fromisoformat(d["updated"]) if d.get("updated") else None
+    viejas = {s["id"] for s in d["stores"] if hoy and s.get("fecha") and (hoy - _dt.date.fromisoformat(s["fecha"])).days > 3}
     fecha = "/".join(reversed((d.get("updated") or "").split("-")))
     hosts = d.get("imghosts") or []
     out = SITE / "p"
@@ -36,7 +40,8 @@ def main():
     og = []
     for p in todos:
         sanas = [o for o in p["offers"] if not o.get("anom")] or p["offers"]   # sin precios mal cargados
-        precios = sorted((min(x for x in (o.get("p"), o.get("po")) if x), o["s"]) for o in sanas if (o.get("p") or o.get("po")) and (o.get("bulto") or 1) <= 1)
+        vigente = lambda o: (None if o["s"] in viejas else o.get("p"), o.get("po"))
+        precios = sorted((min(x for x in vigente(o) if x), o["s"]) for o in sanas if any(vigente(o)) and (o.get("bulto") or 1) <= 1)
         if not precios:
             continue
         v, s = precios[0]

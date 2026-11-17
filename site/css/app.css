@@ -1368,3 +1368,8 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .tkf{display:flex;flex-direction:column;gap:2px}.tkf .in{width:100%}
 .tkn{display:flex;flex-wrap:wrap;gap:10px;font-size:13px;color:var(--mut)}.tkn label{display:flex;align-items:center;gap:6px}.tkn .in{width:90px;padding:6px 8px}
 .tkrow{align-items:flex-start}.tkrow .x{flex:none;align-self:flex-start}
+/* ¿Dónde conviene?: barras con el total en cada comercio */
+.cvbar h3{margin:0 0 10px}.cvb{display:grid;grid-template-columns:minmax(90px,30%) 1fr auto;gap:10px;align-items:center;padding:4px 0}
+.cvn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cvt{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
+.cvt span{display:block;height:100%;background:var(--mut);opacity:.45;border-radius:6px}.cvb.cv1 .cvt span{background:var(--g);opacity:1}
+.cvv{text-align:right;white-space:nowrap}.cvv small{display:block;color:var(--mut);font-size:12px}

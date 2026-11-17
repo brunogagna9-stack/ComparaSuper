@@ -56,6 +56,9 @@ jobs:
       - name: Precios online (tiendas web VTEX)
         continue-on-error: true   # si una tienda no responde, se publica igual con los precios de sucursal
         run: python scripts/online_fetch.py
+      - name: Revisar que las fotos sigan existiendo
+        continue-on-error: true   # si falla, se publica igual (la web ya muestra un dibujito si una foto no carga)
+        run: python scripts/revisar_fotos.py
       - name: Armar datos de la web
         run: python scripts/build_data.py
       - name: Control antes de publicar
@@ -66,6 +69,7 @@ jobs:
           ls data/raw/*.json | sort | tail -n 2 | xargs -I{} cp {} ../nuevos/data/raw/
           cp data/history.json data/imagenes.json data/sucursales.json ../nuevos/data/
           cp data/fotos_no.json ../nuevos/data/ 2>/dev/null || true
+          cp data/fotos_revisadas.json data/fotos_rotas.json ../nuevos/data/ 2>/dev/null || true
           cp site/data/*.json ../nuevos/site/data/
           cd ../nuevos
           git init -q -b datos
