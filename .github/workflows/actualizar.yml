@@ -18,6 +18,9 @@ jobs:
   actualizar:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    outputs:
+      sepa: ${{ steps.sepa.outcome }}
+      dias: ${{ steps.antig.outputs.dias }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -37,8 +40,19 @@ jobs:
           fi
       - name: Pruebas
         run: python tests/run_tests.py
+      # Si el portal oficial no responde, se sigue igual: se republican los últimos precios de sucursal
+      # (la web muestra de qué día son) y se actualizan los precios online.
       - name: Descargar SEPA (Precios Claros)
+        id: sepa
+        continue-on-error: true
         run: python scripts/sepa_fetch.py
+      - name: Antigüedad de los precios de sucursal
+        id: antig
+        run: |
+          ult=$(ls data/raw | grep -o '[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}' | sort | tail -1)
+          dias=$(( ( $(date -u +%s) - $(date -u -d "$ult" +%s) ) / 86400 ))
+          echo "Últimos precios de sucursal: $ult (hace $dias días)"
+          echo "dias=$dias" >> "$GITHUB_OUTPUT"
       - name: Precios online (tiendas web VTEX)
         continue-on-error: true   # si una tienda no responde, se publica igual con los precios de sucursal
         run: python scripts/online_fetch.py
@@ -63,10 +77,12 @@ jobs:
   alerta:
     # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
     needs: [actualizar]
-    if: failure()
+    # falla de verdad, o el portal oficial lleva 3 días sin datos (y después, una vez por semana)
+    if: failure() || (needs.actualizar.outputs.sepa == 'failure' && (needs.actualizar.outputs.dias == '3' || needs.actualizar.outputs.dias == '7' || needs.actualizar.outputs.dias == '14' || needs.actualizar.outputs.dias == '21'))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with: { ref: main, sparse-checkout: scripts/alerta.py, sparse-checkout-cone-mode: false }
-      - run: python3 scripts/alerta.py "la actualización diaria de precios" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - run: |
+          python3 scripts/alerta.py "${{ needs.actualizar.result == 'failure' && 'la actualización diaria de precios' || format('el portal oficial de precios (SEPA), que lleva {0} días sin responder. La web sigue andando con los precios online al día y avisa de qué fecha son los de sucursal', needs.actualizar.outputs.dias) }}" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
         env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }
