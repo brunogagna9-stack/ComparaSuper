@@ -120,3 +120,15 @@ test("sin medios de pago elegidos, ¿Dónde conviene? no resta descuentos de tar
   await expect(page.locator("#view")).toContainText("no se restan");
 });
 
+
+test("en el celular, modo oscuro y tamaño de letra están en el menú Más y el encabezado es bajo", async ({ page }) => {
+  test.skip(!esCelular(page), "solo en el celular");
+  await page.goto("#inicio"); await listo(page);
+  await expect(page.locator("#themebtn")).toBeHidden();
+  expect(await page.locator("header.site").evaluate(e => e.offsetHeight)).toBeLessThan(170);
+  await page.locator("#bmore").click();
+  await page.locator("#bsheet [data-tema]").click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.locator("#bmore").click();
+  await expect(page.locator("#bsheet [data-tema]")).toContainText("Modo claro");
+});

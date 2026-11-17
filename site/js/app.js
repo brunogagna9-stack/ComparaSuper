@@ -63,6 +63,7 @@ function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   const b = $("#themebtn");
   if (b) { b.innerHTML = t === "dark" ? ic("sun") + '<span class="hl">Modo Claro</span>' : ic("moon") + '<span class="hl">Modo Oscuro</span>'; b.title = t === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"; }
+  const bt = $("[data-tema]"); if (bt) bt.innerHTML = t === "dark" ? ic("sun") + " Modo claro" : ic("moon") + " Modo oscuro";
   const m = $('meta[name="theme-color"]'); if (m) m.content = t === "dark" ? "#0b3d2c" : "#0e7a55";
 }
 applyTheme(LS.get("cs_tema", "light"));
@@ -737,8 +738,15 @@ function vInicio() {
     <p>Buscá, compará y ahorrá</p>
   </div></section>
   <div class="wrap">
-    <section class="blk"><div class="blk-h"><h2>🔥 Ofertas del día · ${day === HOY ? `hoy ${DIAS[day].toLowerCase()}` : DIAS[day].toLowerCase()}</h2><a href="#pagos" data-semana>Ver toda la semana →</a></div>
-      <div class="week">${DIAS.map((d, i) => `<button class="day${i === day ? " on" : ""}" data-iday="${i}" aria-pressed="${i === day}">${DCORTO[i]}${i === HOY ? '<span class="hoy">HOY</span>' : ""}<small>${delDia(i).length} benef.</small></button>`).join("")}</div>
+    <nav class="atajos" aria-label="Accesos rápidos">
+      <a href="#conviene">${ic("chart-column")}<span><b>¿Dónde conviene?</b><small>Tu compra completa, más barata</small></span></a>
+      <a href="#" data-scan>${ic("scan-barcode")}<span><b>Escanear</b><small>El código de barras, en el súper</small></span></a>
+      <a href="#pagos">${ic("credit-card")}<span><b>Descuentos</b><small>Bancos y billeteras de cada día</small></span></a>
+      <a href="#comparar">${ic("scale")}<span><b>Comparar</b><small>Productos lado a lado</small></span></a>
+    </nav>
+    <section class="blk"><div class="blk-h"><h2>🔥 Ofertas del día · ${day === HOY ? `hoy ${DIAS[day].toLowerCase()}` : DIAS[day].toLowerCase()}</h2><a href="#pagos" data-semana>Ver todos los beneficios →</a></div>
+      <div class="week">${DIAS.map((d, i) => `<button class="day${i === day ? " on" : ""}" data-iday="${i}" aria-pressed="${i === day}">${DCORTO[i]}${i === HOY ? '<span class="hoy">HOY</span>' : ""}<small>${delDia(i).length} desc.</small></button>`).join("")}</div>
+      <p class="sub" style="margin:2px 0 6px">Acá van los descuentos en % que podés usar sin requisitos extra. En <a href="#pagos" data-semana>Descuentos por día</a> están todos: ${P.promos.filter(pr => pr.dias.includes(day) && promoCerca(pr)).length} el ${DIAS[day].toLowerCase()}, contando cuotas sin interés y promos con requisitos.</p>
       ${P.promos.length < 10 ? `<div class="note warn">🔄 Estamos actualizando los descuentos de este mes. En los próximos días vas a ver todos los nuevos.</div>` : ""}
       ${MEDIOS ? "" : `<p class="sub" style="margin:2px 0 10px">Mostramos todos los descuentos${CERCA ? " de los comercios cerca tuyo" : ""}. <a href="#" data-medios>Elegí tus medios de pago</a> para ver solo los que podés usar.</p>`}
       <div class="today">${promos.map(pcard).join("") || `<div class="empty">No hay descuentos cargados para el ${DIAS[day].toLowerCase()}.</div>`}</div>
@@ -753,7 +761,7 @@ function vInicio() {
       <button class="btn" data-news>Crear mi cuenta</button></section>
   </div>`;
   $$("[data-iday]").forEach(b => b.onclick = () => { S.iday = +b.dataset.iday; vInicio(); });
-  const sem = $("[data-semana]"); if (sem) sem.onclick = () => { S.pday = day; };
+  $$("[data-semana]").forEach(a => a.onclick = () => { S.pday = day; });
   $$("[data-tienda]").forEach(a => a.onclick = () => { S.stores = new Set([a.dataset.tienda]); S.cat = ""; S.q = ""; $("#q").value = ""; S.bpage = 1; });
 }
 /* marcador de ubicación del encabezado */
@@ -2740,7 +2748,7 @@ const TOUR = [
   ["#uloc", "📍 Tu ubicación", "Te mostramos los comercios que tenés cerca y sus promos."],
   [".hbtn.cart", "🛒 Mi carrito", "Sumá productos con el +. Después lo mandás por WhatsApp o lo usás en el súper para ir tachando."],
   [".tabs a[data-v=conviene]", "📊 ¿Dónde conviene mi compra?", "Te dice en qué súper, qué día y con qué medio de pago sale menos toda tu compra.", "desk"],
-  ["#bmore", "☰ Más opciones", "Acá están Descuentos por día, ¿Dónde conviene?, tu carrito y más.", "mob"],
+  ["#bmore", "☰ Más opciones", "Acá están Descuentos por día, ¿Dónde conviene?, tu carrito, el modo oscuro, el tamaño de letra y más.", "mob"],
   ["#hsize", "Aa Tamaño de letra", "Si te cuesta leer, agrandá la letra de toda la página."],
   ["#fmas", "🙋 Ayuda", "Tocá acá para ver esta guía otra vez, dejarnos una sugerencia o hablar con el asistente.", "mob"],
   [".fab.guia", "❓ Guía rápida", "Si te perdés, tocá este botón y te volvemos a mostrar esta guía."],
@@ -2792,9 +2800,12 @@ function applyZoom(i) {
   const max = innerWidth <= 640 ? 1 : 2; i = Math.min(i, max);
   document.documentElement.style.zoom = ZOOMS[i] === 1 ? "" : ZOOMS[i];
   const b = $("#hsize"); if (b) { b.textContent = ["Aa", "Aa+", "Aa++"][i]; b.setAttribute("aria-label", `Tamaño de letra: ${["normal", "grande", "muy grande"][i]}. Tocá para cambiar`); b.classList.toggle("on", i > 0); }
+  const bl = $("#bletra"); if (bl) bl.textContent = ["normal", "grande", "muy grande"][i];
 }
 let ZI = LS.get("cs_zoom", 0); applyZoom(ZI);
 $("#hsize").onclick = () => { const max = innerWidth <= 640 ? 1 : 2; ZI = ZI >= max ? 0 : ZI + 1; LS.set("cs_zoom", ZI); applyZoom(ZI); toast(["Letra normal", "Letra grande", "Letra muy grande"][ZI]); };
+/* en el celular, modo oscuro y tamaño de letra viven en el menú "Más" (el encabezado queda más bajo) */
+document.addEventListener("click", e => { const t = e.target.closest("[data-tema], [data-letra]"); if (!t) return; e.preventDefault(); $(t.matches("[data-tema]") ? "#themebtn" : "#hsize").click(); });
 
 /* ---------- MODO EN EL SÚPER: lista para ir tachando ---------- */
 let TACH = LS.get("cs_tach", {}), WAKE = null;
