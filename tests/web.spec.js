@@ -132,3 +132,24 @@ test("en el celular, modo oscuro y tamaño de letra están en el menú Más y el
   await page.locator("#bmore").click();
   await expect(page.locator("#bsheet [data-tema]")).toContainText("Modo claro");
 });
+
+test("«MANI» en el buscador trae maní (sugerencias y resultados), nunca toallitas ni «mini»", async ({ page }) => {
+  await page.goto("#inicio"); await listo(page);
+  await page.locator("#q").click(); await page.locator("#q").pressSequentially("MANI");
+  const sug = page.locator("#qsug .qs-p");
+  await expect(sug.first()).toContainText(/man[ií]/i);
+  for (const t of await sug.allInnerTexts()) expect(t).toMatch(/man[ií]/i);
+  await page.keyboard.press("Enter");
+  await expect(page.locator("#res .prod, #res .lrow").first()).toBeVisible();
+  const nombres = await page.locator("#res .prod, #res .lrow").evaluateAll(es => es.map(e => e.getAttribute("aria-label")));
+  expect(nombres.length).toBeGreaterThan(0);
+  for (const n of nombres) { expect(n).not.toMatch(/toall|femenin/i); expect(n).toMatch(/man[ií]/i); }
+});
+
+test("una búsqueda sin resultados lo dice claro y ofrece buscar cada palabra", async ({ page }) => {
+  await page.goto("#inicio"); await listo(page);
+  await page.locator("#q").fill("aceite de mani"); await page.locator("#q").press("Enter");
+  await expect(page.locator("#res .empty")).toContainText("No encontramos");
+  await page.locator("[data-solo='mani']").click();
+  await expect(page.locator("#res .prod, #res .lrow").first()).toBeVisible();
+});

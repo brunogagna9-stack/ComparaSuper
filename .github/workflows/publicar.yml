@@ -146,7 +146,7 @@ jobs:
         id: achicar
         continue-on-error: true
         run: |
-          npx --yes esbuild@0.25 site/js/app.js site/js/mapa.js site/js/datos.js site/js/buscador.js --minify --target=es2020 --outdir=site/js --allow-overwrite
+          npx --yes esbuild@0.25 site/js/app.js site/js/mapa.js site/js/datos.js site/js/buscador.js site/js/motor.js --minify --target=es2020 --outdir=site/js --allow-overwrite
           npx --yes --package=lightningcss-cli@1 lightningcss --minify --targets '>= 0.25%' site/css/app.css -o site/css/app.css
           ls -la site/js/app.js site/css/app.css
       # Imagen propia para compartir de los 1.000 productos más comparados (Satori + resvg, de código abierto).

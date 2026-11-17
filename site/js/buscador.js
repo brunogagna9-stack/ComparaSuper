@@ -1,44 +1,15 @@
 /* SuperBarato: proceso de fondo (Web Worker).
    Baja y lee los productos y arma el índice del buscador SIN trabar la pantalla: la página
    solo recibe la lista ya lista y le pregunta qué productos coinciden con lo que escribiste.
-   Buscador: MiniSearch (licencia MIT, js/vendor/minisearch.js) con tolerancia a errores de
-   ortografía y a cómo suenan las palabras ("yerva" → yerba, "aseite" → aceite). */
-importScripts("datos.js", "vendor/minisearch.js", "vendor/idb-keyval.js");   // idb-keyval (Apache 2.0): guarda en el celular
+   Las reglas de relevancia están en motor.js. */
+importScripts("datos.js", "motor.js", "vendor/idb-keyval.js");   // motor.js: reglas de relevancia; idb-keyval (Apache 2.0): guarda en el celular
 
-const nrm = s => (s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-// clave "fonética" en español: v/b, z/s, c/k/qu, ll/y, h muda, letras repetidas
-const fon = w => nrm(w).replace(/[^a-z0-9ñ]/g, "").replace(/ñ/g, "n").replace(/ch/g, "§").replace(/h/g, "").replace(/§/g, "ch").replace(/v/g, "b").replace(/w/g, "u")
-  .replace(/z/g, "s").replace(/c([ei])/g, "s$1").replace(/qu/g, "k").replace(/c/g, "k").replace(/ll/g, "y").replace(/g([ei])/g, "j$1").replace(/x/g, "ks").replace(/(.)\1+/g, "$1");
-const partir = s => nrm(s).split(/[^a-z0-9ñ]+/).filter(Boolean);
 
-let MS = null, VOC = null;
-
-function lev(a, b, max) {
-  if (Math.abs(a.length - b.length) > max) return max + 1;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) {
-    const cur = [i]; let mn = i;
-    for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); mn = Math.min(mn, cur[j]); }
-    if (mn > max) return max + 1;
-    prev = cur;
-  }
-  return prev[b.length];
-}
-function corregir(w) {
-  if (w.length < 4 || VOC.has(w) || /\d/.test(w)) return w;
-  const max = w.length >= 7 ? 2 : 1; let best = null;
-  for (const [x, n] of VOC) { if (x[0] !== w[0] && fon(x)[0] !== fon(w)[0]) continue; const d = lev(w, x, max); if (d <= max && (!best || d < best.d || (d === best.d && n > best.n))) best = { x, d, n }; }
-  return best ? best.x : w;
-}
-
-const OPC_MS = {
-  fields: ["name", "brand"], idField: "id",
-  tokenize: s => partir(s),
-  processTerm: t => { const f = fon(t); return f || null; },
-  searchOptions: { boost: { name: 2 }, combineWith: "AND", prefix: t => t.length >= 2, fuzzy: t => (t.length >= 6 ? 0.2 : t.length >= 4 ? 1 : 0) },
-};
-function vocabular(L) { VOC = new Map(); for (const p of L) for (const w of new Set(partir(p.name + " " + p.brand))) if (w.length > 2 && !/\d/.test(w)) VOC.set(w, (VOC.get(w) || 0) + 1); }
+let MS = null;   // índice de MiniSearch (MIT): solo para leer tickets, se arma la primera vez que hace falta
+const { nrm, partir } = Motor;
+const OPC_MS = { fields: ["name", "brand"], idField: "id", tokenize: s => partir(s), processTerm: t => Motor.fon(t) || null };
 const NOM = new Map(), POP = new Map(), TAM = new Map();   // nombre, en cuántos comercios está (para desempatar) y tamaño (cantidad y unidad base)
+let LISTA = [];
 const nombres = L => { for (const p of L) { NOM.set(p.id, `${p.name} ${p.brand || ""}`); POP.set(p.id, p.offers.length); if (p.bq && p.bu) TAM.set(p.id, [p.bq, p.bu]); } };
 /* tamaño escrito en la búsqueda: "1 l", "1lt", "500 g", "1,5 litros", "900cc" → {q, u} en kg, l o un; el resto se busca como texto */
 const UNID = [[/^(kg|kgs|kilo|kilos|k)$/, 1, "kg"], [/^(g|gr|grs|gramos?)$/, 0.001, "kg"], [/^(l|lt|lts|litros?)$/, 1, "l"], [/^(ml|cc|cm3|mililitros?)$/, 0.001, "l"], [/^(u|un|uni|unidad(es)?)$/, 1, "un"]];
@@ -49,39 +20,29 @@ function leerTam(q) {
   return { tam: u ? { q: n * u[1], u: u[2] } : null, resto: nrm(q).replace(m[0], " ") };
 }
 const mismoTam = (id, t) => { const x = TAM.get(id); return x && x[1] === t.u && Math.abs(x[0] - t.q) / t.q <= 0.03; };
-/* ¿la palabra buscada aparece de verdad en el nombre o la marca? (si no, los resultados son solo parecidos) */
-const aparece = (id, w) => partir(NOM.get(id) || "").some(t => t.startsWith(w) || fon(t).startsWith(fon(w)));
-function indexar(L) {
-  nombres(L);
-  vocabular(L);
-  const ms = new MiniSearch(OPC_MS);
-  ms.addAll(L.map(p => ({ id: p.id, name: p.name, brand: p.brand })));
-  MS = ms;
-}
+function indexar(L) { LISTA = L; nombres(L); Motor.indexar(L); MS = null; }
+function indiceTickets() { if (!MS) { importScripts("vendor/minisearch.js"); MS = new MiniSearch(OPC_MS); MS.addAll(LISTA.map(p => ({ id: p.id, name: p.name, brand: p.brand }))); } }
 
-function buscar(q) {
+function buscar(q, escribiendo) {
   const { tam, resto } = leerTam(q);
   const words = partir(resto);
   if (!words.length && !tam) return { ids: [], fix: "", comp: [] };
-  let r = words.length ? MS.search(words.join(" ")) : [...TAM.keys()].map(id => ({ id })), fix = "";
-  if (!r.length) {   // nada: probar corrigiendo cada palabra con las que existen en los productos
-    const fixed = words.map(corregir);
-    if (fixed.join(" ") !== words.join(" ")) { fix = fixed.join(" "); r = MS.search(fix); }
-  }
-  let ids = r.map(x => x.id), sinTam = false;
+  let ids, fix = "";
+  if (words.length) ({ ids, fix } = Motor.buscar(words, !!escribiendo)); else ids = [...TAM.keys()];
+  let sinTam = false;
   if (tam) { const f = ids.filter(id => mismoTam(id, tam)); if (f.length) ids = f; else sinTam = true; }   // de ese tamaño; si no hay, se avisa y se muestran todos
   const ws = (fix ? fix.split(" ") : words).filter(w => w.length >= 3 && !/\d/.test(w));
-  const aprox = ws.filter(w => !ids.slice(0, 30).some(id => aparece(id, w)));   // palabras que no están en ningún resultado
+  const aprox = ws.filter(w => !ids.slice(0, 30).some(id => Motor.aparece(id, w)));   // palabras que no están literalmente (sinónimos, diminutivos)
   const last = words[words.length - 1] || "", head = words.slice(0, -1);
-  const comp = last ? [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" ")) : [];
+  const comp = last ? Motor.completar(last).map(w => [...head, w].join(" ")) : [];
   return { ids, fix, comp, aprox, tam: tam && { ...tam, sin: sinTam } };
 }
 
-/* los tickets abrevian mucho ("LECH SERENIS ENT"): se buscan las palabras de a una menos hasta encontrar algo */
 /* los tickets abrevian mucho ("LECH SERENIS ENT"): MiniSearch junta candidatos y fuzzball (licencia MIT) los ordena
    por parecido real del texto, como RapidFuzz ("token set ratio"). */
 let FZ = null;
 function matchLinea(txt) {
+  indiceTickets();
   const ws = partir(txt).filter(w => w.length >= 3 && !/\d/.test(w)).slice(0, 5);
   if (!ws.length) return null;
   const cand = new Map();
@@ -108,6 +69,8 @@ function matchLinea(txt) {
 const IDB = self.idbKeyval;
 const guardado = async k => { try { return IDB ? await IDB.get(k) : null; } catch { return null; } };
 const guardar = (k, v) => { try { IDB && IDB.set(k, v).catch(() => {}); } catch {} };
+// el índice viejo (antes se guardaba el de MiniSearch) ya no se usa: se borra para liberar lugar
+try { IDB && IDB.keys().then(ks => ks.filter(k => String(k).startsWith("indice:")).forEach(k => IDB.del(k))).catch(() => {}); } catch {}
 const quitarFuera = (L, fuera) => { if (!fuera || !fuera.length) return L; const F = new Set(fuera); return L.map(x => ({ ...x, offers: x.offers.filter(o => !F.has(o.s)) })).filter(x => x.offers.length); };
 
 async function bajar(url) {
@@ -120,7 +83,7 @@ onmessage = async e => {
   const m = e.data;
   if (m.t === "cargar") {
     let listo = false, top = null;
-    const kP = "productos:" + m.full, kI = "indice:" + m.full + "|" + (m.fuera || []).join(",");
+    const kP = "productos:" + m.full;
     const g = m.clave ? await guardado(kP) : null, desdeCache = !!(g && g.clave === m.clave);
     if (!desdeCache) top = m.top ? bajar(m.top).then(d => { if (!listo) postMessage({ t: "top", products: quitarFuera(decodificar(d), m.fuera) }); }).catch(() => {}) : null;
     try {
@@ -133,17 +96,15 @@ onmessage = async e => {
       // se manda en partes: así la página recibe de a poco y la pantalla no se congela
       for (let i = 0; i < L.length; i += 2500) { postMessage({ t: "parte", products: L.slice(i, i + 2500) }); await new Promise(r => setTimeout(r, 0)); }
       postMessage({ t: "full" });
-      const gi = m.clave ? await guardado(kI) : null;
-      if (gi && gi.clave === m.clave) { try { MS = MiniSearch.loadJSON(gi.json, OPC_MS); vocabular(L); nombres(L); } catch { MS = null; } }
-      if (!MS) { indexar(L); if (m.clave) guardar(kI, { clave: m.clave, json: JSON.stringify(MS) }); }
+      indexar(L);
       postMessage({ t: "indice" });
     } catch (err) {
       postMessage({ t: "error", msg: String(err) });
     }
     await top;
   } else if (m.t === "ticket") {   // renglones de un ticket → producto más parecido de cada uno
-    postMessage({ t: "ticket", id: m.id, res: MS ? m.lineas.map(matchLinea) : null });
+    postMessage({ t: "ticket", id: m.id, res: Motor.listo() ? m.lineas.map(matchLinea) : null });
   } else if (m.t === "buscar") {
-    postMessage(MS ? { t: "res", id: m.id, q: m.q, ...buscar(m.q) } : { t: "res", id: m.id, q: m.q, nolisto: true });
+    postMessage(Motor.listo() ? { t: "res", id: m.id, q: m.q, esc: m.esc, ...buscar(m.q, m.esc) } : { t: "res", id: m.id, q: m.q, esc: m.esc, ids: [], nolisto: true });
   }
 };

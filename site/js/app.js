@@ -116,8 +116,7 @@ function prepProducts(d) {
   D.products = d.products;
   BY = Object.fromEntries(d.products.map(x => [x.id, x]));
   for (const id of Object.keys(LISTA)) if (!BY[id]) delete LISTA[id];
-  VOC = null;   // el vocabulario de sugerencias se rearma con todos los productos
-  READY = true;
+    READY = true;
   if (TOPR && /^#(buscar|c-)/.test(location.hash) && $("#drawer").hidden && !S.fopen) { const y = scrollY; vBuscar(); scrollTo(0, y); }   // ya están todos: se vuelve a dibujar
 }
 /* Para que el buscador ande enseguida (sobre todo con datos móviles), primero se bajan los ~5.000 productos
@@ -146,9 +145,9 @@ function iniciarFondo() {
       else if (m.t === "origen") BUSC.cache_ = m.cache;
       else if (m.t === "parte") (BUSC.partes = BUSC.partes || []).push(m.products);
       else if (m.t === "full") { const L = [].concat(...BUSC.partes); BUSC.partes = null; prepProducts({ products: L, listo: true }); ok(); }
-      else if (m.t === "indice") { BUSC.ok = true; if (document.activeElement === $("#q")) qsugDraw(); }
+      else if (m.t === "indice") { BUSC.ok = true; BUSC.cache.clear(); if (document.activeElement === $("#q")) qsugDraw(); }
       else if (m.t === "ticket") { const f = BUSC.tk && BUSC.tk[m.id]; if (f) { delete BUSC.tk[m.id]; f(m.res); } }
-      else if (m.t === "res") { BUSC.cache.set(m.q, m); const f = BUSC.esp.get(m.q); if (f) { BUSC.esp.delete(m.q); f(m); } }
+      else if (m.t === "res") { const k = (m.esc ? "~" : "") + m.q; BUSC.cache.set(k, m); const f = BUSC.esp.get(k); if (f) { BUSC.esp.delete(k); f(m); } }
       else if (m.t === "error") { BUSC.w.terminate(); BUSC.w = false; PROD_P = null; loadProducts().then(ok, mal); }   // si falla, como siempre
     };
     BUSC.w.onerror = () => { if (READY) return; BUSC.w = false; PROD_P = null; loadProducts().then(ok, mal); };
@@ -157,9 +156,9 @@ function iniciarFondo() {
   return true;
 }
 /* pregunta al proceso de fondo qué productos coinciden; devuelve lo guardado si ya se preguntó */
-function buscarFondo(q, cb) {
-  const k = nrm(q).trim(); if (BUSC.cache.has(k)) return BUSC.cache.get(k);
-  if (!BUSC.esp.has(k)) { BUSC.esp.set(k, cb); BUSC.w.postMessage({ t: "buscar", id: ++BUSC.n, q: k }); } else BUSC.esp.set(k, cb);
+function buscarFondo(q, esc, cb) {
+  const qq = nrm(q).trim(), k = (esc ? "~" : "") + qq; if (BUSC.cache.has(k)) return BUSC.cache.get(k);
+  if (!BUSC.esp.has(k)) { BUSC.esp.set(k, cb); BUSC.w.postMessage({ t: "buscar", id: ++BUSC.n, q: qq, esc: !!esc }); } else BUSC.esp.set(k, cb);
   if (BUSC.cache.size > 60) BUSC.cache.delete(BUSC.cache.keys().next().value);
   return null;
 }
@@ -1173,57 +1172,37 @@ function vComo() {
 
 /* ---------- BUSCAR / CATEGORÍAS ---------- */
 const nrm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-/* qué tan bien coincide el nombre con lo buscado: 0 = empieza con la palabra, 1 = la tiene como palabra entera, 2 = la tiene dentro de otra */
-function matchScore(p, words) {
-  if (!words.length) return 0;
-  const n = nrm(p.name), w = words[0];
-  if (n.startsWith(w)) return 0;
-  if (new RegExp("(^|[^a-z0-9])" + w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "([^a-z0-9]|$)").test(n)) return 1;
-  return 2;
+/* el buscador: las reglas de relevancia están en js/motor.js. Normalmente responde el proceso de fondo; si todavía
+   no está listo (o el navegador no lo permite) se usa el mismo motor acá, sobre los productos ya cargados. */
+let MOTOR_N = 0, MOTOR_P = null;
+function motorLocal() {
+  if (!MOTOR_P) MOTOR_P = new Promise((ok, mal) => { if (window.Motor) { ok(); return; } const sc = document.createElement("script"); sc.src = "js/motor.js"; sc.onload = ok; sc.onerror = () => { MOTOR_P = null; mal(); }; document.head.append(sc); });
+  return MOTOR_P;
 }
-/* búsqueda tolerante: "yerva" encuentra yerba, "galletistas" encuentra galletitas, "aseite" encuentra aceite */
-const fon = w => nrm(w).replace(/[^a-z0-9ñ]/g, "").replace(/ñ/g, "n").replace(/ch/g, "§").replace(/h/g, "").replace(/§/g, "ch").replace(/v/g, "b").replace(/w/g, "u")
-  .replace(/z/g, "s").replace(/c([ei])/g, "s$1").replace(/qu/g, "k").replace(/c/g, "k").replace(/ll/g, "y").replace(/g([ei])/g, "j$1").replace(/x/g, "ks").replace(/(.)\1+/g, "$1");
-let VOC = null;   // palabras de los nombres → cuántos productos las tienen
-function vocab() {
-  if (VOC) return VOC; VOC = new Map();
-  for (const p of D.products) { p._t = nrm(p.name + " " + p.brand); p._f = p._t.split(/[^a-z0-9ñ]+/).map(fon).join(" "); for (const w of new Set(p._t.split(/[^a-z0-9ñ]+/))) if (w.length > 2 && !/\d/.test(w)) VOC.set(w, (VOC.get(w) || 0) + 1); }
-  return VOC;
+/* busca q → {ids (ya ordenados por relevancia), fix, comp, aprox, tam}; null si la respuesta está en camino (llama a cb al llegar).
+   esc: la persona todavía está escribiendo (se completa la última palabra) */
+const buscarProm = (q, esc) => new Promise(ok => { const r = buscarYa(q, esc, () => ok(buscarYa(q, esc, () => ok({ ids: [] })) || { ids: [] })); if (r) ok(r); });
+function buscarYa(q, esc, cb) {
+  if (BUSC.ok && READY) return buscarFondo(q, esc, cb);
+  if (!D.products) return null;
+  if (!window.Motor) { motorLocal().then(cb, () => {}); return null; }
+  if (MOTOR_N !== D.products.length) { Motor.indexar(D.products); MOTOR_N = D.products.length; }
+  const ws = Motor.partir(q), r = Motor.buscar(ws, esc), last = ws[ws.length - 1] || "";
+  return { ...r, comp: last ? Motor.completar(last).map(w => [...ws.slice(0, -1), w].join(" ")) : [], aprox: [], tam: null };
 }
-function lev(a, b, max) {   // distancia de edición, cortando si pasa de "max"
-  if (Math.abs(a.length - b.length) > max) return max + 1;
-  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-  for (let i = 1; i <= a.length; i++) { const cur = [i]; let mn = i; for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); mn = Math.min(mn, cur[j]); } if (mn > max) return max + 1; prev = cur; }
-  return prev[b.length];
-}
-/* palabra mal escrita → la más parecida que existe en los productos */
-function corregir(w) {
-  const V = vocab(); if (w.length < 4 || V.has(w) || /\d/.test(w)) return w;
-  const max = w.length >= 7 ? 2 : 1; let best = null;
-  for (const [x, n] of V) { if (x[0] !== w[0] && fon(x)[0] !== fon(w)[0]) continue; const d = lev(w, x, max); if (d <= max && (!best || d < best.d || (d === best.d && n > best.n))) best = { x, d, n }; }
-  return best ? best.x : w;
-}
-const matchW = (p, w) => p._t.includes(w) || p._f.includes(fon(w));
 const MARCA_PROPIA = /^(carrefour|cuisine ?& ?co|dia\b|great value|coto\b|check\b|best choice|jumbo\b|vea\b|disco\b)/;
 function results() {
-  let words = nrm(S.q).split(/\s+/).filter(Boolean), ids = null;
+  let ids = null, orden = null;
   S.qfix = ""; S.qaprox = []; S.qtam = null;
-  if (words.length && BUSC.ok && READY) {   // el proceso de fondo ya tiene el índice: le preguntamos
-    const k = nrm(S.q).trim(), res = buscarFondo(S.q, () => { if (nrm(S.q).trim() === k && vBuscar.draw && $("#res")) vBuscar.draw(); });
+  if (nrm(S.q).trim()) {
+    const k = nrm(S.q).trim(), res = buscarYa(S.q, false, () => { if (nrm(S.q).trim() === k && vBuscar.draw && $("#res")) vBuscar.draw(); });
     if (!res) return null;   // en camino: se dibuja al llegar
-    ids = new Set(res.ids); if (res.fix) { S.qfix = res.fix; words = res.fix.split(" "); }
-    S.qaprox = res.aprox || []; S.qtam = res.tam || null; words = words.filter(w => !/\d/.test(w) && w.length > 1);
-  } else {
-    vocab();
-    const base = p => (!S.cat || p.cat === S.cat);
-    if (words.length && !D.products.some(p => base(p) && words.every(w => matchW(p, w)))) {   // sin resultados: probar corrigiendo
-      const fixed = words.map(corregir);
-      if (fixed.join(" ") !== words.join(" ")) { words = fixed; S.qfix = fixed.join(" "); }
-    }
+    ids = new Set(res.ids); orden = new Map(res.ids.map((id, i) => [id, i])); S.qfix = res.fix || "";
+    S.qaprox = res.aprox || []; S.qtam = res.tam || null;
   }
   const list = D.products.filter(p => {
     if (S.cat && p.cat !== S.cat) return false;
-    if (ids ? !ids.has(p.id) : !words.every(w => matchW(p, w))) return false;
+    if (ids && !ids.has(p.id)) return false;
     const sf = stFilter(); if (sf && !p.offers.some(o => sf.has(o.s))) return false;
     if (S.onlyPromo && !hasPromo(p)) return false;
     if (S.sintacc && !/tacc|sin gluten|libre de gluten/.test(nrm(p.name))) return false;
@@ -1234,12 +1213,14 @@ function results() {
   const pr = p => best(p, flt).v;
   const spread = p => { const vs = p.offers.flatMap(o => allChans(o).map(c => price1(o, c))); return vs.length < 2 ? 0 : (Math.max(...vs) - Math.min(...vs)) / Math.max(...vs); };
   const drop = p => Math.min(0, ...p.offers.map(o => (o.chg && !o.anom ? o.chg.pct : 0)));
-  const sorters = { relev: (a, b) => (matchScore(a, words) - matchScore(b, words)) || (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
+  const sorters = { relev: (a, b) => (orden ? orden.get(a.id) - orden.get(b.id) : 0) || (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
     ahorro: (a, b) => spread(b) - spread(a), baja: (a, b) => drop(a) - drop(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
   return list.sort(sorters[S.sort] || sorters.relev);
 }
 const PAGE = 48;
 const filtrosActivos = () => !!(S.cat || S.stores.size || S.onlyPromo || S.sintacc || S.propia || S.favf || S.cerca);
+/* sin resultados con varias palabras: ofrecer buscar cada una por separado ("aceite de maní" → «aceite», «maní») */
+const porPalabra = () => { const ws = nrm(S.q).split(/[^a-z0-9ñ]+/).filter(w => w.length > 2 && !/^(con|sin|del|los|las|para)$/.test(w)); return ws.length > 1 ? `<div class="cbtns" style="justify-content:center;margin-top:12px">${ws.map(w => `<button type="button" class="btn sec sm" data-solo="${esc(w)}">Buscar solo «${esc(w)}»</button>`).join("")}</div>` : ""; };
 const tamTxt = t => t.u === "kg" ? (t.q < 1 ? `${Math.round(t.q * 1000)} g` : `${String(t.q).replace(".", ",")} kg`) : t.u === "l" ? (t.q < 1 ? `${Math.round(t.q * 1000)} ml` : `${String(t.q).replace(".", ",")} l`) : `${t.q} unidades`;
 /* paginado con números: 1 2 3 … 10 */
 function pager(total, page, id, per = PAGE) {
@@ -1298,17 +1279,18 @@ function vBuscar() {
     const r = results();
     if (!r) { $("#res").innerHTML = esqueleto(8); return; }
     animar($("#res"));
-    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? ` · <span class="qfix">No encontramos «${esc(S.q)}»: mostramos resultados para <b>«${esc(S.qfix)}»</b>, que se parece</span>` : ""}`
+    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? `<div class="note qfix" style="margin-top:8px"><b>Quizás quisiste decir «${esc(S.qfix)}».</b> No encontramos «${esc(S.q)}» escrito así; estos son los resultados de «${esc(S.qfix)}».</div>` : ""}`
       + (S.qtam ? (S.qtam.sin ? ` · <span class="qfix">No hay productos de <b>${esc(tamTxt(S.qtam))}</b>: te mostramos todos los tamaños</span>` : ` · de ${esc(tamTxt(S.qtam))}`) : "")
       + (r.length && S.qaprox && S.qaprox.length ? `<div class="note" style="margin-top:8px">No encontramos <b>«${esc(S.qaprox.join(" "))}»</b>${S.qaprox.length === 1 ? "" : " juntos"}: estos productos son solo <b>parecidos</b>. Puede que esa marca o producto no esté en los comercios que comparamos.</div>` : "");
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
     const pg = S.bpage || 1, slice = r.slice((pg - 1) * per, pg * per);
     $("#res").innerHTML = (slice.length ? (S.vista === "l" ? `<div class="lst">${slice.map(lrow).join("")}</div>` : `<div class="grid v-${S.vista}">${slice.map(card).join("")}</div>`)
       : (filtrosActivos() ? `<div class="empty">No encontramos productos con esos filtros.<br><br><button class="btn sec sm" id="clr">Limpiar filtros</button></div>`
-        : `<div class="empty">No encontramos <b>«${esc(S.q)}»</b> en los comercios que comparamos.<br><span class="sub">Probá con menos palabras, sin la marca, o con otra forma de escribirlo (por ejemplo «leche» en vez de «leche descremada»).</span><br><br><a class="btn sec sm" href="#buscar" id="vertodo">Ver todos los productos</a></div>`))
+        : `<div class="empty">No encontramos <b>«${esc(S.q)}»</b> en los comercios que comparamos.<br><span class="sub">Puede que no lo vendan, o que esté escrito de otra forma. Probá con menos palabras o sin la marca.</span>${porPalabra()}<br><br><a class="btn sec sm" href="#buscar" id="vertodo">Ver todos los productos</a></div>`))
       + `<div class="more">${pager(r.length, pg, "b", per)}</div>`;
     $$("[data-pg]", $("#res")).forEach(b => b.onclick = () => { S.bpage = +b.dataset.pg.split("|")[1]; draw(); $("#view").scrollIntoView({ behavior: "smooth" }); });
     const c = $("#clr"); if (c) c.onclick = () => { S.q = ""; $("#q").value = ""; S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.canal = "ambos"; vBuscar(); };
+    $$("[data-solo]", $("#res")).forEach(b => b.onclick = () => { S.q = b.dataset.solo; $("#q").value = S.q; S.bpage = 1; guardarBusq(S.q); draw(); });
     const vt = $("#vertodo"); if (vt) vt.onclick = e => { e.preventDefault(); S.q = ""; $("#q").value = ""; setHash("#buscar"); vBuscar(); };
     $("#stall").textContent = S.stores.size ? "ver todos" : ""; $("#stall").hidden = !S.stores.size;
     const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.cerca ? 1 : 0) + (S.favf ? 1 : 0) + (S.sintacc ? 1 : 0) + (S.propia ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
@@ -1792,9 +1774,9 @@ function bindPlanner() {
   const pc = $("#pclear"); if (pc) pc.onclick = () => { PLAN = {}; savePlan(); vConviene(); };
   const q = $("#pq"), res = $("#pres");
   q.oninput = () => {
-    const ws = nrm(q.value).split(/\s+/).filter(Boolean);
-    if (!ws.length) { res.hidden = true; return; }
-    const hits = D.products.filter(p => ws.every(w => nrm(p.name + " " + p.brand).includes(w))).sort((a, b) => (matchScore(a, ws) - matchScore(b, ws)) || (b.offers.length - a.offers.length)).slice(0, 8);
+    if (!nrm(q.value).trim()) { res.hidden = true; return; }
+    const r = buscarYa(q.value, true, () => q.oninput()); if (!r) return;
+    const hits = r.ids.slice(0, 8).map(id => BY[id]).filter(Boolean);
     res.innerHTML = hits.map(p => `<button class="pr" data-padd="${p.id}">${prodImg(p, "e")}<span>${esc(p.name)}<br><span class="sub">desde ${money(best(p).v)} · en ${p.offers.length} comercios</span></span>${PLAN[p.id] ? "✓" : "+"}</button>`).join("") || `<div class="sub" style="padding:10px">Sin resultados</div>`;
     res.hidden = false;
     $$("[data-padd]", res).forEach(b => b.onclick = () => { PLAN[b.dataset.padd] = (PLAN[b.dataset.padd] || 0) + 1; savePlan(); vConviene(); setTimeout(() => $("#pq") && $("#pq").focus(), 0); });
@@ -2431,21 +2413,10 @@ function qsugDraw() {
   if (document.activeElement !== $("#q")) { qsugShow(false); return; }
   if (q.length < 2) { recientesDraw(); return; }   // buscador vacío: búsquedas recientes y vistos hace poco
   if (!READY && !TOPR) { qsugShow(false); return; }
-  const ws = nrm(q).split(/\s+/).filter(Boolean), last = ws[ws.length - 1], head = ws.slice(0, -1);
-  let comp, wsx = ws, fix = "", prods;
-  if (BUSC.ok && READY) {   // lo resuelve el proceso de fondo (no traba mientras escribís)
-    const res = buscarFondo(q, () => { if ($("#q").value.trim() === q) qsugDraw(); });
-    if (!res) return;
-    comp = res.comp; fix = res.fix; if (fix) wsx = fix.split(" ");
-    const ids = res.ids.slice(0, 400); prods = ids.map(id => BY[id]).filter(Boolean);
-  } else {
-    vocab();
-    // palabras que completan lo que estás escribiendo
-    comp = [...VOC].filter(([w]) => w.startsWith(last) && w !== last).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([w]) => [...head, w].join(" "));
-    prods = D.products.filter(p => ws.every(w => matchW(p, w)));
-    if (!prods.length) { wsx = ws.map(corregir); fix = wsx.join(" ") !== ws.join(" ") ? wsx.join(" ") : ""; prods = fix ? D.products.filter(p => wsx.every(w => matchW(p, w))) : []; }
-  }
-  prods = prods.sort((a, b) => (matchScore(a, wsx) - matchScore(b, wsx)) || (b.offers.length - a.offers.length)).slice(0, 6);
+  const ws = nrm(q).split(/\s+/).filter(Boolean), last = ws[ws.length - 1];
+  const res = buscarYa(q, true, () => { if ($("#q").value.trim() === q) qsugDraw(); });
+  if (!res) return;
+  const comp = res.comp || [], fix = res.fix, prods = res.ids.slice(0, 6).map(id => BY[id]).filter(Boolean);
   const cats = D.cats.filter(c => nrm(c.name).includes(last)).slice(0, 2);
   if (!prods.length && !comp.length && !cats.length) { box.innerHTML = `<div class="qs-none">No encontramos «${esc(q)}». Probá con otra palabra o <button type="button" class="linkbtn" data-scan>escaneá el código</button>.</div>`; qsugShow(true); return; }
   box.innerHTML = (fix ? `<div class="qs-fix">¿Quisiste decir <button type="button" class="linkbtn" data-qs="${esc(fix)}">${esc(fix)}</button>?</div>` : "")
@@ -2994,12 +2965,10 @@ function botPromos(q) {
   if (!ps.length) return `No encontré descuentos ${esc(tit)}. Mirá la semana completa en <a href="#pagos">Descuentos por día</a>.`;
   return `Descuentos ${esc(tit)} (${ps.length}):<ul>${ps.slice(0, 6).map(pr => `<li><b>${pr.pct}%</b> con ${esc(medioName(pr))} en ${esc(pr.stores.map(x => ST[x] ? ST[x].name : x).join(", "))}${day < 0 ? ` · ${pr.dias.length === 7 ? "todos los días" : pr.dias.map(d => DCORTO[d]).join(", ")}` : ""} · ${esc(topeTxt(pr))}<br><span class="sub">${pagoIcon(pr)} ${esc(pagoTxt(pr))}</span></li>`).join("")}</ul>${ps.length > 6 ? `<a href="#pagos">Ver todos en Descuentos por día</a>` : ""}`;
 }
-function botProductos(q) {
+async function botProductos(q) {
   const words = nrm(q).replace(/[¿?¡!.,]/g, " ").split(/\s+/).filter(w => w.length > 1 && !STOP.has(w));
   if (!words.length) return null;
-  vocab(); let ws2 = words; if (!D.products.some(p => words.every(w => matchW(p, w)))) ws2 = words.map(corregir);
-  const hits = D.products.filter(p => ws2.every(w => matchW(p, w)))
-    .sort((a, b) => (matchScore(a, ws2) - matchScore(b, ws2)) || (b.offers.length - a.offers.length)).slice(0, 3);
+  const r = await buscarProm(words.join(" "), false), hits = r.ids.slice(0, 3).map(id => BY[id]).filter(Boolean);
   if (!hits.length) return null;
   return `Esto encontré:${hits.map(p => { const b = best(p); return `<div class="bprod">${prodImg(p, "li")}<div><b>${esc(p.name)}</b><br>Más barato: <b>${money(b.v)}</b> en ${esc(chanName(b.o.s, b.c))} <span class="sub">(${p.offers.length} comercios)</span></div><div class="bpa"><button class="linkbtn" data-open="${p.id}">Ver</button>${addCtl(p.id)}</div></div>`; }).join("")}
     <a href="#buscar" data-botq="${esc(words.join(" "))}">Ver todos los resultados</a>`;
@@ -3008,7 +2977,7 @@ function botFormas(q) {
   const n = nrm(q), f = Object.values(P.formas_pago).find(f => { const t = nrm(f.t); return (/modo/.test(n) && /modo/.test(t)) || (/nfc|contactless|celular/.test(n) && /nfc/.test(t)) || (/qr/.test(n) && /qr de la billetera/.test(t)); });
   return f ? `<b>${f.i} ${esc(f.t)}</b>: ${esc(f.d)}` : null;
 }
-function botResponder(q) {
+async function botResponder(q) {
   const n = nrm(q).trim();
   if (!n) return "";
   if (/^(hola|buenas|buen dia|buenas tardes|buenas noches|hey)\b/.test(n) && n.length < 20) return "¡Hola! Preguntame, por ejemplo: «¿dónde está más barata la yerba?», «descuentos del jueves», «promos con Galicia» o «¿cómo armo mi carrito?».";
@@ -3019,7 +2988,7 @@ function botResponder(q) {
   for (const [re, f] of BOT_TEMAS) if (re.test(n)) return f();
   const st = D.stores.find(x => n === nrm(x.name) || n === x.id);
   if (st) return `${esc(st.name)}: ${D.products.filter(p => offerAt(p, st.id)).length} productos comparados.${st.online ? ` Tiene tienda online (${esc(st.online.nombre || "")}).` : ""}<br>${botPromos(st.name)}`;
-  return botProductos(q) || `No estoy seguro de haber entendido 🤔. Puedo ayudarte con:<ul><li>Precios: «¿dónde está más barato el aceite?»</li><li>Descuentos: «promos del sábado», «descuentos con BBVA», «promos en Coto»</li><li>Cómo usar la página: carrito, ¿dónde conviene?, mis medios, ubicación, avisos</li></ul>`;
+  return (await botProductos(q)) || `No estoy seguro de haber entendido 🤔. Puedo ayudarte con:<ul><li>Precios: «¿dónde está más barato el aceite?»</li><li>Descuentos: «promos del sábado», «descuentos con BBVA», «promos en Coto»</li><li>Cómo usar la página: carrito, ¿dónde conviene?, mis medios, ubicación, avisos</li></ul>`;
 }
 const BOT_CHIPS = ["¿Qué descuentos hay hoy?", "¿Dónde está más barata la yerba?", "¿Cómo armo mi carrito?", "¿Cómo pago con MODO?", "Comercios cerca de mí"];
 function botRender() {
@@ -3027,7 +2996,7 @@ function botRender() {
     + (BOT.msgs.length <= 1 ? `<div class="cchips">${BOT_CHIPS.map(c => `<button type="button" class="chip" data-botask="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : "");
   $("#chm").scrollTop = 1e6;
 }
-async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(); await loadProducts(); BOT.msgs.push({ who: "b", html: botResponder(q) }); botRender(); }
+async function botAsk(q) { BOT.msgs.push({ who: "u", html: esc(q) }); botRender(); await loadProducts(); BOT.msgs.push({ who: "b", html: await botResponder(q) }); botRender(); }
 function botOpen(open) {
   $("#chat").hidden = !open; $("#botbtn").setAttribute("aria-expanded", open);
   if (open) ovOpen("chat", () => botOpen(false)); else ovDone("chat");
