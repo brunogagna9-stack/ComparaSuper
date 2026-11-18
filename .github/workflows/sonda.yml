@@ -1,0 +1,10 @@
+name: Sonda Open Food Facts (una vez)
+on: { push: { branches: [probe-off] } }
+permissions: { contents: read }
+jobs:
+  sonda:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - run: python3 sonda/off.py
