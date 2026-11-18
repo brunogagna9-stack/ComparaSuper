@@ -2051,7 +2051,7 @@ function modalAvisos() {
   const { ids, bajaron } = refreshAvisos();
   openModal(`<h2>🔔 Mis avisos</h2><p class="sub">Te marcamos los productos que bajaron desde que pediste el aviso. ${Cuenta.doc && Cuenta.doc.bajas ? "También te avisamos por correo." : `¿Lo querés por correo? Activalo en <a href="#cuenta" data-close>Mi cuenta</a>.`}</p>
     <div class="alts" style="margin-top:12px">${ids.map(id => { const p = BY[id], now = best(p).v, d = bajaron.includes(id);
-      return `<button class="alt" data-open="${id}"><span><b>${esc(p.name)}</b><br><span class="sub">Cuando lo guardaste: ${money(AVISOS[id])}</span></span><span style="text-align:right"><b>${money(now)}</b><br>${d ? `<span class="chg dn">▼ bajó ${money(AVISOS[id] - now)}</span>` : now > AVISOS[id] ? '<span class="chg up">▲ subió</span>' : '<span class="sub">igual</span>'}</span></button>`; }).join("")}</div>
+      return `<button class="avi" data-open="${id}"><span><b>${esc(p.name)}</b><br><span class="sub">Cuando lo guardaste: ${money(AVISOS[id])}</span></span><span style="text-align:right"><b>${money(now)}</b><br>${d ? `<span class="chg dn">▼ bajó ${money(AVISOS[id] - now)}</span>` : now > AVISOS[id] ? '<span class="chg up">▲ subió</span>' : '<span class="sub">igual</span>'}</span></button>`; }).join("")}</div>
     <div class="mfoot"><span></span><button class="btn sec sm" data-close>Cerrar</button></div>`);
 }
 /* ---------- Mi cuenta: qué correos recibir, productos marcados, cerrar sesión y borrar la cuenta ---------- */
