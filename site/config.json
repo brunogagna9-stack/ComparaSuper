@@ -53,7 +53,8 @@
     "bbva": "img/logos/m-bbva.png",
     "santander": "img/logos/m-santander.png",
     "provincia": "img/logos/m-provincia.png",
-    "macro": "img/logos/m-macro.png"
+    "macro": "img/logos/m-macro.png",
+    "hipotecario": "img/logos/m-hipotecario.png"
   },
   "sugerencias": {
     "form_action": "",

@@ -15,8 +15,15 @@ service cloud.firestore {
           && (!('email' in d) || (d.email is string && d.email.size() <= 200))
           && (!('avisos' in d) || (d.avisos is map && d.avisos.size() <= 300));
       }
+      // campos que maneja solo el servidor de correos (scripts/enviar_avisos.py): la persona no los puede escribir
+      function sinCamposDelServidor() {
+        let srv = ['enviados', 'ultimoEnvio', 'bajaToken', 'bajaUsado'];
+        return request.method == 'create'
+          ? !request.resource.data.keys().hasAny(srv)
+          : !request.resource.data.diff(resource.data).affectedKeys().hasAny(srv);
+      }
       allow read, delete: if esDuenio();
-      allow create, update: if esDuenio() && valido();
+      allow create, update: if esDuenio() && valido() && sinCamposDelServidor();
       // Baja con un clic desde el correo, sin iniciar sesión: solo se puede APAGAR "semanal" o "bajas",
       // y solo con la clave secreta de esa persona (bajaToken) que viaja en el enlace del correo.
       allow update: if request.auth == null
