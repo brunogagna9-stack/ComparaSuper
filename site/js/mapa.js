@@ -210,7 +210,10 @@
       const n = p.dataset.n, tactil = matchMedia("(hover:none)").matches;
       elegir(n); if (tactil) setTimeout(salir, 700);   // en celular: se eleva un momento, queda la foto con el alfiler y abajo el botón para confirmar
     });
-    (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => PROVS.forEach(p => precargar(p[1])));
+    // las 24 fotos pesan casi 1 MB: se adelantan solo en compu con buena conexión; en el celular se bajan al tocar
+    const red = navigator.connection || {};
+    if (matchMedia("(hover: hover)").matches && !red.saveData && !/2g|3g/.test(red.effectiveType || ""))
+      (window.requestIdleCallback || (f => setTimeout(f, 1500)))(() => PROVS.forEach(p => precargar(p[1])), { timeout: 8000 });
 
     PROVS.slice().sort((a, b) => corto(a[1]).localeCompare(corto(b[1]), "es")).forEach(p => sel.add(new Option(corto(p[1]), p[1])));
     sel.onchange = () => { if (sel.value) elegir(sel.value); };

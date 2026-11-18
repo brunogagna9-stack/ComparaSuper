@@ -13,7 +13,9 @@ service cloud.firestore {
           && (!('bajas' in d) || d.bajas is bool)
           && (!('zona' in d) || (d.zona is string && d.zona.size() <= 10))
           && (!('email' in d) || (d.email is string && d.email.size() <= 200))
-          && (!('avisos' in d) || (d.avisos is map && d.avisos.size() <= 300));
+          && (!('avisos' in d) || (d.avisos is map && d.avisos.size() <= 300))
+          && (!('acepto' in d) || d.acepto is timestamp)
+          && (!('actualizado' in d) || d.actualizado is timestamp);
       }
       // campos que maneja solo el servidor de correos (scripts/enviar_avisos.py): la persona no los puede escribir
       function sinCamposDelServidor() {

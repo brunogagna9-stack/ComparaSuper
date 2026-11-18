@@ -1373,3 +1373,4 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .cvn{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cvt{height:10px;background:var(--soft);border-radius:6px;overflow:hidden}
 .cvt span{display:block;height:100%;background:var(--mut);opacity:.45;border-radius:6px}.cvb.cv1 .cvt span{background:var(--g);opacity:1}
 .cvv{text-align:right;white-space:nowrap}.cvv small{display:block;color:var(--mut);font-size:12px}
+.pres{font-weight:500;color:var(--mut);white-space:nowrap}

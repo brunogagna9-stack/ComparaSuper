@@ -21,7 +21,7 @@
     if (f.length > 3 && /[lrnds]e$/.test(f) && /es?$/.test(n)) f = f.slice(0, -1);
     return f;
   };
-  const dimin = b => (b.length >= 7 && /(s?it)[ao]$/.test(b) ? b.replace(/s?it([ao])$/, "$1") : "");   // toallita → toalla, galletita → galleta
+  const dimin = b => (b.length >= 6 && /(s?it)[ao]$/.test(b) ? b.replace(/s?it([ao])$/, "$1") : "");   // toallita → toalla, galletita → galleta
   const SIN = { cacahuete: "mani", cacahuetes: "mani", cacahuate: "mani", birra: "cerveza", yogur: "yogurt", yoghurt: "yogurt", refresco: "gaseosa", lejia: "lavandina", frijol: "poroto", frijoles: "poroto", mantequilla: "manteca", aguacate: "palta", elote: "choclo", melocoton: "durazno", fresa: "frutilla", fresas: "frutilla", pina: "anana" };
   const VACIAS = new Set("de del la el los las y en a al para por x un una con".split(" "));
 
@@ -61,7 +61,7 @@
     sumar(b, 3);
     const sin = SIN[nrm(w)]; if (sin && base(sin) !== b) sumar(base(sin), 2.6);
     const d = dimin(b); sumar("~" + (d || b), 2.6); if (d) sumar(d, 2.6);
-    const f = fon(w); for (let i = 5; i < f.length; i++) sumar("^" + f.slice(0, i), 2.4);   // abreviado en el nombre
+    const f = fon(w); for (let i = 4; i < f.length; i++) sumar("^" + f.slice(0, i), 2.4);   // abreviado en el nombre ("Shamp." → "samp" al sonar)
     // comienzo de palabra: solo para la palabra que estás escribiendo ("lech" → leche), o si la palabra no existe entera.
     // Si ya es una palabra completa y común ("mani"), no se completa: así no aparecen "manicura" ni "manises".
     if (!/\d/.test(w) && b.length >= 2 && (escribiendo || (!m.size && b.length >= 4))) {

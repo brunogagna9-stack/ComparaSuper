@@ -1,0 +1,25 @@
+# Vigilancia diaria: revisa la web publicada (que responda, datos al día, calidad del buscador, fotos).
+# Solo lee. Si algo está mal de verdad, manda un correo a contacto@ con el enlace al detalle.
+name: Vigilancia diaria
+on:
+  schedule:
+    - cron: "41 19 * * *"   # 16:41 de Argentina, después de la actualización diaria (14 h) y su publicación
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  vigilar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - run: node scripts/vigilancia.mjs
+  alerta:
+    needs: [vigilar]
+    if: failure()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }
+        run: python3 scripts/alerta.py "la vigilancia diaria de la web" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"

@@ -86,6 +86,20 @@ async function botComparar(q, n) {
   if (CMP.length >= 2) return `Listo: tenés ${CMP.length} productos para comparar (${CMP.map(id => esc(BY[id] ? BY[id].name : "")).join(", ")}). <a href="#comparar">Ver la comparación</a>, con precio por kilo o litro.`;
   return `Para comparar necesito dos productos. Abrí uno y tocá «Comparar», o escribime por ejemplo «comparame yerba playadito y yerba taragüí».`;
 }
+/* "agregá yerba al carrito": muestra opciones y solo agrega si la persona toca el botón */
+async function botAgregar(n) {
+  const t = n.replace(/^(agrega|agregame|suma|sumame|pone|poneme|anota|anotame|quiero agregar|sumar|agregar)\s+/, "").replace(/\s+(al|a mi|en mi|en el|a la)\s+(carrito|lista|compra)\b.*$/, "").replace(/\b(un|una|unos|unas|el|la|los|las|\d+)\b/g, " ").trim();
+  if (t.length < 3) return "¿Qué producto querés agregar? Por ejemplo: «agregá yerba al carrito».";
+  const r = await buscarProm(t, false), ps = r.ids.slice(0, 4).map(id => BY[id]).filter(Boolean);
+  if (!ps.length) return `No encontré «${esc(t)}». Probá con otra palabra.`;
+  return `Elegí cuál agregar a tu carrito (no agrego nada hasta que toques el botón):${ps.map(p => { const b = best(p); return `<div class="bprod">${prodImg(p, "li")}<div><button type="button" class="linkbtn" data-open="${p.id}"><b>${esc(p.name)}</b></button><br>${money(b.v)} en ${esc(chanName(b.o.s, b.c))}<br><button type="button" class="btn sm sec" data-add="${p.id}">+ Agregar al carrito</button></div></div>`; }).join("")}`;
+}
+/* "¿hay algo parecido más barato?" con la ficha abierta: los parecidos que salen menos por kilo o litro */
+function botParecidos(p) {
+  const alt = alternativas(p);
+  if (!alt.length) return `No encontré productos parecidos a <b>${esc(p.name)}</b> que salgan menos por kilo o litro. Puede que ya sea de los más baratos de su tipo.`;
+  return `Parecidos a <b>${esc(p.name)}</b> que salen menos por kilo o litro (ojo: la marca y la calidad pueden ser distintas):${alt.map(({ q, b, ah }) => `<div class="bprod">${prodImg(q, "li")}<div><button type="button" class="linkbtn" data-open="${q.id}"><b>${esc(q.name)}</b></button><br>${money(b.v)} en ${esc(chanName(b.o.s, b.c))} · <span class="sub">${unitTxt(q, b.v)}, ${ah}% menos</span></div></div>`).join("")}`;
+}
 const BOT_RELLENO = new Set("che porfa favor dale consigo encuentro encontrar buscame mostrame decime dame tenes calidad buena bueno buenas buenos economica economico economicas economicos rica rico mejor mejores marca marcas recomendas recomendame".split(" "));
 function botFormas(q) {
   const n = nrm(q), f = Object.values(P.formas_pago).find(f => { const t = nrm(f.t); return (/modo/.test(n) && /modo/.test(t)) || (/nfc|contactless|celular/.test(n) && /nfc/.test(t)) || (/qr/.test(n) && /qr de la billetera/.test(t)); });
@@ -99,9 +113,11 @@ async function botResponder(q) {
   if (/gracias|genial|buenisimo/.test(n) && n.length < 25) return "¡De nada! Si necesitás algo más, preguntame.";
   if (/(como|que es).*(pago|pagar|modo|qr|nfc|contactless)|pagar con (qr|nfc|el celular)/.test(n)) { const r = botFormas(q); if (r) return r; }
   if (/compar(a|á|ame|ar)\b|comparame|\bvs\b/.test(n)) return botComparar(q, n);
+  if (/^(agrega|agregame|suma|sumame|pone|poneme|anota|anotame|quiero agregar|sumar|agregar)\b/.test(n)) return botAgregar(n);
   if (/\b(lista|carrito|compra)\b/.test(n) && /(conviene|super|supermercado|donde|cual|mas barat|cuanto)/.test(n) && !/como (armo|hago|uso)/.test(n)) return botLista();
   // la ficha de un producto abierta: "¿dónde está más barato?", "¿cuánto ahorro?", "¿tiene descuento?" se refieren a ese
   const ctx = botCtx(), sinNombre = !n.split(/\s+/).some(w => w.length > 2 && !STOP.has(w) && !BOT_RELLENO.has(w) && !/^(este|esta|esto|aca|ahi|producto|descuento|descuentos|promo|promos|ahorro|ahorro|tiene|tarjeta|tarjetas|banco|pagando|diferencia|caro)$/.test(w));
+  if (ctx && /parecid|equivalent|alternativ|reemplaz|algo (mas )?barato|otra marca/.test(n)) return botParecidos(ctx);
   if (ctx && (sinNombre || /\b(este|esta|esto|aca)\b/.test(n))) return botDeProducto(ctx, n);
   const mios = /\b(mi|mis)\b.*(tarjeta|banco|medio|billetera|cuenta)|\btengo\b|puedo aprovechar|me corresponde/.test(n);
   const promoQ = /descuent|promo|reintegro|beneficio|banco|billetera|tarjeta|cuenta dni|mercado pago|modo|que dia|dia conviene|ofertas? (tengo|hay)/.test(n) && !/carrit|mis medios$/.test(n);

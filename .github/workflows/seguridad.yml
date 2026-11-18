@@ -1,0 +1,21 @@
+# Seguridad de las dependencias: OSV-Scanner (de Google, código abierto) busca problemas conocidos en las
+# herramientas de prueba/publicación (package-lock.json) una vez por semana y en cada cambio de esas herramientas.
+# Los resultados aparecen en GitHub > Security > Code scanning. No cambia nada de la web.
+name: Seguridad (dependencias)
+on:
+  schedule:
+    - cron: "23 10 * * 3"
+  push:
+    branches: [main]
+    paths: [package.json, package-lock.json, .github/workflows/seguridad.yml]
+  workflow_dispatch:
+permissions:
+  security-events: write
+  contents: read
+  actions: read
+jobs:
+  osv:
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
+    with:
+      scan-args: |-
+        --lockfile=package-lock.json

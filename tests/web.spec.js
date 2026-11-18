@@ -206,8 +206,10 @@ test("asistente: entiende preguntas naturales, usa la ficha abierta y no inventa
   expect(await pregunta("¿Qué ofertas tengo con mi tarjeta?")).toContain("necesito saber tus medios de pago");
   expect(await pregunta("¿Qué súper me conviene para mi carrito?")).toContain("carrito está vacío");
   expect(await pregunta("Comparame yerba playadito y yerba taragui")).toContain("para comparar");
+  expect(await pregunta("agregá yerba al carrito")).toContain("no agrego nada hasta que toques");
   // con la ficha de un producto abierta, no hace falta escribir su nombre
   const nombre = await page.evaluate(`(async () => { const id = (await buscarProm("arroz", false)).ids[0]; await openProduct(id); return BY[id].name; })()`);
   expect(await pregunta("¿dónde está más barato?")).toContain(nombre.replace(/&/g, "&amp;"));
   expect(await pregunta("¿cuánto ahorro comprando acá?")).not.toContain("carrito");
+  expect(await pregunta("¿hay algo parecido más barato?")).toMatch(/Parecidos a|No encontré productos parecidos/);
 });

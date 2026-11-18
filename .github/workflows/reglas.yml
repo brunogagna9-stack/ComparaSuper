@@ -3,7 +3,7 @@ name: Reglas de Firestore
 on:
   push:
     branches: [main]
-    paths: [firestore.rules]
+    paths: [firestore.rules, tests/reglas/**]
   workflow_dispatch:
 permissions: { contents: read }
 jobs:
@@ -11,9 +11,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: "3.12" }
+      - uses: actions/setup-node@v7
+        with: { node-version: 22 }
+      - uses: actions/setup-java@v6
+        with: { distribution: temurin, java-version: 21 }
+      # antes de publicar: las reglas se prueban en el emulador oficial de Firebase (no toca la base real).
+      # Si alguna prueba falla (por ejemplo, alguien podría tocar datos ajenos), NO se publican.
+      - name: Probar las reglas
+        run: |
+          npm ci --no-audit --no-fund
+          npx --yes firebase-tools@14 emulators:exec --only firestore --project demo-superbarato "node tests/reglas/probar_reglas.mjs"
       - run: pip install google-auth requests
       - name: Publicar
         env: { FIREBASE_SA: "${{ secrets.FIREBASE_SA }}" }
