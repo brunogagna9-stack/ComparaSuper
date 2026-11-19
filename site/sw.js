@@ -7,14 +7,16 @@
 importScripts("js/vendor/workbox/workbox-sw.js");
 workbox.setConfig({ modulePathPrefix: "js/vendor/workbox/", debug: false });
 
-const VERSION = "cs-v11";
+const VERSION = "cs-v12";
 const { registerRoute, setCatchHandler } = workbox.routing;
 const { NetworkFirst, CacheFirst, StaleWhileRevalidate } = workbox.strategies;
 const { ExpirationPlugin } = workbox.expiration;
 const { CacheableResponsePlugin } = workbox.cacheableResponse;
 
 const APP = `${VERSION}-app`, DATOS = `${VERSION}-datos`;
-const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/buscador.js", "js/motor.js", "js/asistente.js", "js/ticket.js", "js/mapa.js", "fonts/plus-jakarta-sans-latin-wght-normal.woff2", "js/vendor/minisearch.js", "js/vendor/floating-ui.js", "js/vendor/auto-animate.js", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
+// lo básico para que la web abra sin señal; las herramientas que se bajan al usarlas (asistente, tickets, elegir
+// provincia, lector de tickets) se guardan la primera vez que se usan, no antes
+const BASE = ["./", "index.html", "css/app.css", "js/app.js", "js/datos.js", "js/provincias.js", "js/cuenta.js", "js/buscador.js", "js/motor.js", "fonts/plus-jakarta-sans-latin-wght-normal.woff2", "js/vendor/idb-keyval.js", "config.json", "manifest.webmanifest", "img/icon-192.png"];
 
 self.addEventListener("install", e => { e.waitUntil(caches.open(APP).then(c => c.addAll(BASE)).catch(() => {})); self.skipWaiting(); });
 self.addEventListener("activate", e => {

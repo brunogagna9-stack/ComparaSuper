@@ -12,7 +12,7 @@
   "gzip": true
  },
  {
-  "name": "Mapa de provincias (mapa.js)",
+  "name": "Elegir provincia (mapa.js, se baja solo en la primera visita o al cambiar de provincia)",
   "path": "site/js/mapa.js",
   "limit": "10 kB",
   "gzip": true
@@ -48,16 +48,14 @@
   "gzip": true
  },
  {
-  "name": "Lo que se baja al entrar (página, código, estilos, librerías chicas y tipografía)",
+  "name": "Lo que se baja al entrar (página, código, estilos, provincias, cuentas y tipografía)",
   "path": [
    "site/index.html",
    "site/js/app.js",
    "site/css/app.css",
    "site/js/cuenta.js",
-   "site/js/mapa.js",
+   "site/js/provincias.js",
    "site/js/datos.js",
-   "site/js/vendor/floating-ui.js",
-   "site/js/vendor/auto-animate.js",
    "site/fonts/plus-jakarta-sans-latin-wght-normal.woff2"
   ],
   "limit": "160 kB",

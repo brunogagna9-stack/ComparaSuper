@@ -1,6 +1,6 @@
 /* tipografía Plus Jakarta Sans (licencia OFL) guardada en la web: carga antes y sin pedirla a Google */
-@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-display:swap;font-weight:200 800;src:url(../fonts/plus-jakarta-sans-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-display:swap;font-weight:200 800;src:url(../fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-display:swap;font-weight:400 800;src:url(../fonts/plus-jakarta-sans-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:"Plus Jakarta Sans";font-style:normal;font-display:swap;font-weight:400 800;src:url(../fonts/plus-jakarta-sans-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 /* ---------- colores: modo claro (por defecto) y modo oscuro ---------- */
 :root{
   color-scheme:light;
@@ -328,7 +328,7 @@ table.offers .pay{margin-top:4px}
 .nform .ck{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:3px 0;cursor:pointer}
 .nform .ck input{accent-color:var(--g);width:16px;height:16px;margin-top:3px}
 .ferr{color:var(--r);font-size:13px;min-height:1px}
-.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--tip);color:var(--tiptx);border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:.2s;z-index:60}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(30px);background:var(--tip);color:var(--tiptx);border-radius:999px;padding:11px 18px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .18s,transform .18s var(--ease);z-index:60}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 
 /* cómo funciona */
@@ -963,7 +963,7 @@ footer.site{padding-bottom:90px}
 .wchip .logo-img,.wchip .logo-img.wide,.wchip .logo-img.m{width:60px;max-width:60px;height:26px}
 .wchip small{display:block;color:var(--mut);font-weight:500;font-size:12px}
 .tour{position:fixed;inset:0;z-index:130}
-.tspot{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(8,20,15,.62);transition:all .25s;pointer-events:none;outline:3px solid var(--y)}
+.tspot{position:fixed;border-radius:12px;box-shadow:0 0 0 9999px rgba(8,20,15,.62);transition:top .22s,left .22s,width .22s,height .22s;pointer-events:none;outline:3px solid var(--y)}
 .tbub{position:fixed;background:var(--card);color:var(--ink);border-radius:14px;padding:14px;box-shadow:var(--sh2);transition:top .25s,left .25s}
 .tbub b{font-size:16px}.tbub p{margin:6px 0 10px;line-height:1.45;font-size:14.5px}
 .tnav{display:flex;align-items:center;gap:8px}.tnav .sub{margin-right:auto}
@@ -978,7 +978,7 @@ footer.site{padding-bottom:90px}
 .super{max-width:760px}
 .shead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:14px 0 10px;z-index:5}
 .shead h1{margin:0 0 8px}.sbtns{display:flex;gap:8px}
-.sbar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;width:min(360px,70vw)}.sbar span{display:block;height:100%;background:var(--g);transition:width .3s}
+.sbar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;width:min(360px,70vw)}.sbar span{display:block;height:100%;width:100%;background:var(--g);transform-origin:left;transition:transform var(--t-panel) var(--ease)}
 .sgrp{margin:14px 0}.sgrp h2{font-size:17px;margin:0 0 8px}
 .sitem{display:grid!important;grid-template-columns:32px 52px minmax(0,1fr);gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-bottom:8px;cursor:pointer;font-size:17px}
 .sitem input{width:28px;height:28px;accent-color:var(--g)}
@@ -1374,3 +1374,25 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .cvt span{display:block;height:100%;background:var(--mut);opacity:.45;border-radius:6px}.cvb.cv1 .cvt span{background:var(--g);opacity:1}
 .cvv{text-align:right;white-space:nowrap}.cvv small{display:block;color:var(--mut);font-size:12px}
 .pres{font-weight:500;color:var(--mut);white-space:nowrap}
+/* listas que se actualizan (resultados, sugerencias): fundido corto, sin mover el diseño */
+@keyframes entra{from{opacity:0;transform:translateY(4px)}}
+.entra>*{animation:entra .16s ease-out both}
+@media (prefers-reduced-motion:reduce){.entra>*{animation:none}}
+/* ---------- movimiento: los mismos tiempos en toda la web ----------
+   toque 120 ms · menús 180 ms · paneles 220 ms · vistas 140–200 ms (en las transiciones de arriba).
+   Solo se animan transform y opacity (no recalculan el diseño). Con "reducir movimiento" se apaga todo. */
+:root{--t-toque:.12s;--t-menu:.18s;--t-panel:.22s;--ease:cubic-bezier(.2,.8,.2,1)}
+/* respuesta inmediata al tocar: el botón se hunde apenas */
+.btn,.chip,.qchip,.pg,.add,.hbtn,.ibtn,.bnav a,.bnav button,.atajos a,.cbtns button,.pm-x{transition:transform var(--t-toque) ease,background-color var(--t-toque),border-color var(--t-toque),color var(--t-toque)}
+.btn:active,.chip:active,.qchip:active,.pg:active:not(:disabled),.add:active,.hbtn:active,.ibtn:active,.bnav a:active,.bnav button:active,.atajos a:active,.cbtns button:active{transform:scale(.96)}
+.prod:active,.lrow:active,.avi:active{transform:scale(.985)}
+/* menú "Más", hoja de opciones y avisos: aparecen desde su lugar, sin saltos */
+@keyframes sube{from{opacity:0;transform:translateY(8px)}}
+.bsheet:not([hidden]),.tippop,#pmenu:not([hidden]){animation:sube var(--t-menu) var(--ease) both}
+/* agregar al carrito: el número late una vez */
+@keyframes late{50%{transform:scale(1.25)}}
+.late{animation:late .24s var(--ease)}
+/* ¿Dónde conviene? en el celular: la lista larga se pliega */
+.cvlista{margin-top:10px}.cvlista summary{cursor:pointer;font-weight:700;color:var(--gtx);padding:10px 2px;list-style:none;display:flex;align-items:center;gap:6px}
+.cvlista summary::-webkit-details-marker{display:none}.cvlista summary::before{content:"▸";transition:transform var(--t-menu) var(--ease)}
+.cvlista[open] summary::before{transform:rotate(90deg)}.cvlista[open]>:not(summary){animation:sube var(--t-panel) var(--ease) both}

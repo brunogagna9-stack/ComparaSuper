@@ -34,6 +34,8 @@ let AVISOS = {};        // {idProducto: precio cuando se pidió el aviso} — se
 /* ---------- tema claro / oscuro ---------- */
 /* librerías que se bajan solo cuando hacen falta */
 const LIBS = {};
+/* la pantalla para elegir provincia (mapa.js) se baja recién cuando hace falta */
+const elegirProv = o => lib("js/mapa.js").then(() => window.abrirMapa(o), () => { toast("No se pudo abrir el mapa. Revisá tu conexión."); return null; });
 function lib(js, css, glob) {
   if (!LIBS[js]) LIBS[js] = new Promise((ok, ko) => {
     if (css) for (const c of [].concat(css)) { const k = document.createElement("link"); k.rel = "stylesheet"; k.href = c; document.head.appendChild(k); }
@@ -41,21 +43,34 @@ function lib(js, css, glob) {
   });
   return LIBS[js];
 }
-/* listas que se acomodan con movimiento (AutoAnimate, licencia MIT) */
-function animar(el) { if (el && window.autoAnimate && !el.__aa && !matchMedia("(prefers-reduced-motion: reduce)").matches) { el.__aa = 1; try { autoAnimate(el, { duration: 180 }); } catch {} } }
+/* listas que aparecen suave al filtrar o al escribir: un fundido corto hecho con CSS (clase "entra").
+   Reemplaza a auto-animate, que dejaba un temporizador por cada tarjeta midiendo la pantalla cada 2 segundos. */
+function animar(el) {
+  if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  el.classList.add("entra");   // lo que se inserte adentro aparece con el fundido (sin forzar mediciones)
+}
 /* pantallas que se vuelven a dibujar enteras (carrito, en el súper): cada producto se desliza a su nuevo lugar */
 function suave(fn) {
   if (!document.startViewTransition || matchMedia("(prefers-reduced-motion: reduce)").matches) return fn();
   document.documentElement.classList.add("vt-items");
   const t = document.startViewTransition(fn); sinAviso(t); t.finished.finally(() => document.documentElement.classList.remove("vt-items")).catch(() => {});
 }
-/* carteles y menús que nunca se salen de la pantalla (Floating UI, licencia MIT) */
+/* carteles y menús que nunca se salen de la pantalla: debajo del botón (o arriba si no entra), sin pasarse de los
+   bordes, y lo siguen si la página se mueve. Hecho a mano: reemplaza a una librería de 8 KB que hacía lo mismo. */
 function flotar(ref, el, placement = "bottom") {
-  const F = window.FloatingUIDOM; if (!F || !ref || !el) return () => {};
+  if (!ref || !el) return () => {};
   Object.assign(el.style, { position: "fixed", left: "0px", top: "0px", right: "auto" });
-  const upd = () => F.computePosition(ref, el, { strategy: "fixed", placement, middleware: [F.offset(8), F.flip({ padding: 8 }), F.shift({ padding: 8 })] })
-    .then(({ x, y }) => Object.assign(el.style, { left: x + "px", top: y + "px" }));
-  return F.autoUpdate(ref, el, upd);
+  let rf = 0;
+  const upd = () => { rf = 0; if (!ref.isConnected || !el.isConnected) return;
+    const r = ref.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight, vw = innerWidth, vh = innerHeight, M = 8;
+    let x = placement.endsWith("end") ? r.right - w : r.left + r.width / 2 - w / 2, y = r.bottom + M;
+    if (y + h > vh - M && r.top - M - h >= M) y = r.top - M - h;   // no entra abajo: arriba
+    x = Math.max(M, Math.min(x, vw - w - M));
+    el.style.left = Math.round(x) + "px"; el.style.top = Math.round(y) + "px"; };
+  const pedir = () => { if (!rf) rf = requestAnimationFrame(upd); };
+  upd(); addEventListener("scroll", pedir, { passive: true, capture: true }); addEventListener("resize", pedir);
+  const ro = window.ResizeObserver ? new ResizeObserver(pedir) : null; if (ro) ro.observe(el);
+  return () => { removeEventListener("scroll", pedir, { capture: true }); removeEventListener("resize", pedir); if (ro) ro.disconnect(); if (rf) cancelAnimationFrame(rf); };
 }
 /* íconos Lucide (sprite dentro de index.html): iguales en todos los celulares, a diferencia de los emojis */
 const ic = n => `<svg class="ic" aria-hidden="true"><use href="#i-${n}"/></svg>`;
@@ -514,7 +529,11 @@ function bestMulti(items, day, bst, split) {
 
 /* ---------- interfaz general ---------- */
 function toast(t, ms = 2400) { const el = $("#toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), ms); }
-function saveLista() { LS.set(PK("cs_lista"), LISTA); const n = Object.values(LISTA).reduce((a, b) => a + b, 0); const el = $("#lcount"); el.textContent = n; el.dataset.n = n; }
+function saveLista() {
+  LS.set(PK("cs_lista"), LISTA); const n = Object.values(LISTA).reduce((a, b) => a + b, 0), el = $("#lcount");
+  if (+el.dataset.n < n) { el.classList.remove("late"); requestAnimationFrame(() => el.classList.add("late")); }   // sumaste algo: el número late una vez
+  el.textContent = n; el.dataset.n = n;
+}
 let PREF = LS.get(PK("cs_pref"), {});   // comercio elegido para cada producto del carrito {id: comercio}
 const savePref = () => LS.set(PK("cs_pref"), PREF);
 /* control del carrito en cada producto: "+" si no está; "− cantidad +" si ya está */
@@ -1117,11 +1136,14 @@ function results() {
     return true;
   });
   const flt = stFilter();
-  const pr = p => best(p, flt).v;
+  // las claves de orden se calculan una vez por producto (antes se recalculaban en cada comparación: miles de veces)
+  const memo = f => { const m = new Map(); return p => { let v = m.get(p); if (v === undefined) { v = f(p); m.set(p, v); } return v; }; };
+  const pr = memo(p => best(p, flt).v);
   const spread = p => { const vs = p.offers.flatMap(o => allChans(o).map(c => price1(o, c))); return vs.length < 2 ? 0 : (Math.max(...vs) - Math.min(...vs)) / Math.max(...vs); };
   const drop = p => Math.min(0, ...p.offers.map(o => (o.chg && !o.anom ? o.chg.pct : 0)));
-  const sorters = { relev: (a, b) => (orden ? orden.get(a.id) - orden.get(b.id) : 0) || (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => (perUnit(a, pr(a)) ?? 1e12) - (perUnit(b, pr(b)) ?? 1e12),
-    ahorro: (a, b) => spread(b) - spread(a), baja: (a, b) => drop(a) - drop(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
+  const un = memo(p => perUnit(p, pr(p)) ?? 1e12), sp = memo(spread), dr = memo(drop);
+  const sorters = { relev: (a, b) => (orden ? orden.get(a.id) - orden.get(b.id) : 0) || (b.offers.length - a.offers.length) || ((b.img ? 1 : 0) - (a.img ? 1 : 0)) || (pr(a) - pr(b)), precio: (a, b) => pr(a) - pr(b), unidad: (a, b) => un(a) - un(b),
+    ahorro: (a, b) => sp(b) - sp(a), baja: (a, b) => dr(a) - dr(b), nombre: (a, b) => a.name.localeCompare(b.name, "es") };
   return list.sort(sorters[S.sort] || sorters.relev);
 }
 const PAGE = 48;
@@ -1239,10 +1261,14 @@ function tipo(t) {
 /* banner de ofertas destacadas: pasa solo cada 5 segundos, con puntitos para elegir y botón de pausa */
 let BAN = { t: null, i: 0, pausa: false };
 function destacadas() {
-  return D.products.filter(p => p.img && p.offers.length >= 2).flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]]
+  if (destacadas.de === D.products) return destacadas.xs;   // mismos datos: mismo resultado
+  const vistos = new Set();   // un producto una sola vez (antes se buscaba repetido en toda la lista: muy lento)
+  destacadas.xs = D.products.filter(p => p.img && p.offers.length >= 2).flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]]
     .filter(([c, pr]) => pr && base(o, c)).map(([c, pr]) => ({ p, o, c, pr, off: 1 - pr.pu / base(o, c) }))))
     .filter(x => x.off >= 0.15 && x.off <= 0.7).sort((a, b) => b.p.offers.length - a.p.offers.length || b.off - a.off)
-    .filter((x, i, arr) => arr.findIndex(y => y.p.id === x.p.id) === i).slice(0, 8);
+    .filter(x => !vistos.has(x.p.id) && vistos.add(x.p.id)).slice(0, 8);
+  destacadas.de = D.products;
+  return destacadas.xs;
 }
 function banner() {
   const xs = destacadas(); if (!xs.length) return "";
@@ -1287,10 +1313,12 @@ function emblaBanner(E) {
 }
 function vOfertas() {
   setTab("ofertas");
-  const all = D.products.flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]].filter(x => x[1]).map(([c, pr]) => ({ p, o, c, pr }))));
-  const tipos = [...new Set(all.map(x => tipo(x.pr.txt)))].sort();
-  const list = all.filter(x => (!S.otipo || tipo(x.pr.txt) === S.otipo) && (!S.ostore || x.o.s === S.ostore))
-    .sort((a, b) => (a.pr.pu / base(a.o, a.c)) - (b.pr.pu / base(b.o, b.c)));
+  if (vOfertas.de !== D.products) {   // se arma una vez por cada carga de datos (tipo y orden calculados de antemano)
+    vOfertas.all = D.products.flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]].filter(x => x[1]).map(([c, pr]) => ({ p, o, c, pr, t: tipo(pr.txt), k: pr.pu / base(o, c) }))))
+      .sort((a, b) => a.k - b.k);
+    vOfertas.tipos = [...new Set(vOfertas.all.map(x => x.t))].sort(); vOfertas.de = D.products;
+  }
+  const tipos = vOfertas.tipos, list = vOfertas.all.filter(x => (!S.otipo || x.t === S.otipo) && (!S.ostore || x.o.s === S.ostore));
   $("#view").innerHTML = `<div class="wrap">${banner()}${anuncio("ofertas")}<section class="blk">
     <div class="toolbar"><div><h1>🏷️ Ofertas vigentes</h1><span class="sub">${list.length} ofertas · ordenadas por mayor descuento real por unidad</span></div>${storeSelect("ostore", S.ostore)}</div>
     <div class="chips" style="margin-bottom:18px"><button class="chip${S.otipo ? "" : " on"}" data-ot="">Todas</button>${tipos.map(t => `<button class="chip${S.otipo === t ? " on" : ""}" data-ot="${esc(t)}">${esc(t)}</button>`).join("")}</div>
@@ -1602,7 +1630,10 @@ function vConviene() {
   const editor = `<section class="box"><div class="blk-h"><h2>Productos a comparar <span class="sub" style="font-weight:500">· ${items.length}</span></h2>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.keys(LISTA).length ? `<button class="btn sec sm" id="fromcart">⬇️ Traer mi carrito</button>` : ""}<button class="btn sec sm" type="button" data-pegar>📋 Pegar una lista</button>${items.length ? `<button class="btn sec sm" id="tocart">🛒 Enviar al carrito</button><button class="btn sec sm" id="pclear">Vaciar</button>` : ""}</div></div>
     <div class="psearch"><input id="pq" type="search" placeholder="Sumá un producto: leche, yerba, aceite…" autocomplete="off" aria-label="Buscar producto para sumar"><div class="pres" id="pres" hidden></div></div>
-    ${items.map(({ p, qty }) => qtyRow(p, qty, "p")).join("") || `<p class="sub" style="margin:14px 0 4px">Buscá productos arriba, traé tu carrito o <a href="#" data-canasta>probá con la canasta básica</a>.</p>`}
+    ${!items.length ? `<p class="sub" style="margin:14px 0 4px">Buscá productos arriba, traé tu carrito o <a href="#" data-canasta>probá con la canasta básica</a>.</p>`
+      // en el celular, una lista larga se pliega para que el resultado (dónde conviene) quede a la vista sin bajar tanto
+      : items.length > 4 && !matchMedia("(min-width:900px)").matches ? `<details class="cvlista"${S.cvAbierta ? " open" : ""}><summary>Ver y cambiar los ${items.length} productos</summary>${items.map(({ p, qty }) => qtyRow(p, qty, "p")).join("")}</details>`
+      : items.map(({ p, qty }) => qtyRow(p, qty, "p")).join("")}
   </section>`;
   if (!items.length) { $("#view").innerHTML = `<div class="wrap">${head}<div class="cv">${editor}${ayudaVacia("plan")}</div></div>`; bindPlanner(); return; }
 
@@ -1681,6 +1712,7 @@ function vConviene() {
 }
 function bindPlanner() {
   bindQty(vConviene);
+  const cl = $(".cvlista"); if (cl) cl.ontoggle = () => { S.cvAbierta = cl.open; };   // recuerda si la dejaste abierta al cambiar cantidades
   const fc = $("#fromcart"); if (fc) fc.onclick = () => { for (const [id, q] of Object.entries(LISTA)) PLAN[id] = Math.max(PLAN[id] || 0, q); savePlan(); toast("Carrito traído"); vConviene(); };
   const tc = $("#tocart"); if (tc) tc.onclick = () => { for (const [id, q] of Object.entries(PLAN)) LISTA[id] = Math.max(LISTA[id] || 0, q); saveLista(); toast("Productos enviados a tu carrito 🛒"); };
   const pc = $("#pclear"); if (pc) pc.onclick = () => { PLAN = {}; savePlan(); vConviene(); };
@@ -2549,15 +2581,11 @@ document.addEventListener("click", e => {
   if (!b) { if (!e.target.closest("#tippop")) tipClose(); return; }
   e.preventDefault(); e.stopPropagation();
   const was = $("#tippop") && $("#tippop").dataset.k === b.dataset.tip; tipClose(); if (was) return;
-  const [t, d] = GLOS[b.dataset.tip], r = b.getBoundingClientRect(), pop = document.createElement("div");
+  const [t, d] = GLOS[b.dataset.tip], pop = document.createElement("div");
   pop.id = "tippop"; pop.className = "tippop"; pop.dataset.k = b.dataset.tip; pop.setAttribute("role", "tooltip");
   pop.innerHTML = `<b>${esc(t)}</b><p>${esc(d)}</p>`; document.body.appendChild(pop);
-  if (window.FloatingUIDOM) { pop.__fin = flotar(b, pop, "bottom"); return; }   // sigue al botón aunque se mueva la pantalla
-  const w = pop.offsetWidth, h = pop.offsetHeight;
-  pop.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + "px";
-  pop.style.top = (r.bottom + h + 12 < innerHeight ? r.bottom + 8 : Math.max(8, r.top - h - 8)) + "px";
+  pop.__fin = flotar(b, pop, "bottom");   // sigue al botón aunque se mueva la pantalla
 }, true);
-addEventListener("scroll", () => { if (!window.FloatingUIDOM) tipClose(); }, { passive: true, capture: true });
 
 /* ---------- mis súper (los que la persona elige como habituales) ---------- */
 let FAV = new Set(LS.get("cs_fav", []));
@@ -2711,7 +2739,7 @@ function vSuper() {
   }
   const tot = items.length, hechos = items.filter(i => TACH[i.p.id]).length;
   const falta = Object.values(g).flat().filter(x => !TACH[x.p.id]).reduce((a, x) => a + x.v, 0), llevo = Object.values(g).flat().filter(x => TACH[x.p.id]).reduce((a, x) => a + x.v, 0);
-  $("#view").innerHTML = `<div class="wrap super"><div class="shead"><div><h1>🛍️ En el súper</h1><div class="sbar"><span style="width:${Math.round(hechos / tot * 100)}%"></span></div>
+  $("#view").innerHTML = `<div class="wrap super"><div class="shead"><div><h1>🛍️ En el súper</h1><div class="sbar" role="progressbar" aria-valuemin="0" aria-valuemax="${tot}" aria-valuenow="${hechos}" aria-label="Productos en el chango"><span style="transform:scaleX(${(hechos / tot).toFixed(3)})"></span></div>
       <p class="sub" aria-live="polite"><b>${hechos} de ${tot}</b> en el chango${hechos ? ` (aprox. <b>${money(llevo)}</b>)` : ""}${hechos < tot ? ` · falta aprox. <b>${money(falta)}</b>` : " · ¡ya tenés todo! 🎉"}</p></div>
       <div class="sbtns"><button class="btn sec sm" id="sreset">Destachar todo</button><a class="btn sm" href="#carrito">Salir</a></div></div>
     ${Object.entries(g).map(([sid, xs]) => `<section class="sgrp"><h2>${storeChip(sid)}</h2>${xs.sort((a, b) => (TACH[a.p.id] ? 1 : 0) - (TACH[b.p.id] ? 1 : 0)).map(({ p, qty, v }) => `
@@ -2899,7 +2927,7 @@ $("#chm").addEventListener("click", e => {
 
 $("#pbtn").onclick = async () => {
   if (document.getElementById("pmapa")) return;
-  const pr = abrirMapa({ actual: PROV }); ovOpen("mapa", () => window.cerrarMapa && window.cerrarMapa());
+  const pr = elegirProv({ actual: PROV }); ovOpen("mapa", () => window.cerrarMapa && window.cerrarMapa());
   const v = await pr; ovDone("mapa");
   if (v && v !== PROV) { LS.set("cs_prov", v); setTimeout(() => location.reload(), 150); }
 };
@@ -2908,7 +2936,7 @@ listaCompartida();
   if (location.hash.startsWith("#baja?") && !PROV) { await vBaja(location.hash.slice(6)); return new Promise(() => {}); }   // baja desde un correo en un navegador nuevo
   if (!PROV) {                         // primera visita: elegir la provincia antes de cargar precios
     $("#view").innerHTML = "";
-    const v = await abrirMapa({ primera: true });
+    const v = await elegirProv({ primera: true });
     LS.set("cs_prov", v || "AR-C"); location.reload();
     return new Promise(() => {});
   }
