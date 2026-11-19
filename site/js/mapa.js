@@ -52,7 +52,7 @@
 #pmapa .tt.on{opacity:1}#pmapa .tt small{display:block;font-weight:500;opacity:.8;font-size:12px}
 #pmapa .pulso{fill:var(--y);stroke:#0b4d37;stroke-width:.8;pointer-events:none;transform-box:fill-box;transform-origin:center;animation:pmPul 1.6s ease-in-out infinite}
 @keyframes pmPul{50%{transform:scale(1.5)}}
-#pmapa .lado h3{margin:0 0 6px;font-size:15px}
+#pmapa .lado h2{margin:0 0 6px;font-size:15px}
 #pmapa .lado>p{margin:0 0 8px;color:var(--mut);font-size:13.5px;line-height:1.4}
 #pmapa .zoombox{position:relative;background:#cfe3f3;border-radius:16px;border:1px solid var(--line);overflow:hidden}
 [data-theme="dark"] #pmapa .zoombox{background:#16324a}
@@ -81,7 +81,7 @@
 @media (max-width:760px){
   #pmapa .mapwrap{grid-template-columns:1fr}
   #pmapa .lado{order:-1}
-  #pmapa .lado>p,#pmapa .lado>h3{display:none}
+  #pmapa .lado>p,#pmapa .lado>h2{display:none}
   #pmapa .zoombox{position:fixed;right:10px;bottom:90px;width:42vw;max-width:190px;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.3);border:2px solid #fff}
   #pmapa .zname{left:5px;right:5px;bottom:5px;padding:4px 7px;font-size:12px}#pmapa .zname small{font-size:10.5px}
   #pmapa .zbtns{margin-top:0}
@@ -115,7 +115,7 @@
       <div class="pm-box"><div class="mapwrap">
         <div class="stage"><div class="plano"></div><div class="tt"></div></div>
         <div class="lado">
-          <h3>🔍 Zoom</h3>
+          <h2>🔍 Zoom</h2>
           <p>Acá ves de cerca la provincia que señalás. También podés tocarla acá para elegirla.</p>
           <div class="zoombox"><svg id="pmzoom" viewBox="0 0 100 100"></svg><div class="zname"></div></div>
           <div class="zbtns"><button type="button" data-zcaba>📍 CABA y alrededores</button><button type="button" data-zpais>🇦🇷 Todo el país</button></div>
