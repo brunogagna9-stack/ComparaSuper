@@ -127,6 +127,12 @@ def test_precio_online_y_app():
     assert "p" not in offers["rappi"] and offers["rappi"]["po"] == 5600
 
 
+# escenarios del monitoreo de la actualización (tests/test_monitor.py)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import test_monitor as TM  # noqa: E402
+globals().update({k: v for k, v in vars(TM).items() if k.startswith("test_")})
+
+
 if __name__ == "__main__":
     fails = 0
     for name, fn in list(globals().items()):

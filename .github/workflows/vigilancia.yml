@@ -5,7 +5,7 @@ on:
   schedule:
     - cron: "41 19 * * *"   # 16:41 de Argentina, después de la actualización diaria (14 h) y su publicación
   workflow_dispatch:
-permissions: { contents: read }
+permissions: { contents: write }   # write: solo para guardar el estado del monitoreo en la rama "monitor"
 jobs:
   vigilar:
     runs-on: ubuntu-latest
@@ -15,11 +15,16 @@ jobs:
       - uses: actions/setup-node@v7
         with: { node-version: 22 }
       - run: node scripts/vigilancia.mjs
-  alerta:
-    needs: [vigilar]
-    if: failure()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }
-        run: python3 scripts/alerta.py "la vigilancia diaria de la web" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        env: { VIGILANCIA_TXT: "${{ runner.temp }}/vigilancia.txt" }
+      # ¿la actualización diaria dejó de correr? (tarea programada que no se ejecutó en 30 h)
+      - name: Tareas programadas al día
+        if: always()
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          ENLACE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: bash scripts/monitor.sh vigilar
+      - name: Aviso con el detalle
+        if: failure()
+        env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }
+        run: python3 scripts/alerta.py "la vigilancia diaria de la web" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" "${{ runner.temp }}/vigilancia.txt"

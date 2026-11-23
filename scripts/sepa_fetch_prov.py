@@ -175,6 +175,8 @@ def main():
                 if required:
                     raise
                 print(f"AVISO: no se pudo consultar {dataset} ({e})"); continue
+            if required:
+                S.etapa("consulta", archivos=len(files), publicado=files[0].get("last_modified") or files[0].get("created"))
             have = set()
             for k, res in enumerate(files[:S.EXTRA_DIAS + 1]):
                 missing = None if k == 0 else (wanted - have)
@@ -201,10 +203,13 @@ def main():
             print(f"AVISO: no encontré la cadena {s['name']} en SEPA")
     if sin_prov:
         print("AVISO: sucursales sin provincia (no se usan):", dict(sin_prov))
+    S.ETAPA[0] = "procesamiento"
     items = items_por_provincia(acc, nsuc)
     total = sum(len(v) for v in items.values())
     if total < 1000:
         raise SystemExit(f"Solo {total} precios: el archivo parece incompleto, no se publica")
+    S.etapa("descarga"); S.etapa("procesamiento", precios=total, provincias=len(items))
+    S.ETAPA[0] = "importacion"
     OUT.mkdir(parents=True, exist_ok=True)
     for old in sorted(OUT.glob("*.json"))[:-2]:
         old.unlink()
@@ -218,8 +223,12 @@ def main():
     for p in sorted(items):
         print(f"  {p}: {len(items[p])} precios, {len({i['ean'] for i in items[p]})} productos, "
               f"cadenas {sorted({i['store'] for i in items[p]})}")
+    S.etapa("importacion", fecha=date, precios=total)
     print(f"OK: {total} precios en {len(items)} provincias ({date})")
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1:
+        main()
+    else:
+        S.correr(main, ROOT / "data" / "estado_sepa_prov.json")

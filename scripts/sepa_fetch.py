@@ -19,8 +19,8 @@ Formato esperado (Res. 678/2020): un zip con un zip (o carpeta) por comercio, ca
 comercio.csv, sucursales.csv y productos.csv separados por "|". Las columnas se leen por
 NOMBRE, así que si cambian de orden sigue funcionando.
 """
-import csv, io, json, sys, zipfile, statistics, tempfile, shutil, unicodedata, datetime as dt
-import urllib.request
+import csv, io, json, sys, zipfile, statistics, tempfile, shutil, unicodedata, datetime as dt, time, socket, http.client
+import urllib.request, urllib.error
 from collections import defaultdict, Counter
 from pathlib import Path
 
@@ -42,20 +42,98 @@ def norm(s):
     return "".join(c for c in s if unicodedata.category(c) != "Mn").strip()
 
 
+# ---- consulta con diagnóstico: cada error queda clasificado, así el aviso dice QUÉ pasó y no "SEPA caída" para todo ----
+ESPERAS = (20, 60)                       # reintentos progresivos (segundos) para errores pasajeros
+TRANSITORIOS = {408, 425, 429, 500, 502, 503, 504}
+ESTADO = {"etapas": {}}                  # lo lee scripts/monitor.py para decidir si avisa y qué dice el correo
+ETAPA = ["consulta"]                     # etapa en curso: si algo explota, se sabe dónde
+
+
+class ErrorConsulta(Exception):
+    """No se pudo obtener la información. tipo: bloqueado (el portal rechaza el acceso), error_servidor, no_encontrado,
+    error_http, sin_respuesta (tiempo agotado / conexión cortada) o dns."""
+    def __init__(self, tipo, http, detalle, intentos):
+        super().__init__(detalle); self.tipo, self.http, self.detalle, self.intentos = tipo, http, detalle, intentos
+
+
+def pedir(url, timeout=60, destino=None):
+    """Pide una URL con reintentos para errores pasajeros. Devuelve los bytes (o los guarda en destino)."""
+    err, intentos = None, 0
+    for espera in (0,) + tuple(ESPERAS):
+        if espera:
+            print(f"  reintento en {espera} s ({err.detalle})", flush=True); time.sleep(espera)
+        intentos += 1
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=timeout) as r:
+                if destino is None:
+                    return r.read()
+                with open(destino, "wb") as f:
+                    shutil.copyfileobj(r, f, 1 << 20)
+                return None
+        except urllib.error.HTTPError as e:
+            try:
+                cuerpo = e.read(200000).decode("utf-8", "ignore")
+            except Exception:
+                cuerpo = ""
+            waf = "BunkerWeb" if "BunkerWeb" in cuerpo else ("Cloudflare" if "cloudflare" in cuerpo.lower() else "")
+            tipo = ("bloqueado" if e.code in (401, 403) else "no_encontrado" if e.code == 404
+                    else "error_servidor" if e.code >= 500 else "error_http")
+            err = ErrorConsulta(tipo, e.code, f"HTTP {e.code} {e.reason}" + (f" (firewall {waf} del portal)" if waf else ""), intentos)
+            # 403: un solo reintento, por si es un límite momentáneo; 404 y otros errores permanentes no se reintentan
+            if e.code not in TRANSITORIOS and not (e.code in (401, 403) and intentos == 1):
+                raise err
+        except (urllib.error.URLError, TimeoutError, ConnectionError, http.client.HTTPException, socket.timeout) as e:
+            razon = getattr(e, "reason", e)
+            err = ErrorConsulta("dns" if isinstance(razon, socket.gaierror) else "sin_respuesta", None, str(razon) or type(e).__name__, intentos)
+    raise err
+
+
+def etapa(nombre, ok=True, **datos):
+    ESTADO["etapas"][nombre] = {"ok": ok, **datos}
+
+
+def correr(main, salida):
+    """Corre main() registrando cada etapa en `salida` (JSON). Sale con 0 si todo anduvo, 2 si falló la consulta,
+    3 si falló el procesamiento o el guardado."""
+    ESTADO.update(inicio=dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"))
+    codigo = 0
+    try:
+        main()
+        ESTADO["resultado"] = "ok"
+    except ErrorConsulta as e:
+        etapa(ETAPA[0] if ETAPA[0] in ("consulta", "descarga") else "consulta", False, tipo=e.tipo, http=e.http, detalle=e.detalle, intentos=e.intentos)
+        ESTADO["resultado"], codigo = "error_consulta", 2
+        print(f"ERROR DE CONSULTA ({e.tipo}): {e.detalle} — tras {e.intentos} intento(s)")
+    except BaseException as e:   # SystemExit incluido: "archivo incompleto", etc.
+        detalle = str(e) if isinstance(e, SystemExit) else f"{type(e).__name__}: {e}"
+        etapa(ETAPA[0], False, detalle=detalle)
+        ESTADO["resultado"], codigo = f"error_{ETAPA[0]}", 3
+        print(f"ERROR EN {ETAPA[0].upper()}: {detalle}")
+    finally:
+        ESTADO["fin"] = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds")
+        Path(salida).parent.mkdir(parents=True, exist_ok=True)
+        Path(salida).write_text(json.dumps(ESTADO, ensure_ascii=False, indent=1), encoding="utf-8")
+    sys.exit(codigo)
+
+
 def resources(dataset):
     """Archivos del dataset (uno por día de la semana), del más nuevo al más viejo."""
-    with urllib.request.urlopen(urllib.request.Request(CKAN.format(dataset), headers=UA), timeout=60) as r:
-        pkg = json.load(r)["result"]
+    ETAPA[0] = "consulta"
+    try:
+        pkg = json.loads(pedir(CKAN.format(dataset)))["result"]
+    except (ValueError, KeyError) as e:
+        raise ErrorConsulta("respuesta_invalida", None, f"el portal respondió algo que no es la lista de archivos ({e})", 1)
     res = [x for x in pkg["resources"] if x.get("url", "").lower().endswith(".zip")]
     res.sort(key=lambda x: x.get("last_modified") or x.get("created") or "", reverse=True)
     if not res:
-        raise SystemExit("El portal no devolvió archivos .zip de SEPA")
+        raise ErrorConsulta("sin_archivos", None, "el portal no devolvió archivos .zip de SEPA", 1)
     return res
 
 
 def download(url, dest):
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=600) as r, open(dest, "wb") as f:
-        shutil.copyfileobj(r, f, 1 << 20)
+    ETAPA[0] = "descarga"
+    pedir(url, timeout=600, destino=dest)
+    ETAPA[0] = "procesamiento"
 
 
 def read_csv(data):
@@ -251,7 +329,9 @@ def main():
             except Exception as e:
                 if required:
                     raise
-                print(f"AVISO: no se pudo consultar {dataset} ({e})"); continue
+                print(f"AVISO: no se pudo consultar {dataset} ({e})"); ESTADO.setdefault("avisos", []).append(f"{base}: {e}"); continue
+            if required:
+                etapa("consulta", archivos=len(files), publicado=files[0].get("last_modified") or files[0].get("created"))
             # el archivo más nuevo; si una cadena no vino (archivo vacío o dañado), se busca en los días anteriores
             for k, res in enumerate(files[:EXTRA_DIAS + 1]):
                 have = {i["store"] for i in items}
@@ -283,8 +363,12 @@ def main():
                   [b for b in seen if norm(s['name'])[:4] in b][:5])
     if ROTOS:
         print(f"AVISO: {len(ROTOS)} archivos internos dañados u ocultos se saltearon: {ROTOS[:10]}")
+    ETAPA[0] = "procesamiento"
     if len(items) < 100:
         raise SystemExit(f"Solo {len(items)} precios: el archivo parece incompleto, no se publica")
+    etapa("descarga")
+    etapa("procesamiento", precios=len(items), productos=len({i['ean'] for i in items}), cadenas=sorted({i["store"] for i in items}))
+    ETAPA[0] = "importacion"
     # se conservan los precios online leídos hoy por online_fetch.py, si ya corrió
     raw = ROOT / "data" / "raw"; raw.mkdir(parents=True, exist_ok=True)
     demos = list(raw.glob("demo-*.json"))
@@ -311,8 +395,12 @@ def main():
     print(f"Sucursales con ubicación: {sum(len(v) for v in prev.values())} de {len(prev)} cadenas")
     out = {"date": date, "source": "sepa", "region": REGION, "items": items, "fechas": fechas}
     (raw / f"sepa-{date}.json").write_text(json.dumps(out, ensure_ascii=False), encoding="utf-8")
+    etapa("importacion", fecha=date, archivo=f"sepa-{date}.json", precios=len(items))
     print(f"OK: {len(items)} precios de {len({i['ean'] for i in items})} productos ({date})")
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1:
+        main()
+    else:
+        correr(main, ROOT / "data" / "estado_sepa.json")

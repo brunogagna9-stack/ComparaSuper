@@ -30,18 +30,30 @@ jobs:
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
+      # Si no se pueden obtener los datos de SEPA, se deja la rama beta-datos como está (la web sigue con lo último)
+      # y el job "monitor" avisa con la causa real (no un "Falló" genérico todos los días).
       - name: Precios por provincia (SEPA de todo el país)
+        id: sepa
+        continue-on-error: true
         run: python scripts/sepa_fetch_prov.py
       - name: Armar datos de cada provincia
+        id: armar_prov
+        if: steps.sepa.outcome == 'success'
         run: python scripts/build_data_prov.py ../beta-datos
       - name: Promos de MODO (si MODO no responde, se usan las del último día)
+        id: modo
+        if: steps.sepa.outcome == 'success'
         continue-on-error: true
         run: |
           [ -f ../beta-datos/promos_modo.json ] && cp ../beta-datos/promos_modo.json data/promos_modo.json || true
           python scripts/modo_fetch.py
       - name: Promos por provincia
+        id: promos_prov
+        if: steps.sepa.outcome == 'success'
         run: python scripts/promos_prov.py
       - name: Guardar en la rama beta-datos
+        id: guardar_prov
+        if: steps.sepa.outcome == 'success'
         run: |
           rm -rf ../salida && mkdir -p ../salida
           cp -r site/data/p ../salida/p
@@ -54,13 +66,33 @@ jobs:
           git add -A
           git commit -qm "Datos de prueba por provincia $(date -u +%F)"
           git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" beta-datos
-  alerta:
-    # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
+      - name: Resumen para el monitoreo
+        if: always()
+        run: |
+          mkdir -p "$RUNNER_TEMP/mon"; cp data/estado_sepa_prov.json "$RUNNER_TEMP/mon/" 2>/dev/null || true
+          printf '%s\n' "armar_prov=${{ steps.armar_prov.outcome }}" "modo=${{ steps.modo.outcome }}" "promos_prov=${{ steps.promos_prov.outcome }}" \
+            "guardar_prov=${{ steps.guardar_prov.outcome }}" > "$RUNNER_TEMP/mon/pasos.txt"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: monitor, path: "${{ runner.temp }}/mon", retention-days: 7 }
+  monitor:
     needs: [beta]
-    if: failure()
+    if: always()
     runs-on: ubuntu-latest
+    concurrency: { group: monitor, cancel-in-progress: false }
     steps:
-      - uses: actions/checkout@v4
-        with: { ref: main, sparse-checkout: scripts/alerta.py, sparse-checkout-cone-mode: false }
-      - run: python3 scripts/alerta.py "la actualización de precios de las provincias" "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-        env: { BREVO_API_KEY: "${{ secrets.BREVO_API_KEY }}" }
+      - uses: actions/checkout@v7
+        with: { ref: main }
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with: { name: monitor, path: "${{ runner.temp }}/mon" }
+      - name: Monitoreo y avisos
+        env:
+          BREVO_API_KEY: ${{ secrets.BREVO_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          ENLACE: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          M="$RUNNER_TEMP/mon"; pasos=()
+          if [ -f "$M/pasos.txt" ]; then while read -r l; do [ -n "$l" ] && pasos+=(--paso "$l"); done < "$M/pasos.txt"
+          else pasos+=(--paso "actualizar=failure"); fi
+          bash scripts/monitor.sh corrida provincias --sepa "$M/estado_sepa_prov.json" "${pasos[@]}" --enlace "$ENLACE"
