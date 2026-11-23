@@ -1,0 +1,36 @@
+{
+ "incidentes": {
+  "CONSULTA_bloqueado": {
+   "id": "CONSULTA_bloqueado-2026-11-16",
+   "desde": "2026-11-16T17:55:30+00:00",
+   "corridas": 9,
+   "avisado": null,
+   "nivel": null,
+   "proceso": "precios",
+   "detalle": "HTTP 403 Forbidden (firewall BunkerWeb del portal); registrado desde el 16/11 en el diagnóstico"
+  }
+ },
+ "ultima_corrida": {
+  "precios": "2026-11-22T22:20:17+00:00",
+  "provincias": "2026-11-22T23:41:23+00:00"
+ },
+ "ultima_importacion": {
+  "precios": {
+   "fecha": "2026-11-15",
+   "cuando": "2026-11-16T01:13:18+00:00"
+  }
+ },
+ "historial": [
+  {
+   "cuando": "2026-11-23T00:30:00+00:00",
+   "proceso": "diagnóstico",
+   "estados": [
+    "ERROR_DE_CONSULTA"
+   ],
+   "notas": [
+    "estado inicial cargado a mano: 9 corridas con HTTP 403 desde el 16/11 (ver docs/auditoria/DIAGNOSTICO_ALERTAS_SEPA.md)"
+   ]
+  }
+ ],
+ "correos": []
+}
