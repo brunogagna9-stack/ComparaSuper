@@ -127,6 +127,22 @@ def test_precio_online_y_app():
     assert "p" not in offers["rappi"] and offers["rappi"]["po"] == 5600
 
 
+def test_historial_base_vieja_online_hoy():
+    """Si la base oficial quedó en el 15/11, los precios online leídos el 22/11 van al 22/11 (no pisan el 15/11)."""
+    hist = {"dates": ["2026-11-14"], "series": {}}
+    snap = {"date": "2026-11-15", "items": [{"ean": "1", "store": "coto", "price": 100},
+                                            {"ean": "1", "store": "dia", "price": None, "price_online": 90}]}
+    bd.update_history(hist, snap, "2026-11-15")
+    snap["items"][1]["price_online"] = 95
+    bd.update_history(hist, snap, "2026-11-22")
+    assert hist["dates"] == ["2026-11-14", "2026-11-15", "2026-11-22"], hist["dates"]
+    assert hist["series"]["1"]["coto"][1] == 100 and len(hist["series"]["1"]["coto"]) == 2   # sucursal: solo su fecha
+    assert hist["series"]["1"]["dia"] == [None, 90, 95]                                          # online: cada día el suyo
+    old = {"date": "2026-11-10", "items": [{"ean": "1", "store": "coto", "price": 1}]}
+    bd.update_history(hist, old)   # una lectura vieja no se inserta en el medio
+    assert hist["dates"][-1] == "2026-11-22" and "2026-11-10" not in hist["dates"]
+
+
 # escenarios del monitoreo de la actualización (tests/test_monitor.py)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_monitor as TM  # noqa: E402

@@ -1895,7 +1895,7 @@ async function openProduct(id) {
       <div class="slist" id="slist" ${openProduct.mas ? "" : "hidden"}>
         <p class="sub" style="margin:0 0 8px">Precio de cada comercio, de menor a mayor. Podés agregar el producto al carrito desde el súper que prefieras. 🏷️ = oferta del comercio ${tip("oferta")} · 💳 = descuento con medio de pago ${tip("bancaria")}</p>
         ${rows.map(storeRow).join("")}
-        <p class="sub" style="margin:10px 0 0">Precios del ${esc(D.updated.split("-").reverse().join("/"))}. Local: precio más común en las sucursales (base oficial SEPA). Online: sin envío.</p>
+        <p class="sub" style="margin:10px 0 0">Local: precio más común en las sucursales (base oficial SEPA), del ${esc(fechaDM(D.updated))}. Online: ${D.online_updated ? `leído el ${esc(fechaDM(D.online_updated))}, ` : ""}sin envío.</p>
       </div>
     </div>`;
   if (dr.hidden) { dr.hidden = false; sc.hidden = false; document.body.style.overflow = "hidden"; openProduct.back = document.activeElement; dr.scrollTop = 0; }
@@ -2962,7 +2962,9 @@ listaCompartida();
     const hoyAR = new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10), atraso = Math.round((new Date(hoyAR) - new Date(D.updated)) / 864e5);
     const viejas = D.stores.filter(st => st.viejo).map(st => st.name);
     const av = $("#avisodatos"), partes = [];
-    if (atraso >= 2) partes.push(`⚠️ <b>Los precios de sucursales son del ${fechaDM(D.updated)}</b>: la base oficial no publicó datos nuevos en ${atraso} días. Pueden haber cambiado.`);
+    // no se dice "la base no publicó": puede que sí publique y no la podamos descargar (ver docs/auditoria/DIAGNOSTICO_ALERTAS_SEPA.md)
+    const onl = D.online_updated && Math.round((new Date(hoyAR) - new Date(D.online_updated)) / 864e5) <= 1;
+    if (atraso >= 2) partes.push(`⚠️ <b>Los precios de sucursales son del ${fechaDM(D.updated)}</b>: hace ${atraso} días que no podemos actualizarlos desde la base oficial, así que pueden haber cambiado.${onl ? " Los precios online sí están al día." : ""}`);
     if (viejas.length) partes.push(`⚠️ ${viejas.length === 1 ? "La cadena" : "Las cadenas"} <b>${esc(viejas.join(", "))}</b> no ${viejas.length === 1 ? "informa" : "informan"} precios hace más de ${DIAS_VIEJO} días: ${viejas.length === 1 ? "la mostramos" : "las mostramos"} como «desactualizado» y no ${viejas.length === 1 ? "cuenta" : "cuentan"} para «el más barato».`);
     if (av && partes.length) { av.innerHTML = partes.join("<br>"); av.hidden = false; }
   }

@@ -105,7 +105,14 @@ function botFormas(q) {
   const n = nrm(q), f = Object.values(P.formas_pago).find(f => { const t = nrm(f.t); return (/modo/.test(n) && /modo/.test(t)) || (/nfc|contactless|celular/.test(n) && /nfc/.test(t)) || (/qr/.test(n) && /qr de la billetera/.test(t)); });
   return f ? `<b>${f.i} ${esc(f.t)}</b>: ${esc(f.d)}` : null;
 }
-async function botResponder(q) {
+// Si los precios de sucursal tienen días, toda respuesta con precios lo aclara (no se presentan como de hoy).
+function notaVigencia(r) {
+  if (!r || !/\$\s?\d/.test(r.replace(/<[^>]+>/g, ""))) return r;
+  const hoyAR = new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10), dias = Math.round((new Date(hoyAR) - new Date(D.updated)) / 864e5);
+  return dias >= 2 ? `${r}<div class="sub" style="margin-top:6px">ℹ️ Precios de sucursal del ${D.updated.split("-").reverse().slice(0, 2).join("/")} (hace ${dias} días): pueden haber cambiado.${D.online_updated === hoyAR ? " Los online son de hoy." : ""}</div>` : r;
+}
+async function botResponder(q) { return notaVigencia(await botResponder0(q)); }
+async function botResponder0(q) {
   const n = nrm(q).trim().replace(/[¿?¡!]/g, "");
   if (!n) return "";
   if (!D || !D.products) return "Todavía estoy cargando los precios. Probá de nuevo en unos segundos.";

@@ -258,6 +258,8 @@ def main():
         if info[ean_key(e)]["ean"] not in imgs:
             no[info[ean_key(e)]["ean"]] = hoy.isoformat()
     np_.write_text(json.dumps(no, separators=(",", ":")), encoding="utf-8")
+    from zoneinfo import ZoneInfo
+    snap["online_fecha"] = _dt.datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date().isoformat()   # cuándo se leyeron los precios online
     raw[-1].write_text(json.dumps(snap, ensure_ascii=False), encoding="utf-8")
     ip.write_text(json.dumps(imgs, separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(imgs)} fotos de productos guardadas")

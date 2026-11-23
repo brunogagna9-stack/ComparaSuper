@@ -9,7 +9,8 @@ const tamDudoso = L.filter(p => p.bq > 0 && (p.bu === "un" ? p.bq > 1000 : p.bq 
 const ofs = L.flatMap(p => p.offers), anom = ofs.filter(o => o.anom).length, sinPrecio = ofs.filter(o => !o.p && !o.po).length;
 const nom = new Map(); for (const p of L) { const k = (p.name + "|" + p.brand).toLowerCase(); nom.set(k, (nom.get(k) || 0) + 1); }
 const dup = [...nom.values()].filter(v => v > 1).reduce((a, v) => a + v, 0);
-const hoy = new Date(meta.updated), dias = s => s.fecha ? Math.round((hoy - new Date(s.fecha)) / 864e5) : null;
+const hoy = new Date(new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10)),   // hoy en Argentina (antes se medía contra la fecha de los datos y nunca daba atraso)
+   dias = s => s.fecha ? Math.round((hoy - new Date(s.fecha)) / 864e5) : null;
 const viejas = meta.stores.filter(s => dias(s) > 3);
 const unaSola = L.filter(p => p.offers.length === 1).length;
 console.log(JSON.stringify({ fecha_datos: meta.updated, productos: n, comercios: meta.stores.length, con_foto_pct: pct(conFoto), con_tamano_pct: pct(conTam),

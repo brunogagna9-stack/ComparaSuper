@@ -7,6 +7,7 @@ Salida:   site/data/products.json, site/data/history.json, site/data/promos.json
 
 Uso: python scripts/build_data.py
 """
+from zoneinfo import ZoneInfo
 import json, re, datetime as dt, unicodedata
 from collections import Counter
 from pathlib import Path
@@ -201,16 +202,26 @@ def load_raw():
     return [json.loads(f.read_text(encoding="utf-8")) for f in files]
 
 
-def update_history(hist, snap):
-    d = snap["date"]
-    if d in hist["dates"]:
-        idx = hist["dates"].index(d)
-    else:
-        hist["dates"].append(d); idx = len(hist["dates"]) - 1
+def update_history(hist, snap, hoy=None):
+    """Suma una lectura al historial. Los precios de sucursal (SEPA) van en la fecha de la base; los precios online
+    van en la fecha en que se leyeron (hoy). Así, si la base oficial no se pudo actualizar, los precios online de hoy
+    no quedan guardados con la fecha vieja de la base. Un día anterior al último guardado no se inserta en el medio."""
+    def col(d):
+        if d in hist["dates"]:
+            return hist["dates"].index(d)
+        if hist["dates"] and d < hist["dates"][-1]:
+            return None
+        hist["dates"].append(d)
+        return len(hist["dates"]) - 1
+    i_suc = col(snap["date"])
+    i_onl = col(max(hoy or snap["date"], snap["date"]))
     for it in snap["items"]:
+        idx, v = (i_suc, it.get("price")) if it.get("price") else (i_onl, it.get("price_online"))
+        if idx is None or not v:
+            continue
         ser = hist["series"].setdefault(it["ean"], {}).setdefault(it["store"], [])
         ser.extend([None] * (idx + 1 - len(ser)))
-        ser[idx] = it.get("price") or it.get("price_online")
+        ser[idx] = v
     # recorta a los últimos HIST_DAYS días
     cut = max(0, len(hist["dates"]) - HIST_DAYS)
     if cut:
@@ -532,13 +543,13 @@ def main():
     snaps = load_raw()
     if not snaps:
         raise SystemExit("No hay lecturas en data/raw/. Corré sepa_fetch.py (datos reales) o make_demo.py (ejemplo).")
+    hoy = dt.datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date().isoformat()   # fecha de hoy en Argentina
     for s in snaps:
-        if not hist["dates"] or s["date"] >= hist["dates"][-1]:
-            update_history(hist, s)
+        update_history(hist, s, hoy if s is snaps[-1] and s.get("online_fecha") == hoy else None)
     last = snaps[-1]
     products = build(last, hist, stores, min_offers=1 if last.get("source") == "demo" else MIN_OFERTAS)
     OUT.mkdir(parents=True, exist_ok=True)
-    meta = {"imghosts": IMGHOSTS, "updated": last["date"], "source": last.get("source", "sepa"), "region": last.get("region", ""),
+    meta = {"imghosts": IMGHOSTS, "updated": last["date"], "online_updated": last.get("online_fecha"), "source": last.get("source", "sepa"), "region": last.get("region", ""),
             "demo": last.get("source") == "demo",
             "stores": [{k: s.get(k) for k in ("id", "name", "tipo", "color", "sigla", "web", "buscar", "nota", "promos_url")} | {"online": public_online(s.get("online"))}
                        | {"fecha": (last.get("fechas") or {}).get(s["id"], last["date"])}   # de cuándo son sus precios de sucursal
@@ -565,7 +576,7 @@ def main():
     suc = ROOT / "data" / "sucursales.json"   # ubicación de las sucursales, para "comercios cerca de mí"
     if suc.exists():
         (OUT / "sucursales.json").write_text(suc.read_text(encoding="utf-8"), encoding="utf-8")
-    (OUT / "promos.json").write_text(json.dumps({k: promos.get(k) for k in ("tipos", "formas_pago", "medios", "relevado")} | {"promos": active_promos(promos, dt.date.fromisoformat(last["date"]))},
+    (OUT / "promos.json").write_text(json.dumps({k: promos.get(k) for k in ("tipos", "formas_pago", "medios", "relevado")} | {"promos": active_promos(promos, dt.date.fromisoformat(hoy))},
                                                 ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     hp.write_text(json.dumps(hist_comprimir(hist), separators=(",", ":")), encoding="utf-8")
     print(f"OK: {len(products)} productos, {len(hist['dates'])} días de historial, lectura del {last['date']}")
