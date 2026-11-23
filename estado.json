@@ -3,15 +3,16 @@
   "CONSULTA_bloqueado": {
    "id": "CONSULTA_bloqueado-2026-11-16",
    "desde": "2026-11-16T17:55:30+00:00",
-   "corridas": 9,
-   "avisado": null,
-   "nivel": null,
+   "corridas": 10,
+   "avisado": "2026-11-23T00:33:00+00:00",
+   "nivel": "crítico",
    "proceso": "precios",
-   "detalle": "HTTP 403 Forbidden (firewall BunkerWeb del portal); registrado desde el 16/11 en el diagnóstico"
+   "detalle": "HTTP 403 Forbidden (firewall BunkerWeb del portal) (tras 2 intento(s); etapa: lista de archivos).",
+   "ultima": "2026-11-23T00:33:00+00:00"
   }
  },
  "ultima_corrida": {
-  "precios": "2026-11-22T22:20:17+00:00",
+  "precios": "2026-11-23T00:33:00+00:00",
   "provincias": "2026-11-22T23:41:23+00:00"
  },
  "ultima_importacion": {
@@ -30,7 +31,37 @@
    "notas": [
     "estado inicial cargado a mano: 9 corridas con HTTP 403 desde el 16/11 (ver docs/auditoria/DIAGNOSTICO_ALERTAS_SEPA.md)"
    ]
+  },
+  {
+   "cuando": "2026-11-23T00:33:00+00:00",
+   "proceso": "precios",
+   "estados": [
+    "ERROR_DE_CONSULTA",
+    "DATOS_DESACTUALIZADOS"
+   ],
+   "resultado": "error_consulta",
+   "consulta": "HTTP 403 Forbidden (firewall BunkerWeb del portal)",
+   "precios": null,
+   "fecha_base": "2026-11-15",
+   "pasos": {
+    "pruebas": "success",
+    "online": "success",
+    "fotos": "success",
+    "armar": "success",
+    "control": "success",
+    "guardar": "success"
+   },
+   "correos": [
+    "SuperBarato — [Crítico] El portal oficial rechaza la conexión de nuestro servidor"
+   ],
+   "notas": []
   }
  ],
- "correos": []
+ "correos": [
+  {
+   "cuando": "2026-11-23T00:33:00+00:00",
+   "asunto": "SuperBarato — [Crítico] El portal oficial rechaza la conexión de nuestro servidor",
+   "enviado": true
+  }
+ ]
 }
