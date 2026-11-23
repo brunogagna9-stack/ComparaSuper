@@ -138,9 +138,12 @@ def test_historial_base_vieja_online_hoy():
     assert hist["dates"] == ["2026-11-14", "2026-11-15", "2026-11-22"], hist["dates"]
     assert hist["series"]["1"]["coto"][1] == 100 and len(hist["series"]["1"]["coto"]) == 2   # sucursal: solo su fecha
     assert hist["series"]["1"]["dia"] == [None, 90, 95]                                          # online: cada día el suyo
-    old = {"date": "2026-11-10", "items": [{"ean": "1", "store": "coto", "price": 1}]}
-    bd.update_history(hist, old)   # una lectura vieja no se inserta en el medio
-    assert hist["dates"][-1] == "2026-11-22" and "2026-11-10" not in hist["dates"]
+    manual = {"date": "2026-11-20", "items": [{"ean": "1", "store": "coto", "price": 110}]}
+    bd.update_history(hist, manual)   # carga manual de un día anterior: va en su lugar, sin correr los demás
+    assert hist["dates"] == ["2026-11-14", "2026-11-15", "2026-11-20", "2026-11-22"], hist["dates"]
+    assert hist["series"]["1"]["coto"] == [None, 100, 110] and hist["series"]["1"]["dia"] == [None, 90, None, 95]
+    bd.update_history(hist, {"date": "2026-11-01", "items": [{"ean": "1", "store": "coto", "price": 1}]})   # anterior a todo: no
+    assert "2026-11-01" not in hist["dates"]
 
 
 # escenarios del monitoreo de la actualización (tests/test_monitor.py)

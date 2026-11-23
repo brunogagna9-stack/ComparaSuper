@@ -205,14 +205,19 @@ def load_raw():
 def update_history(hist, snap, hoy=None):
     """Suma una lectura al historial. Los precios de sucursal (SEPA) van en la fecha de la base; los precios online
     van en la fecha en que se leyeron (hoy). Así, si la base oficial no se pudo actualizar, los precios online de hoy
-    no quedan guardados con la fecha vieja de la base. Un día anterior al último guardado no se inserta en el medio."""
+    no quedan guardados con la fecha vieja de la base. Un día anterior al último guardado (carga manual) se inserta en su lugar."""
     def col(d):
         if d in hist["dates"]:
             return hist["dates"].index(d)
-        if hist["dates"] and d < hist["dates"][-1]:
-            return None
-        hist["dates"].append(d)
-        return len(hist["dates"]) - 1
+        if hist["dates"] and d < hist["dates"][0]:
+            return None   # más viejo que todo el historial: no se agrega
+        pos = sum(1 for x in hist["dates"] if x < d)   # una carga manual de un día anterior va en su lugar
+        hist["dates"].insert(pos, d)
+        for e in hist["series"].values():
+            for l in e.values():
+                if len(l) > pos:
+                    l.insert(pos, None)
+        return pos
     i_suc = col(snap["date"])
     i_onl = col(max(hoy or snap["date"], snap["date"]))
     for it in snap["items"]:

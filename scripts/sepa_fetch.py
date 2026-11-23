@@ -320,7 +320,26 @@ def main():
     items, seen, date = [], set(), dt.date.today().isoformat()
     fechas = {}   # cadena -> fecha del archivo del que salieron sus precios (puede ser de días anteriores si ese día no informó)
     if len(sys.argv) > 1:
-        items = summarize(Path(sys.argv[1]), stores, seen=seen)
+        # carga manual de un archivo descargado a mano (python scripts/sepa_fetch.py sepa_viernes.zip)
+        zp = Path(sys.argv[1])
+        items = summarize(zp, stores, seen=seen)
+        with zipfile.ZipFile(zp) as z:   # la fecha sale de la carpeta del archivo ("2026-11-20/..."), no del día en que se carga
+            fz = sorted({n[:10] for n in z.namelist() if len(n) >= 10 and n[4] == "-" and n[7] == "-" and n[:4].isdigit()})
+        date = fz[-1] if fz else date
+        for st_id in {i["store"] for i in items}:
+            fechas[st_id] = date
+        # las cadenas que no vienen en este archivo (p. ej. los mayoristas, que están en otra base) se conservan de la
+        # lectura anterior, con SU fecha: la web muestra de cuándo es cada una
+        raw_ant = [r for r in sorted((ROOT / "data" / "raw").glob("sepa-*.json")) if r.stem[5:] < date]
+        if raw_ant:
+            ant = json.loads(raw_ant[-1].read_text(encoding="utf-8"))
+            tengo = {i["store"] for i in items}
+            ONLINE = ("price_online", "url", "promo_online", "sku", "seller")
+            viejos = [{k: v for k, v in i.items() if k not in ONLINE} for i in ant["items"] if i["store"] not in tengo and i.get("price")]
+            for i in viejos:
+                fechas.setdefault(i["store"], (ant.get("fechas") or {}).get(i["store"], ant["date"]))
+            items += viejos
+            print(f"Se conservan {len(viejos)} precios de {sorted({i['store'] for i in viejos})} de la lectura del {ant['date']}")
     else:
         for dataset, required, base in DATASETS:
             wanted = {st["id"] for st in stores if st["sepa_banderas"] and st.get("sepa_base", "minoristas") == base}
