@@ -142,6 +142,13 @@ def test_historial_base_vieja_online_hoy():
     bd.update_history(hist, manual)   # carga manual de un día anterior: va en su lugar, sin correr los demás
     assert hist["dates"] == ["2026-11-14", "2026-11-15", "2026-11-20", "2026-11-22"], hist["dates"]
     assert hist["series"]["1"]["coto"] == [None, 100, 110] and hist["series"]["1"]["dia"] == [None, 90, None, 95]
+    # cada cadena va en la fecha de SUS precios (mayoristas cargados aparte, con otra fecha)
+    mix = {"date": "2026-11-20", "fechas": {"coto": "2026-11-20", "makro": "2026-11-21"},
+           "items": [{"ean": "1", "store": "coto", "price": 111}, {"ean": "1", "store": "makro", "price": 80}]}
+    bd.update_history(hist, mix)
+    assert hist["dates"] == ["2026-11-14", "2026-11-15", "2026-11-20", "2026-11-21", "2026-11-22"], hist["dates"]
+    assert hist["series"]["1"]["coto"] == [None, 100, 111] and hist["series"]["1"]["makro"] == [None, None, None, 80]
+    assert hist["series"]["1"]["dia"] == [None, 90, None, None, 95]
     bd.update_history(hist, {"date": "2026-11-01", "items": [{"ean": "1", "store": "coto", "price": 1}]})   # anterior a todo: no
     assert "2026-11-01" not in hist["dates"]
 

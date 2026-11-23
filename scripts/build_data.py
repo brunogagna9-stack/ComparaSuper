@@ -220,8 +220,16 @@ def update_history(hist, snap, hoy=None):
         return pos
     i_suc = col(snap["date"])
     i_onl = col(max(hoy or snap["date"], snap["date"]))
+    fechas = snap.get("fechas") or {}
+    for d in sorted(set(fechas.values())):   # cadenas con otra fecha (cargas manuales, mayoristas)
+        col(d)
+    # las inserciones pueden correr los índices: se calculan todos al final
+    cols = {d: hist["dates"].index(d) for d in {snap["date"], *fechas.values()} if d in hist["dates"]}
+    if i_onl is not None:
+        i_onl = hist["dates"].index(max(hoy or snap["date"], snap["date"]))
     for it in snap["items"]:
-        idx, v = (i_suc, it.get("price")) if it.get("price") else (i_onl, it.get("price_online"))
+        isuc = cols.get(fechas.get(it["store"], snap["date"]))
+        idx, v = (isuc, it.get("price")) if it.get("price") else (i_onl, it.get("price_online"))
         if idx is None or not v:
             continue
         ser = hist["series"].setdefault(it["ean"], {}).setdefault(it["store"], [])

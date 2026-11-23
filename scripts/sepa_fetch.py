@@ -328,12 +328,25 @@ def main():
         date = fz[-1] if fz else date
         for st_id in {i["store"] for i in items}:
             fechas[st_id] = date
-        # las cadenas que no vienen en este archivo (p. ej. los mayoristas, que están en otra base) se conservan de la
-        # lectura anterior, con SU fecha: la web muestra de cuándo es cada una
-        raw_ant = [r for r in sorted((ROOT / "data" / "raw").glob("sepa-*.json")) if r.stem[5:] < date]
+        tengo = {i["store"] for i in items}
+        mayor = {st["id"] for st in stores if st.get("sepa_base") == "mayoristas"}
+        todas = sorted((ROOT / "data" / "raw").glob("sepa-*.json"))
+        if tengo and tengo <= mayor and todas:
+            # archivo de la base de MAYORISTAS: se suma a la última lectura (que sigue siendo la de los supermercados,
+            # con su fecha); cada mayorista queda con la fecha de este archivo
+            ult = json.loads(todas[-1].read_text(encoding="utf-8"))
+            sacar = len([i for i in ult["items"] if i["store"] in tengo])
+            items = [i for i in ult["items"] if i["store"] not in tengo] + items
+            fechas = {**(ult.get("fechas") or {}), **{s_: date for s_ in tengo}}
+            print(f"Base mayorista del {date}: reemplaza {sacar} precios de {sorted(tengo)} en la lectura del {ult['date']}")
+            date = ult["date"]
+            raw_ant = []
+        else:
+            # las cadenas que no vienen en este archivo (p. ej. los mayoristas, que están en otra base) se conservan de la
+            # lectura anterior, con SU fecha: la web muestra de cuándo es cada una
+            raw_ant = [r for r in todas if r.stem[5:] < date]
         if raw_ant:
             ant = json.loads(raw_ant[-1].read_text(encoding="utf-8"))
-            tengo = {i["store"] for i in items}
             ONLINE = ("price_online", "url", "promo_online", "sku", "seller")
             viejos = [{k: v for k, v in i.items() if k not in ONLINE} for i in ant["items"] if i["store"] not in tengo and i.get("price")]
             for i in viejos:
