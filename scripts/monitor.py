@@ -52,7 +52,7 @@ TIPOS_CONSULTA = {
     "bloqueado": ("El portal oficial rechaza la conexión de nuestro servidor",
                   "El portal SEPA está en línea, pero su firewall bloquea los pedidos que vienen de servidores (HTTP 403). "
                   "No es una caída de la fuente ni un error de SuperBarato.",
-                  "Pedir al portal que habilite el acceso automático de SuperBarato (ver docs/PENDIENTES.md). "
+                  "Pedir al portal que habilite el acceso automático de SuperBarato (ver docs/auditoria/2026-11-22/PENDIENTES.md). "
                   "Mientras tanto, la web sigue con los precios online al día y avisa de qué fecha son los de sucursal."),
     "sin_respuesta": ("El portal oficial no responde",
                       "Los pedidos al portal SEPA se quedaron sin respuesta (tiempo agotado o conexión cortada), aun con reintentos.",

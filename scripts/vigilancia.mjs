@@ -46,7 +46,7 @@ try {
   const { r } = await get("https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios");
   const waf = r.status === 403 && /BunkerWeb/.test(await r.text());
   (r.ok ? ok : avisos).push(r.ok ? `Portal oficial de precios (SEPA): responde (HTTP ${r.status})`
-    : waf ? "Portal oficial de precios (SEPA): en línea, pero su firewall rechaza a los servidores (HTTP 403). No es una caída; ver docs/PENDIENTES.md"
+    : waf ? "Portal oficial de precios (SEPA): en línea, pero su firewall rechaza a los servidores (HTTP 403). No es una caída; ver docs/auditoria/2026-11-22/PENDIENTES.md"
     : `Portal oficial de precios (SEPA): HTTP ${r.status}`);
 } catch (e) { avisos.push(`Portal oficial de precios (SEPA) no responde: ${e.message}`); }
 

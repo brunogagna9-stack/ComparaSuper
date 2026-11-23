@@ -2962,7 +2962,7 @@ listaCompartida();
     const hoyAR = new Date(Date.now() - 3 * 36e5).toISOString().slice(0, 10), atraso = Math.round((new Date(hoyAR) - new Date(D.updated)) / 864e5);
     const viejas = D.stores.filter(st => st.viejo).map(st => st.name);
     const av = $("#avisodatos"), partes = [];
-    // no se dice "la base no publicó": puede que sí publique y no la podamos descargar (ver docs/auditoria/DIAGNOSTICO_ALERTAS_SEPA.md)
+    // no se dice "la base no publicó": puede que sí publique y no la podamos descargar (ver docs/auditoria/2026-11-22/DIAGNOSTICO_ALERTAS_SEPA.md)
     const onl = D.online_updated && Math.round((new Date(hoyAR) - new Date(D.online_updated)) / 864e5) <= 1;
     if (atraso >= 2) partes.push(`⚠️ <b>Los precios de sucursales son del ${fechaDM(D.updated)}</b>: hace ${atraso} días que no podemos actualizarlos desde la base oficial, así que pueden haber cambiado.${onl ? " Los precios online sí están al día." : ""}`);
     if (viejas.length) partes.push(`⚠️ ${viejas.length === 1 ? "La cadena" : "Las cadenas"} <b>${esc(viejas.join(", "))}</b> no ${viejas.length === 1 ? "informa" : "informan"} precios hace más de ${DIAS_VIEJO} días: ${viejas.length === 1 ? "la mostramos" : "las mostramos"} como «desactualizado» y no ${viejas.length === 1 ? "cuenta" : "cuentan"} para «el más barato».`);
