@@ -3,17 +3,17 @@
   "CONSULTA_bloqueado": {
    "id": "CONSULTA_bloqueado-2026-11-16",
    "desde": "2026-11-16T17:55:30+00:00",
-   "corridas": 10,
+   "corridas": 11,
    "avisado": "2026-11-23T00:33:00+00:00",
    "nivel": "crítico",
-   "proceso": "precios",
+   "proceso": "provincias",
    "detalle": "HTTP 403 Forbidden (firewall BunkerWeb del portal) (tras 2 intento(s); etapa: lista de archivos).",
-   "ultima": "2026-11-23T00:33:00+00:00"
+   "ultima": "2026-11-23T00:48:04+00:00"
   }
  },
  "ultima_corrida": {
   "precios": "2026-11-23T00:33:00+00:00",
-  "provincias": "2026-11-22T23:41:23+00:00"
+  "provincias": "2026-11-23T00:48:04+00:00"
  },
  "ultima_importacion": {
   "precios": {
@@ -55,6 +55,27 @@
     "SuperBarato — [Crítico] El portal oficial rechaza la conexión de nuestro servidor"
    ],
    "notas": []
+  },
+  {
+   "cuando": "2026-11-23T00:48:04+00:00",
+   "proceso": "provincias",
+   "estados": [
+    "ERROR_DE_CONSULTA"
+   ],
+   "resultado": "error_consulta",
+   "consulta": "HTTP 403 Forbidden (firewall BunkerWeb del portal)",
+   "precios": null,
+   "fecha_base": null,
+   "pasos": {
+    "armar_prov": "skipped",
+    "modo": "skipped",
+    "promos_prov": "skipped",
+    "guardar_prov": "skipped"
+   },
+   "correos": [],
+   "notas": [
+    "sin correo: CONSULTA_bloqueado ya avisado el 22/11/2026 21:33"
+   ]
   }
  ],
  "correos": [
