@@ -1,0 +1,23 @@
+name: Diagnóstico SEPA (temporal)
+on: { push: { branches: [diag-sepa] } }
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s https://api.ipify.org; echo
+          for u in \
+            "https://datos.produccion.gob.ar/api/3/action/package_show?id=sepa-precios" \
+            "https://datos.produccion.gob.ar/dataset/sepa-precios" \
+            "https://datos.produccion.gob.ar/" \
+            "https://datos.gob.ar/api/3/action/package_show?id=produccion-sepa-precios" \
+            "https://datos.gob.ar/dataset/produccion-sepa-precios" \
+            "https://www.preciosclaros.gob.ar/" ; do
+            for ua in "SuperBarato/0.1 (comparador independiente de precios)" "Mozilla/5.0"; do
+              code=$(curl -s -o /tmp/r -w '%{http_code} %{time_total}s %{redirect_url}' -A "$ua" --max-time 60 "$u")
+              waf=$(grep -o -m1 'BunkerWeb' /tmp/r || true)
+              echo "$code | $waf | UA=${ua:0:12} | $u"
+            done
+          done
+          echo "--- datos.gob.ar resources:"
+          curl -s --max-time 60 "https://datos.gob.ar/api/3/action/package_show?id=produccion-sepa-precios" | python3 -c "import json,sys; d=json.load(sys.stdin)['result']; print('metadata_modified',d.get('metadata_modified')); [print(r.get('name'),r.get('last_modified') or r.get('created'),r.get('url')) for r in d['resources'][:10]]" || true
