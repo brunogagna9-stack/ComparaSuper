@@ -8,7 +8,11 @@ test.beforeEach(async ({ page }) => {
     for (const [k, v] of Object.entries({ cs_prov: "AR-C", cs_tour: 1, cs_wiz: 1, cs_bienvenida: 1 })) localStorage.setItem(k, JSON.stringify(v));
   });
 });
-const listo = page => page.waitForFunction(() => typeof READY !== "undefined" && READY, null, { timeout: 45000 });
+// además del "style" de las capturas, se oculta en la página misma: el aviso cambia de largo según la fecha y corría todo
+const listo = async page => {
+  await page.waitForFunction(() => typeof READY !== "undefined" && READY, null, { timeout: 45000 });
+  await page.addStyleTag({ content: "#avisodatos{display:none!important}" });
+};
 // el aviso de "precios de hace N días" depende de la fecha de los datos: se oculta para que no corra la página
 const opciones = page => ({ animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.01, style: "#avisodatos{display:none!important}",
   mask: [page.locator("#fupd"), page.locator(".anuncio"), page.locator("#pbtn .cnt"), page.locator(".fabs")] });
