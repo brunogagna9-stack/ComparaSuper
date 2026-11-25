@@ -213,3 +213,22 @@ test("asistente: entiende preguntas naturales, usa la ficha abierta y no inventa
   expect(await pregunta("¿cuánto ahorro comprando acá?")).not.toContain("carrito");
   expect(await pregunta("¿hay algo parecido más barato?")).toMatch(/Parecidos a|No encontré productos parecidos/);
 });
+
+test("micrófono: escribir mientras escucha lo corta y el botón no queda trabado (falla de Android)", async ({ page }) => {
+  // reconocimiento de voz falso que, como en Android, nunca avisa que terminó
+  await page.addInitScript(() => {
+    window.__recs = [];
+    window.SpeechRecognition = window.webkitSpeechRecognition = class { constructor() { window.__recs.push(this); this.abortado = false; } start() {} stop() {} abort() { this.abortado = true; } };
+  });
+  await page.goto("#inicio"); await listo(page);
+  const mic = page.locator("#qmic");
+  await mic.click();
+  await expect(mic).toHaveClass(/\bon\b/);
+  await page.locator("#q").click(); await page.keyboard.type("yerba");
+  await expect(mic).not.toHaveClass(/\bon\b/);                               // al escribir se apaga
+  expect(await page.evaluate("window.__recs[0].abortado")).toBe(true);
+  await expect(page.locator("#q")).toHaveValue("yerba");                       // y no le pisa lo escrito
+  await mic.click(); await expect(mic).toHaveClass(/\bon\b/);                  // se puede volver a usar
+  await mic.click(); await expect(mic).not.toHaveClass(/\bon\b/);              // y tocarlo de nuevo siempre lo destraba
+  expect(await page.evaluate("window.__recs.length")).toBe(2);
+});

@@ -125,7 +125,8 @@ const Cuenta = (() => {
             <label class="fl">Contraseña<input type="password" id="cpass" required minlength="8" autocomplete="${crear ? "new-password" : "current-password"}" placeholder="${crear ? "Al menos 8 caracteres" : ""}"></label>
             ${crear ? `<fieldset><legend>Quiero recibir por correo <span class="sub">(opcional, lo podés cambiar cuando quieras)</span></legend>
               <label class="ck"><input type="checkbox" id="csem" ${op.semanal ? "checked" : ""}> Las ofertas de la semana (los lunes)</label>
-              <label class="ck"><input type="checkbox" id="cbaj" ${op.bajas ? "checked" : ""}> Un aviso cuando baja un producto que marqué con la 🔔</label></fieldset>` : ""}
+              <label class="ck"><input type="checkbox" id="cbaj" ${op.bajas ? "checked" : ""}> Un aviso cuando baja un producto que marqué con la 🔔</label>
+              <label class="ck"><input type="checkbox" id="cpro" ${op.promos ? "checked" : ""}> Las promociones bancarias del día (cada mañana)</label></fieldset>` : ""}
             <label class="ck"><input type="checkbox" id="cok"> Acepto los <a href="#legal" data-close>términos de uso</a> y la <a href="#legal-privacidad" data-close>política de privacidad</a>.</label>
             <div class="ferr" id="cerr" role="alert"></div>
             <div class="mfoot">${crear ? `<button type="button" class="linkbtn" id="cmodo">Ya tengo cuenta</button>` : `<button type="button" class="linkbtn" id="colv">Olvidé mi contraseña</button>`}
@@ -134,9 +135,9 @@ const Cuenta = (() => {
             <p class="sub recap">Protegido por reCAPTCHA de Google: se aplican su <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Política de privacidad</a> y sus <a href="https://policies.google.com/terms" target="_blank" rel="noopener">Condiciones</a>.</p>
           </form>`);
         const err = $("#cerr"), acepto = () => { if ($("#cok").checked) return true; err.textContent = "Para seguir tenés que aceptar los términos y la política de privacidad."; return false; };
-        const prefs = () => (crear ? { semanal: $("#csem").checked, bajas: $("#cbaj").checked } : null);
+        const prefs = () => (crear ? { semanal: $("#csem").checked, bajas: $("#cbaj").checked, promos: $("#cpro").checked } : null);
         const fin = async (u, nueva) => {
-          if (nueva || !doc || doc.acepto == null) { const p = prefs() || {}; await guardar({ email: u.email || "", semanal: !!p.semanal || !!(doc && doc.semanal), bajas: !!p.bajas || !!(doc && doc.bajas), zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
+          if (nueva || !doc || doc.acepto == null) { const p = prefs() || {}; await guardar({ email: u.email || "", semanal: !!p.semanal || !!(doc && doc.semanal), bajas: !!p.bajas || !!(doc && doc.bajas), promos: !!p.promos || !!(doc && doc.promos), medios: (doc && doc.medios) || LS.get("cs_medios", null) || [], zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
           closeModal(); listo(u);
           toast(nueva && !u.emailVerified ? "Cuenta creada. Te mandamos un correo para confirmarla." : "¡Listo! Ya ingresaste");
         };
@@ -204,7 +205,7 @@ const Cuenta = (() => {
     if (!cfg()) return;
     if (LS.get("cs_sesion", false) || /#cuenta/.test(location.hash)) cargar().then(async () => {
       const pend = LS.get("cs_login_pend", null);   // volvió de iniciar sesión con Google por redirección
-      if (pend && user) { localStorage.removeItem("cs_login_pend"); if (!doc || doc.acepto == null) await guardar({ email: user.email || "", semanal: !!pend.semanal, bajas: !!pend.bajas, zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
+      if (pend && user) { localStorage.removeItem("cs_login_pend"); if (!doc || doc.acepto == null) await guardar({ email: user.email || "", semanal: !!pend.semanal, bajas: !!pend.bajas, promos: !!pend.promos, medios: LS.get("cs_medios", null) || [], zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
     }).catch(() => {});
   }
 

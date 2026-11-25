@@ -2064,8 +2064,8 @@ function modalMedios() {
   openModal(`<h2>💳 Mis medios de pago</h2><p class="sub">Marcá los bancos, billeteras, tarjetas y clubes que tenés. Calculamos los precios finales solo con esos descuentos. Se guarda en este navegador, no se manda a ningún lado.</p>
     ${groups.map(([k, v, ms]) => `<h4 class="mg">${esc(v)}</h4><div class="mgrid">${ms.map(m => `<label class="mopt"><input type="checkbox" value="${m.id}" ${sel.has(m.id) ? "checked" : ""}>${medioBadge(m)}<span>${esc(m.name)}<small>${promosDe(m.id).length} beneficios</small></span></label>`).join("")}</div>`).join("")}
     <div class="mfoot"><button class="btn sec sm" id="mall">Ver todos (no filtrar)</button><button class="btn" id="msave">Guardar</button></div>`);
-  $("#msave").onclick = () => { const v = $$("#modal input:checked").map(i => i.value); MEDIOS = v.length ? v : null; LS.set("cs_medios", MEDIOS); afterMedios(); };
-  $("#mall").onclick = () => { MEDIOS = null; LS.set("cs_medios", null); afterMedios(); };
+  $("#msave").onclick = () => { const v = $$("#modal input:checked").map(i => i.value); MEDIOS = v.length ? v : null; LS.set("cs_medios", MEDIOS); medioCuenta(); afterMedios(); };
+  $("#mall").onclick = () => { MEDIOS = null; LS.set("cs_medios", null); medioCuenta(); afterMedios(); };
 }
 function afterMedios() { closeModal(); $("#mdot").hidden = !MEDIOS; toast(MEDIOS ? `Listo: ${MEDIOS.length} medios de pago` : "Mostrando todos los descuentos"); const id = location.hash.startsWith("#p-") && location.hash.slice(3); route(); if (id) openProduct(id); }
 function avisoBajas() {
@@ -2110,6 +2110,7 @@ function vCuenta() {
     <h2>📬 Qué querés recibir por correo</h2>
     <label class="sw"><input type="checkbox" id="cu-sem" ${d.semanal ? "checked" : ""}><span><b>Ofertas de la semana</b><br><span class="sub">Los lunes: lo que bajó, las mejores promos y qué banco o billetera conviene cada día.</span></span></label>
     <label class="sw"><input type="checkbox" id="cu-baj" ${d.bajas ? "checked" : ""}><span><b>Avisos de baja de precio</b><br><span class="sub">Un correo cuando baja un producto que marcaste con la 🔔 (como máximo uno por día).</span></span></label>
+    <label class="sw"><input type="checkbox" id="cu-pro" ${d.promos ? "checked" : ""}><span><b>Promociones bancarias del día</b><br><span class="sub">Cada mañana: los descuentos de hoy en los súper de tu zona, ${MEDIOS ? `con <b>tus ${MEDIOS.length} medios de pago</b>` : "de todos los bancos y billeteras"}. <a href="#" data-medios>${MEDIOS ? "Cambiar mis medios" : "Elegir mis medios"}</a></span></span></label>
     <p class="sub" id="cu-est" role="status"></p>
     <h2>🔔 Productos que seguís${enAMBA() ? "" : ` en ${esc(provNombre(PROV))}`}</h2>
     ${ids.length ? `<p>${ids.length} producto${ids.length > 1 ? "s" : ""}${bajaron.length ? ` · <b class="okc">${bajaron.length} bajaron</b>` : ""}. <button class="linkbtn" id="cu-av">Ver la lista</button></p>`
@@ -2119,8 +2120,8 @@ function vCuenta() {
     <p class="sub">Si borrás la cuenta, eliminamos tu correo, tus preferencias y tus productos marcados. Más detalles en la <a href="#legal-privacidad">política de privacidad</a>.</p>
   </section></div>`;
   const est = $("#cu-est");
-  const pref = async () => { est.textContent = "Guardando…"; try { await Cuenta.guardar({ semanal: $("#cu-sem").checked, bajas: $("#cu-baj").checked, zona: Cuenta.zona() }); toast("✅ Guardado"); } catch { est.textContent = "No se pudo guardar. Revisá tu conexión y probá de nuevo."; } };
-  $("#cu-sem").onchange = pref; $("#cu-baj").onchange = pref;
+  const pref = async () => { est.textContent = "Guardando…"; try { await Cuenta.guardar({ semanal: $("#cu-sem").checked, bajas: $("#cu-baj").checked, promos: $("#cu-pro").checked, medios: MEDIOS || [], zona: Cuenta.zona() }); est.textContent = ""; toast("✅ Guardado"); } catch { est.textContent = "No se pudo guardar. Revisá tu conexión y probá de nuevo."; } };
+  $("#cu-sem").onchange = pref; $("#cu-baj").onchange = pref; $("#cu-pro").onchange = pref;
   if ($("#cu-av")) $("#cu-av").onclick = modalAvisos;
   if ($("#cu-reenv")) $("#cu-reenv").onclick = () => Cuenta.reenviar().catch(() => toast("Esperá un momento antes de pedirlo de nuevo"));
   if ($("#cu-ya")) $("#cu-ya").onclick = async () => { await Cuenta.recargar().catch(() => {}); if (!Cuenta.user.emailVerified) toast("Todavía no figura confirmado. Abrí el enlace del correo y probá de nuevo.", 4000); };
@@ -2131,11 +2132,16 @@ function vCuenta() {
     $("#cu-sib").onclick = async () => { try { if (await Cuenta.borrar()) { closeModal(); location.hash = "#inicio"; } } catch { toast("No se pudo borrar. Probá de nuevo en un momento."); } };
   };
 }
-/* baja con un clic desde un correo (#baja?u=<cuenta>&t=<clave>&q=semanal|bajas|todo): no hace falta iniciar sesión */
+/* los medios de pago elegidos viajan a la cuenta, para que el correo de promos del día muestre solo los tuyos */
+function medioCuenta() {
+  if (Cuenta.user && Cuenta.doc) Cuenta.guardar({ medios: MEDIOS || [] }).catch(() => {});
+  if (location.hash.startsWith("#cuenta") && Cuenta.user) setTimeout(vCuenta, 0);   // el texto del interruptor dice cuántos medios
+}
+/* baja con un clic desde un correo (#baja?u=<cuenta>&t=<clave>&q=semanal|bajas|promos|todo): no hace falta iniciar sesión */
 async function vBaja(qs) {
   setTab("cuenta");
   const q = new URLSearchParams(qs), uid = q.get("u") || "", tok = q.get("t") || "", que = q.get("q") || "todo";
-  const nombre = { semanal: "las ofertas de la semana", bajas: "los avisos de baja de precio", todo: "ningún correo" }[que] || "estos correos";
+  const nombre = { semanal: "las ofertas de la semana", bajas: "los avisos de baja de precio", promos: "las promociones bancarias del día", todo: "ningún correo" }[que] || "estos correos";
   const pinta = (h) => { $("#view").innerHTML = `<div class="wrap"><section class="blk first cuenta"><h1>📭 Dejar de recibir correos</h1>${h}</section></div>`; };
   const fb = (CFG && CFG.firebase) || (await fetch("config.json").then(r => r.json()).catch(() => ({}))).firebase;
   if (vBaja.hecho === qs) return; vBaja.hecho = qs;
@@ -2144,6 +2150,7 @@ async function vBaja(qs) {
   const campos = { bajaUsado: { stringValue: tok } };
   if (que === "semanal" || que === "todo") campos.semanal = { booleanValue: false };
   if (que === "bajas" || que === "todo") campos.bajas = { booleanValue: false };
+  if (que === "promos" || que === "todo") campos.promos = { booleanValue: false };
   const url = `https://firestore.googleapis.com/v1/projects/${fb.projectId}/databases/(default)/documents/usuarios/${uid}?` + Object.keys(campos).map(k => "updateMask.fieldPaths=" + k).join("&") + "&currentDocument.exists=true";
   try {
     if (!CFG.firebase) CFG = { ...CFG, firebase: fb };
@@ -2609,7 +2616,7 @@ async function wizard(paso) {
     openModal(`${head(1)}<h2>1. ¿Con qué pagás?</h2><p class="sub">Marcá tus bancos, billeteras, tarjetas y clubes. Te mostramos los precios con <b>tus</b> descuentos. Si no sabés, seguí sin marcar nada.</p>
       ${grupos.map(([t, ms]) => `<h4 class="mg">${esc(t)}</h4><div class="wchips">${ms.map(m => `<label class="wchip"><input type="checkbox" value="${m.id}" ${sel.has(m.id) ? "checked" : ""}>${medioBadge(m)}<span>${esc(m.name)}</span></label>`).join("")}</div>`).join("")}
       <div class="mfoot"><button class="btn sec sm" data-close>Salir</button><button class="btn" id="wnext">Siguiente →</button></div>`);
-    $("#wnext").onclick = () => { const v = $$("#modal input:checked").map(i => i.value); MEDIOS = v.length ? v : null; LS.set("cs_medios", MEDIOS); $("#mdot").hidden = !MEDIOS; wizard(2); };
+    $("#wnext").onclick = () => { const v = $$("#modal input:checked").map(i => i.value); MEDIOS = v.length ? v : null; LS.set("cs_medios", MEDIOS); medioCuenta(); $("#mdot").hidden = !MEDIOS; wizard(2); };
   } else if (paso === 2) {
     const Z = await zonasProv(), { nombres } = Z;
     openModal(`${head(2)}<h2>2. ¿Por dónde comprás?</h2><p class="sub">Así te mostramos primero los comercios que tenés cerca. Queda guardado solo en este navegador.</p>
@@ -2860,16 +2867,35 @@ function vComparar() {
   if (!SR || !f) return;
   f.classList.add("conmic");
   f.insertAdjacentHTML("beforeend", `<button class="qmic" type="button" id="qmic" title="Buscar hablando" aria-label="Buscar hablando"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>`);
-  let rec = null;
-  $("#qmic").onclick = () => {
-    if (rec) { rec.stop(); return; }
-    rec = new SR(); rec.lang = "es-AR"; rec.interimResults = true; rec.maxAlternatives = 1;
-    $("#qmic").classList.add("on"); toast("🎤 Te escucho… decí qué producto buscás");
-    rec.onresult = e => { const t = [...e.results].map(r => r[0].transcript).join(" "); $("#q").value = t; if (e.results[e.results.length - 1].isFinal) { $("#hform").requestSubmit(); } };
-    rec.onerror = e => toast(e.error === "not-allowed" ? "No diste permiso para usar el micrófono" : "No te escuché bien, probá de nuevo");
-    rec.onend = () => { rec = null; $("#qmic").classList.remove("on"); };
-    rec.start();
+  // En Android, si la persona empieza a escribir mientras escucha, el reconocimiento a veces nunca avisa que terminó
+  // (no llega "onend") y el botón quedaba trabado en "escuchando". Por eso el estado se apaga desde acá, sin esperar
+  // al navegador: al escribir, al volver a tocar el botón, ante un error o tras 10 s sin oír nada.
+  let rec = null, reloj = 0;
+  const btn = $("#qmic"), q = $("#q");
+  const apagar = () => {
+    const r = rec; rec = null; clearTimeout(reloj);
+    btn.classList.remove("on"); btn.setAttribute("aria-pressed", "false");
+    if (r) { r.onresult = r.onerror = r.onend = null; try { r.abort(); } catch { /* ya estaba cortado */ } }
   };
+  const vigilar = () => { clearTimeout(reloj); reloj = setTimeout(apagar, 10000); };
+  btn.onclick = () => {
+    if (rec) { apagar(); return; }
+    const r = rec = new SR(); r.lang = "es-AR"; r.interimResults = true; r.maxAlternatives = 1;
+    btn.classList.add("on"); btn.setAttribute("aria-pressed", "true"); toast("🎤 Te escucho… decí qué producto buscás");
+    r.onresult = e => {
+      if (rec !== r) return;
+      vigilar();
+      q.value = [...e.results].map(x => x[0].transcript).join(" ");
+      if (e.results[e.results.length - 1].isFinal) { apagar(); $("#hform").requestSubmit(); }
+    };
+    r.onerror = e => { if (rec !== r) return; apagar(); if (e.error !== "aborted") toast(e.error === "not-allowed" ? "No diste permiso para usar el micrófono" : "No te escuché bien, probá de nuevo"); };
+    r.onend = () => { if (rec === r) apagar(); };
+    try { r.start(); vigilar(); } catch { apagar(); toast("No se pudo usar el micrófono, probá de nuevo"); }
+  };
+  // escribir (o tocar el buscador para escribir) corta la escucha
+  q.addEventListener("keydown", () => { if (rec) apagar(); });
+  q.addEventListener("beforeinput", e => { if (rec && e.isTrusted) apagar(); });
+  addEventListener("pagehide", apagar);
 })();
 
 /* ---------- instalar como app ---------- */

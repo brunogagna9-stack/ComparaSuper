@@ -40,6 +40,22 @@ const casos = [
   }],
   ["sin sesión NO se puede cambiar el correo", () => assertFails(updateDoc(doc(anon(), "usuarios/ana"), { email: "otro@ejemplo.com", bajaUsado: TOKEN }))],
   ["sin sesión NO se puede crear un documento", () => assertFails(setDoc(doc(anon(), "usuarios/nuevo"), base))],
+  ["la persona activa las promos del día y guarda sus medios", () => assertSucceeds(updateDoc(doc(ana(), "usuarios/ana"), { promos: true, medios: ["bna", "modo"], actualizado: Timestamp.now() }))],
+  ["NO guardar promos como texto", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { promos: "sí" }))],
+  ["NO guardar medios que no sean una lista", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { medios: "bna" }))],
+  ["NO guardar más de 80 medios", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { medios: Array.from({ length: 81 }, (_, i) => "m" + i) }))],
+  ["otra persona NO puede activar las promos de ana", () => assertFails(updateDoc(doc(beto(), "usuarios/ana"), { promos: true }))],
+  ["baja desde el correo, sin sesión y con la clave: apaga las promos", async () => {
+    await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), "usuarios/ana"), { promos: true }));
+    await assertSucceeds(updateDoc(doc(anon(), "usuarios/ana"), { promos: false, bajaUsado: TOKEN }));
+  }],
+  ["sin sesión NO se pueden PRENDER las promos (aun con la clave)", () => assertFails(updateDoc(doc(anon(), "usuarios/ana"), { promos: true, bajaUsado: TOKEN }))],
+  ["NO cambiar la fecha del último correo de promos (la pone el servidor)", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { ultimoPromos: "2099-01-01" }))],
+  ["con ultimoPromos puesto por el servidor, la persona igual guarda sus preferencias", async () => {
+    await env.withSecurityRulesDisabled(c => updateDoc(doc(c.firestore(), "usuarios/ana"), { ultimoPromos: "2026-11-25" }));
+    await assertSucceeds(updateDoc(doc(ana(), "usuarios/ana"), { promos: false, actualizado: Timestamp.now() }));
+  }],
+  ["sin sesión NO se pueden cambiar los medios", () => assertFails(updateDoc(doc(anon(), "usuarios/ana"), { medios: ["x"], bajaUsado: TOKEN }))],
   ["ninguna otra colección es accesible", () => assertFails(setDoc(doc(ana(), "admin/config"), { x: 1 }))],
 ];
 let ok = 0, mal = [];

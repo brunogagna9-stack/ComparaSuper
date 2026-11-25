@@ -153,6 +153,30 @@ def test_historial_base_vieja_online_hoy():
     assert "2026-11-01" not in hist["dates"]
 
 
+def test_promos_del_dia():
+    """Correo de promos bancarias del día: día de la semana como la web (0 = domingo), vigencia, zona y medios."""
+    import datetime as _dt
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import enviar_avisos as ea
+    datos = {"medios": [{"id": "bna", "name": "Banco Nación"}, {"id": "modo", "name": "MODO"}], "formas_pago": {}, "promos": [
+        {"id": "a", "medio": "bna", "stores": ["coto"], "dias": [3], "pct": 25, "tope": 10000, "desde": "2026-11-01", "hasta": "2026-11-30"},
+        {"id": "b", "medio": "modo", "bancos": ["galicia"], "stores": ["dia", "lejos"], "dias": [3], "pct": 20},
+        {"id": "c", "medio": "bna", "stores": ["coto"], "dias": [4], "pct": 30},                          # jueves: no
+        {"id": "d", "medio": "bna", "stores": ["coto"], "dias": [3], "pct": 40, "hasta": "2026-11-20"},  # vencida
+        {"id": "e", "medio": "anses", "stores": ["coto"], "dias": [3], "pct": 15, "requiere": ["jubilado"]},
+        {"id": "f", "medio": "bna", "stores": ["coto"], "dias": [3], "pct": 0, "cuotas": 6}]}           # solo cuotas: no
+    tiendas = {"coto": "Coto", "dia": "Día"}
+    mie = _dt.date(2026, 11, 25)   # miércoles = 3
+    todos = ea.promos_de_hoy(datos, tiendas, [], mie)
+    assert [p["id"] for p in todos] == ["a", "b"], [p["id"] for p in todos]   # sin medios: todas menos las con requisitos
+    assert todos[1]["stores"] == ["dia"]                                      # solo comercios de la zona
+    assert [p["id"] for p in ea.promos_de_hoy(datos, tiendas, ["galicia"], mie)] == ["b"]   # banco que participa en MODO
+    assert [p["id"] for p in ea.promos_de_hoy(datos, tiendas, ["anses", "jubilado"], mie)] == ["e"]
+    assert ea.promos_de_hoy(datos, tiendas, ["bna"], _dt.date(2026, 11, 26))[0]["id"] == "c"   # jueves
+    html_, titulo = ea.correo_promos(todos, datos, tiendas, [], mie)
+    assert "2 descuentos para hoy miércoles 25/11" in titulo and "25%" in html_ and "Banco Nación" in html_ and "tope $" in html_
+
+
 # escenarios del monitoreo de la actualización (tests/test_monitor.py)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_monitor as TM  # noqa: E402

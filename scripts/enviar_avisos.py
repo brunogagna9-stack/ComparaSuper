@@ -4,6 +4,8 @@
                                                marcados (🔔) que hoy están más baratos que cuando los marcó
                                                (y más baratos que en el último aviso, para no repetir).
   python3 scripts/enviar_avisos.py semanal   → a quien activó "Ofertas de la semana": el correo de scripts/correo_semanal.py.
+  python3 scripts/enviar_avisos.py promos    → a quien activó "Promociones bancarias del día": los descuentos de HOY en los
+                                               comercios de su zona, solo con sus medios de pago si los eligió en la web.
   Agregá --prueba para ver qué se mandaría sin mandar nada ni cambiar la base.
 
 Solo se escribe a cuentas con el correo confirmado. Necesita dos secretos (GitHub → Settings → Secrets → Actions):
@@ -196,6 +198,140 @@ def semanal():
     print(f"Correo semanal enviado a {total} personas")
 
 
+# ---------------------------------------------------------------- promociones bancarias del día
+DIAS = ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"]
+
+
+def hoy_ar():
+    from zoneinfo import ZoneInfo
+    return dt.datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()
+
+
+def promo_mia(pr, medios):
+    """La misma regla que la web (mineOk): sin medios elegidos, todas menos las que piden una condición especial."""
+    req = pr.get("requiere") or []
+    if pr["medio"] == "todos":
+        return not medios or all(r in medios for r in req)
+    if medios:
+        return (pr["medio"] in medios or any(b in medios for b in pr.get("bancos") or [])) and all(r in medios for r in req)
+    return not req
+
+
+def promos_de_hoy(datos, tiendas, medios, hoy):
+    """Promos con % de descuento vigentes hoy, en comercios de la zona, que la persona puede usar."""
+    dia = (hoy.weekday() + 1) % 7   # como getDay() de la web: 0 = domingo
+    iso = hoy.isoformat()
+    out = []
+    for pr in datos["promos"]:
+        if pr.get("ejemplo") or not pr.get("pct") or dia not in pr.get("dias", []):
+            continue
+        if (pr.get("desde") and pr["desde"] > iso) or (pr.get("hasta") and pr["hasta"] < iso):
+            continue
+        st = [s for s in pr.get("stores", []) if s in tiendas]
+        if st and promo_mia(pr, medios):
+            out.append({**pr, "stores": st})
+    out.sort(key=lambda p: (-p["pct"], p.get("tope") is not None, -(p.get("tope") or 0)))
+    return out
+
+
+def zona_promos(zona, cache={}):
+    """(promos.json, {id comercio: nombre}) de la zona, leídos de la web publicada."""
+    if zona not in cache:
+        try:
+            pr = leer_web("data/promos.json" if zona == "amba" else f"data/p/{zona}/promos.json")
+        except Exception:
+            pr = leer_web("data/promos.json")
+        nombres = {}
+        try:   # nombres de los comercios: los de AMBA están en meta.json; los de cada provincia, dentro de su promos.json
+            nombres = {s["id"]: s["name"] for s in leer_web("data/meta.json" if zona == "amba" else f"data/p/{zona}/meta.json")["stores"]}
+        except Exception:
+            pass
+        com = pr.get("comercios") or {}
+        for c in (com.values() if isinstance(com, dict) else com):
+            if isinstance(c, dict) and c.get("id"):
+                nombres.setdefault(c["id"], c.get("name") or c.get("nombre") or c["id"])
+        if isinstance(com, dict):
+            for k, v in com.items():
+                nombres.setdefault(k, v if isinstance(v, str) else (v.get("name") or v.get("nombre") or k) if isinstance(v, dict) else k)
+        for p_ in pr.get("promos", []):
+            for st in p_.get("stores", []):
+                nombres.setdefault(st, st.replace("-", " ").title())
+        cache[zona] = (pr, nombres)
+    return cache[zona]
+
+
+def correo_promos(lista, datos, tiendas, medios, hoy, baja=CUENTA):
+    medio = {m["id"]: m["name"] for m in datos.get("medios", [])}
+    formas = datos.get("formas_pago", {})
+    MAX = 15
+    filas = ""
+    for pr in lista[:MAX]:
+        quien = medio.get(pr["medio"], pr["medio"]) if pr["medio"] != "todos" else "Cualquier medio"
+        if pr.get("bancos") and medios:
+            propios = [medio.get(b, b) for b in pr["bancos"] if b in medios]
+            if propios:
+                quien += " (" + ", ".join(propios[:2]) + ")"
+        tope = f"tope {cs.plata(pr['tope'])}" + (f" por {pr['periodo_tope']}" if pr.get("periodo_tope") else "") if pr.get("tope") else "sin tope"
+        extra = [tope]
+        if pr.get("minimo"):
+            extra.append(f"compra mínima {cs.plata(pr['minimo'])}")
+        if pr.get("pago"):
+            extra.append(" o ".join((formas.get(k) or {}).get("t", k) for k in pr["pago"][:2]))
+        if pr.get("canal") in ("tienda", "online"):
+            extra.append("solo en el local" if pr["canal"] == "tienda" else "solo online")
+        filas += f"""<tr><td style="padding:10px 0;border-top:1px solid #e5ece8;font-size:14px">
+<table width="100%" cellpadding="0" cellspacing="0"><tr>
+<td width="64" valign="top" style="font-size:22px;font-weight:800;color:{VERDE}">{pr['pct']}%</td>
+<td valign="top"><b>{html.escape(', '.join(tiendas[s] for s in pr['stores'][:4]))}{' y más' if len(pr['stores']) > 4 else ''}</b><br>
+<span style="color:#14231c">con {html.escape(quien)}</span><br><span style="font-size:12px;color:#4b5a53">{html.escape(' · '.join(extra))}</span></td></tr></table></td></tr>"""
+    resto = len(lista) - MAX
+    titulo = f"💳 {len(lista)} descuento{'s' if len(lista) > 1 else ''} para hoy {DIAS[(hoy.weekday() + 1) % 7]} {hoy.day}/{hoy.month}"
+    sub = "con tus medios de pago" if medios else "de todos los bancos y billeteras (elegí tus medios en la web para ver solo los tuyos)"
+    return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;background:#f4f7f5;font-family:Arial,Helvetica,sans-serif;color:#14231c">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f5"><tr><td align="center" style="padding:16px 8px">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+<tr><td style="background:{VERDE};border-radius:14px 14px 0 0;padding:20px 24px;color:#fff">
+<a href="{WEB}" style="color:#fff;text-decoration:none;font-size:24px;font-weight:800">🛒 Super<span style="color:{AMARILLO}">Barato</span></a>
+<div style="font-size:19px;font-weight:700;margin-top:8px">{titulo}</div><div style="font-size:13px;margin-top:4px;opacity:.9">{html.escape(sub)}</div></td></tr>
+<tr><td style="background:#fff;padding:12px 20px 20px"><table width="100%" cellpadding="0" cellspacing="0">{filas}</table>
+{f'<p style="font-size:13px">Y {resto} más en la web.</p>' if resto > 0 else ''}
+<p style="font-size:12px;color:#4b5a53">Descuentos relevados de las páginas de los bancos, billeteras y comercios. Pueden cambiar sin aviso: confirmá las condiciones antes de pagar.</p>
+<table cellpadding="0" cellspacing="0" style="margin:16px auto 0"><tr><td style="background:{AMARILLO};border-radius:999px"><a href="{WEB}#pagos" style="display:inline-block;padding:13px 24px;font-weight:800;color:#14231c;text-decoration:none">Ver todos los descuentos de hoy »</a></td></tr></table></td></tr>
+{pie("Recibís este correo porque activaste las promociones bancarias del día en tu cuenta.", baja)}
+</table></td></tr></table></body></html>""", titulo
+
+
+def promos():
+    hoy = hoy_ar()
+    enviados = 0
+    for uid, mail, d, ref in usuarios("promos"):
+        if enviados >= TOPE_DIA:
+            print("⚠️ Se llegó al tope diario de correos; el resto queda para mañana")
+            break
+        if (d.get("ultimoPromos") or "") == hoy.isoformat():
+            continue   # ya se le mandó hoy (por si la tarea corre dos veces)
+        zona = d.get("zona") or "amba"
+        zona = "amba" if zona in ("amba", "AR-C", "AR-B") else zona[-1].lower() if zona.startswith("AR-") else zona
+        try:
+            datos, tiendas = zona_promos(zona)
+        except Exception as e:
+            print(f"⚠️ No se pudieron leer las promos de {zona}: {e}")
+            continue
+        medios = [m for m in (d.get("medios") or []) if isinstance(m, str)]
+        lista = promos_de_hoy(datos, tiendas, medios, hoy)
+        if not lista:
+            continue   # sin descuentos para esta persona hoy: no se manda un correo vacío
+        baja = enlace_baja(uid, d, ref, "promos")
+        cuerpo, titulo = correo_promos(lista, datos, tiendas, medios, hoy, baja)
+        print(f"{'(prueba) ' if PRUEBA else ''}{mail}: {len(lista)} promos ({zona}, {len(medios)} medios)")
+        brevo({"sender": REMITENTE, "to": [{"email": mail}], "subject": titulo, "htmlContent": cuerpo, "headers": cabeceras(baja), "tags": ["promos"]})
+        enviados += 1
+        if not PRUEBA:
+            ref.update({"ultimoPromos": hoy.isoformat()})
+    print(f"Correos de promos del día enviados: {enviados}")
+
+
 def mantener_clave():
     """Brevo vence las claves que pasan 90 días sin usarse: una consulta mínima por día la mantiene activa."""
     if PRUEBA:
@@ -210,4 +346,4 @@ def mantener_clave():
 if __name__ == "__main__":
     modo = next((a for a in sys.argv[1:] if not a.startswith("--")), "bajas")
     mantener_clave()
-    {"bajas": bajas, "semanal": semanal}[modo]()
+    {"bajas": bajas, "semanal": semanal, "promos": promos}[modo]()

@@ -1,5 +1,5 @@
 name: Correos a usuarios
-# Todos los días: avisos de baja de precio. Los lunes, además, las ofertas de la semana.
+# Todos los días: avisos de baja de precio y promociones bancarias del día. Los lunes, además, las ofertas de la semana.
 # Necesita los secretos FIREBASE_SA y BREVO_API_KEY (ver scripts/enviar_avisos.py). Sin ellos, no hace nada.
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       modo:
-        description: "bajas o semanal"
+        description: "bajas, promos o semanal"
         default: "bajas"
       prueba:
         description: "Solo mostrar, sin mandar (true/false)"
@@ -39,6 +39,7 @@ jobs:
           P=""; [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.prueba }}" = "true" ] && P="--prueba"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then python3 scripts/enviar_avisos.py "${{ inputs.modo }}" $P; exit; fi
           python3 scripts/enviar_avisos.py bajas
+          python3 scripts/enviar_avisos.py promos
           if [ "$(TZ=America/Argentina/Buenos_Aires date +%u)" = "1" ]; then python3 scripts/enviar_avisos.py semanal; fi
   alerta:
     # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
