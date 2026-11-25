@@ -14,6 +14,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  actions: read   # para ver si el paquete de la web ya está disponible antes de publicarlo
 
 concurrency:
   group: pages
@@ -166,7 +167,32 @@ jobs:
       - uses: actions/upload-pages-artifact@v5
         with:
           path: site
+      # Desde el 24/11/2026 GitHub a veces tarda en "ver" el paquete recién subido y la publicación fallaba con
+      # "No artifacts named github-pages were found". Se espera a que aparezca y, si igual falla, se reintenta.
+      - name: Esperar a que GitHub tenga el paquete disponible
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          for i in $(seq 1 18); do
+            n=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts?name=github-pages" -q '.total_count' 2>/dev/null || echo 0)
+            [ "$n" -ge 1 ] && { echo "Paquete disponible (intento $i)"; sleep 15; exit 0; }
+            sleep 10
+          done
+          echo "El paquete todavía no aparece; se intenta publicar igual"
       - id: deploy
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Reintento de publicación (1)
+        if: steps.deploy.outcome == 'failure'
+        run: sleep 60
+      - id: deploy2
+        if: steps.deploy.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        continue-on-error: true
+      - name: Reintento de publicación (2)
+        if: steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
+        run: sleep 120
+      - id: deploy3
+        if: steps.deploy.outcome == 'failure' && steps.deploy2.outcome == 'failure'
         uses: actions/deploy-pages@v5
   alerta:
     # si algo de arriba falla, llega un correo a contacto@superbarato.com.ar
