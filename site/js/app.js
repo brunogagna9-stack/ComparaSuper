@@ -459,6 +459,7 @@ function envLinea(sid) { const t = envFuente(sid); return t ? `<div class="sub e
 function options() {   // cada súper en cada canal (local / online) según el filtro elegido
   const out = [];
   for (const s of D.stores) {
+    if (!mio(s.id)) continue;   // «Solo mis comercios»
     if (!isApp(s.id) && (S.canal !== "online") && !s.viejo) out.push({ sid: s.id, c: "tienda" });   // con precios viejos no entra en las cuentas
     if (s.online && S.canal !== "tienda") out.push({ sid: s.id, c: "online" });
   }
@@ -630,7 +631,7 @@ const kmTxt = d => d < 1 ? `${Math.round(d * 10) * 100} m` : `${d.toFixed(1).rep
 /* filtro de comercios de Productos: los elegidos y, si está activado, solo los cercanos */
 function stFilter() {
   let near = S.cerca && CERCA ? new Set(Object.keys(CERCA)) : null;
-  if (S.favf && FAV.size) near = near ? new Set([...near].filter(x => FAV.has(x))) : new Set(FAV);
+  if (misOn()) near = near ? new Set([...near].filter(x => FAV.has(x))) : new Set(FAV);
   if (S.stores.size && near) return new Set([...S.stores].filter(x => near.has(x)));
   return S.stores.size ? S.stores : near;
 }
@@ -747,7 +748,7 @@ function canasta() {
 function vInicio() {
   setTab("inicio");
   const day = S.iday ?? HOY;
-  const delDia = d => P.promos.filter(pr => pr.dias.includes(d) && pr.pct > 0 && (!needs(pr).length || mineOk(pr)) && promoCerca(pr));
+  const delDia = d => P.promos.filter(pr => pr.dias.includes(d) && pr.pct > 0 && (!needs(pr).length || mineOk(pr)) && promoCerca(pr) && pr.stores.some(mio));
   const fv = pr => pr.stores.some(x => FAV.has(x)) ? 1 : 0;
   const promos = delDia(day).sort((a, b) => (mineOk(b) - mineOk(a)) || (fv(b) - fv(a)) || b.pct - a.pct);
   const pcard = pr => `<div class="pcard${MEDIOS && mineOk(pr) ? " mine" : ""}"><div class="pct">${pr.pct}%<small>${topeTxt(pr)}${pr.tope ? " " + tip("tope") : ""}</small></div>
@@ -773,6 +774,7 @@ function vInicio() {
       <p class="sub" style="margin:2px 0 6px">Acá van los descuentos en % que podés usar sin requisitos extra. En <a href="#pagos" data-semana>Descuentos por día</a> están todos: ${P.promos.filter(pr => pr.dias.includes(day) && promoCerca(pr)).length} el ${DIAS[day].toLowerCase()}, contando cuotas sin interés y promos con requisitos.</p>
       ${P.promos.length < 10 ? `<div class="note warn">🔄 Estamos actualizando los descuentos de este mes. En los próximos días vas a ver todos los nuevos.</div>` : ""}
       ${MEDIOS ? "" : `<p class="sub" style="margin:2px 0 10px">Mostramos todos los descuentos${CERCA ? " de los comercios cerca tuyo" : ""}. <a href="#" data-medios>Elegí tus medios de pago</a> para ver solo los que podés usar.</p>`}
+      <div class="chips" style="margin:0 0 10px">${misChip()}</div>
       <div class="today">${promos.map(pcard).join("") || `<div class="empty">No hay descuentos cargados para el ${DIAS[day].toLowerCase()}.</div>`}</div>
     </section>
 
@@ -1162,7 +1164,7 @@ function results() {
   return list.sort(sorters[S.sort] || sorters.relev);
 }
 const PAGE = 48;
-const filtrosActivos = () => !!(S.cat || S.stores.size || S.onlyPromo || S.sintacc || S.propia || S.favf || S.cerca);
+const filtrosActivos = () => !!(S.cat || S.stores.size || S.onlyPromo || S.sintacc || S.propia || S.cerca);
 /* sin resultados con varias palabras: ofrecer buscar cada una por separado ("aceite de maní" → «aceite», «maní») */
 const porPalabra = () => { const ws = nrm(S.q).split(/[^a-z0-9ñ]+/).filter(w => w.length > 2 && !/^(con|sin|del|los|las|para)$/.test(w)); return ws.length > 1 ? `<div class="cbtns" style="justify-content:center;margin-top:12px">${ws.map(w => `<button type="button" class="btn sec sm" data-solo="${esc(w)}">Buscar solo «${esc(w)}»</button>`).join("")}</div>` : ""; };
 const tamTxt = t => t.u === "kg" ? (t.q < 1 ? `${Math.round(t.q * 1000)} g` : `${String(t.q).replace(".", ",")} kg`) : t.u === "l" ? (t.q < 1 ? `${Math.round(t.q * 1000)} ml` : `${String(t.q).replace(".", ",")} l`) : `${t.q} ${t.q === 1 ? "unidad" : "unidades"}`;
@@ -1214,16 +1216,16 @@ function vBuscar() {
           ${[["relev", "Más populares"], ["precio", "Menor precio"], ["unidad", "Menor precio por kg / litro"], ["ahorro", "Mayor diferencia entre comercios"], ["baja", "Más bajaron"], ["nombre", "Nombre (A-Z)"]].map(([v, t]) => `<option value="${v}" ${S.sort === v ? "selected" : ""}>${t}</option>`).join("")}
         </select></div></div>
       <div class="qchips" role="group" aria-label="Filtros rápidos">${[
-        ["promo", ic("tag") + " Con oferta", S.onlyPromo], FAV.size ? ["fav", `${ic("star")} Mis súper (${FAV.size})`, S.favf] : null, UBIC ? ["cerca", ic("map-pin") + " Cerca mío", S.cerca] : null,
+        ["promo", ic("tag") + " Con oferta", S.onlyPromo], UBIC ? ["cerca", ic("map-pin") + " Cerca mío", S.cerca] : null,
         ["tacc", ic("wheat-off") + " Sin TACC", S.sintacc], ["propia", ic("store") + " Marca propia del súper", S.propia], ["kilo", ic("scale") + " Más barato por kilo", S.sort === "unidad"]]
-        .filter(Boolean).map(([k, t, on]) => `<button type="button" class="qchip${on ? " on" : ""}" data-qchip="${k}" aria-pressed="${!!on}">${t}</button>`).join("")}</div>
+        .filter(Boolean).map(([k, t, on]) => `<button type="button" class="qchip${on ? " on" : ""}" data-qchip="${k}" aria-pressed="${!!on}">${t}</button>`).join("")}${misChip(" enq")}</div>
       <div id="res"></div>
     </div></div>`;
   const draw = vBuscar.draw = () => {
     const r = results();
     if (!r) { $("#res").innerHTML = esqueleto(8); return; }
     animar($("#res"));
-    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : ""}${S.qfix ? `<div class="note qfix" style="margin-top:8px"><b>Quizás quisiste decir «${esc(S.qfix)}».</b> No encontramos «${esc(S.q)}» escrito así; estos son los resultados de «${esc(S.qfix)}».</div>` : ""}`
+    $("#rcount").innerHTML = `${r.length} ${r.length === 1 ? "producto" : "productos"}${S.stores.size ? " · precios de los comercios elegidos" : misOn() ? ` · precios de <a href="#" data-miscom>tus ${FAV.size} comercios</a>` : ""}${S.qfix ? `<div class="note qfix" style="margin-top:8px"><b>Quizás quisiste decir «${esc(S.qfix)}».</b> No encontramos «${esc(S.q)}» escrito así; estos son los resultados de «${esc(S.qfix)}».</div>` : ""}`
       + (S.qtam ? (S.qtam.sin ? ` · <span class="qfix">No hay productos de <b>${esc(tamTxt(S.qtam))}</b>: te mostramos todos los tamaños</span>` : ` · de ${esc(tamTxt(S.qtam))}`) : "")
       + (r.length && S.qaprox && S.qaprox.length ? `<div class="note" style="margin-top:8px">No encontramos <b>«${esc(S.qaprox.join(" "))}»</b>${S.qaprox.length === 1 ? "" : " juntos"}: estos productos son solo <b>parecidos</b>. Puede que esa marca o producto no esté en los comercios que comparamos.</div>` : "");
     const per = VISTAS[S.vista].per, pages = Math.max(1, Math.ceil(r.length / per)); if (S.bpage > pages) S.bpage = 1;
@@ -1237,7 +1239,7 @@ function vBuscar() {
     $$("[data-solo]", $("#res")).forEach(b => b.onclick = () => { S.q = b.dataset.solo; $("#q").value = S.q; S.bpage = 1; guardarBusq(S.q); draw(); });
     const vt = $("#vertodo"); if (vt) vt.onclick = e => { e.preventDefault(); S.q = ""; $("#q").value = ""; setHash("#buscar"); vBuscar(); };
     $("#stall").textContent = S.stores.size ? "ver todos" : ""; $("#stall").hidden = !S.stores.size;
-    const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.cerca ? 1 : 0) + (S.favf ? 1 : 0) + (S.sintacc ? 1 : 0) + (S.propia ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
+    const nf = (S.cat ? 1 : 0) + S.stores.size + (S.onlyPromo ? 1 : 0) + (S.cerca ? 1 : 0) + (S.sintacc ? 1 : 0) + (S.propia ? 1 : 0) + (S.canal !== "ambos" ? 1 : 0);
     $("#fopen").textContent = nf ? `Filtros (${nf})` : "Filtros";
     $("#fclose").textContent = r.length ? `Ver ${r.length} ${r.length === 1 ? "producto" : "productos"}` : "Sin resultados";
   };
@@ -1249,7 +1251,7 @@ function vBuscar() {
   const fc = $("#fcerca"); if (fc) fc.onchange = e => { S.bpage = 1; S.cerca = e.target.checked; draw(); };
   $$("[data-qchip]").forEach(b => b.onclick = () => {
     const k = b.dataset.qchip; S.bpage = 1;
-    if (k === "promo") S.onlyPromo = !S.onlyPromo; if (k === "fav") S.favf = !S.favf; if (k === "cerca") S.cerca = !S.cerca;
+    if (k === "promo") S.onlyPromo = !S.onlyPromo; if (k === "cerca") S.cerca = !S.cerca;
     if (k === "tacc") S.sintacc = !S.sintacc; if (k === "propia") S.propia = !S.propia; if (k === "kilo") S.sort = S.sort === "unidad" ? "relev" : "unidad";
     vBuscar();
   });
@@ -1260,7 +1262,7 @@ function vBuscar() {
   $("#fclose").onclick = () => { setF(false); $("#view").scrollIntoView(); };
   $("#fx").onclick = () => setF(false);
   $("#fback").onclick = () => setF(false);
-  $("#freset").onclick = () => { S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.favf = S.sintacc = S.propia = S.cerca = false; S.canal = "ambos"; S.bpage = 1; setHash("#buscar"); vBuscar(); };
+  $("#freset").onclick = () => { S.cat = ""; S.stores.clear(); S.onlyPromo = false; S.sintacc = S.propia = S.cerca = false; S.canal = "ambos"; S.bpage = 1; setHash("#buscar"); vBuscar(); };
   document.body.classList.toggle("noscroll", !!S.fopen);
   draw();
 }
@@ -1275,15 +1277,19 @@ function tipo(t) {
 }
 /* banner de ofertas destacadas: pasa solo cada 5 segundos, con puntitos para elegir y botón de pausa */
 let BAN = { t: null, i: 0, pausa: false };
-function destacadas() {
-  if (destacadas.de === D.products) return destacadas.xs;   // mismos datos: mismo resultado
+function destacadas() {   // las 8 primeras, de «mis comercios» si están activos
+  const xs = destacadasTodas(), mias = misOn() ? xs.filter(x => mio(x.o.s)) : xs;
+  return (mias.length >= 3 ? mias : xs).slice(0, 8);
+}
+function destacadasTodas() {
+  if (destacadasTodas.de === D.products) return destacadasTodas.xs;   // mismos datos: mismo resultado
   const vistos = new Set();   // un producto una sola vez (antes se buscaba repetido en toda la lista: muy lento)
-  destacadas.xs = D.products.filter(p => p.img && p.offers.length >= 2).flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]]
+  destacadasTodas.xs = D.products.filter(p => p.img && p.offers.length >= 2).flatMap(p => p.offers.flatMap(o => [["tienda", o.promo], ["online", o.promoo]]
     .filter(([c, pr]) => pr && base(o, c)).map(([c, pr]) => ({ p, o, c, pr, off: 1 - pr.pu / base(o, c) }))))
     .filter(x => x.off >= 0.15 && x.off <= 0.7).sort((a, b) => b.p.offers.length - a.p.offers.length || b.off - a.off)
-    .filter(x => !vistos.has(x.p.id) && vistos.add(x.p.id)).slice(0, 8);
-  destacadas.de = D.products;
-  return destacadas.xs;
+    .filter(x => !vistos.has(x.p.id) && vistos.add(x.p.id));
+  destacadasTodas.de = D.products;
+  return destacadasTodas.xs;
 }
 function banner() {
   const xs = destacadas(); if (!xs.length) return "";
@@ -1333,9 +1339,10 @@ function vOfertas() {
       .sort((a, b) => a.k - b.k);
     vOfertas.tipos = [...new Set(vOfertas.all.map(x => x.t))].sort(); vOfertas.de = D.products;
   }
-  const tipos = vOfertas.tipos, list = vOfertas.all.filter(x => (!S.otipo || x.t === S.otipo) && (!S.ostore || x.o.s === S.ostore));
+  const tipos = vOfertas.tipos, list = vOfertas.all.filter(x => (!S.otipo || x.t === S.otipo) && (S.ostore ? x.o.s === S.ostore : mio(x.o.s)));
   $("#view").innerHTML = `<div class="wrap">${banner()}${anuncio("ofertas")}<section class="blk">
     <div class="toolbar"><div><h1>🏷️ Ofertas vigentes</h1><span class="sub">${list.length} ofertas · ordenadas por mayor descuento real por unidad</span></div>${storeSelect("ostore", S.ostore)}</div>
+    <div class="chips" style="margin-bottom:8px">${misChip()}</div>
     <div class="chips" style="margin-bottom:18px"><button class="chip${S.otipo ? "" : " on"}" data-ot="">Todas</button>${tipos.map(t => `<button class="chip${S.otipo === t ? " on" : ""}" data-ot="${esc(t)}">${esc(t)}</button>`).join("")}</div>
     <div class="grid">${list.slice(((S.opage || 1) - 1) * PAGE, (S.opage || 1) * PAGE).map(({ p, o, c, pr }) => {
       const off = Math.round((1 - pr.pu / base(o, c)) * 100), b = best(p);
@@ -1386,13 +1393,13 @@ const mesTxt = d => { if (!d) return "este mes"; const [y, m] = d.split("-"); re
 function vPagos() {
   setTab("pagos");
   const day = S.pday;
-  const okF = pr => (!S.pstore || pr.stores.includes(S.pstore)) && (!S.pmine || mineOk(pr)) && (!S.ptipo || medio(pr).tipo === S.ptipo) && promoCerca(pr);
+  const okF = pr => (S.pstore ? pr.stores.includes(S.pstore) : pr.stores.some(mio)) && (!S.pmine || mineOk(pr)) && (!S.ptipo || medio(pr).tipo === S.ptipo) && promoCerca(pr);
   const list = P.promos.filter(pr => pr.dias.includes(day) && okF(pr)).sort((a, b) => b.pct - a.pct || (b.cuotas || 0) - (a.cuotas || 0));
   const cellPct = (sid, d) => Math.max(0, ...P.promos.filter(pr => pr.stores.includes(sid) && pr.dias.includes(d) && (S.pmine ? mineOk(pr) : (!needs(pr).length || mineOk(pr))) && (!S.ptipo || medio(pr).tipo === S.ptipo)).map(pr => pr.pct));
   const ej = P.promos.some(p => p.ejemplo);
   $("#view").innerHTML = `<div class="wrap"><section class="blk">
     <div class="toolbar"><div><h1>💳 Descuentos por día y medio de pago</h1><span class="sub">Bancos, billeteras virtuales, tarjetas y clubes de cada comercio, con cómo hay que pagar para que el descuento aplique.</span></div>
-      <button class="btn sec sm" data-medios>💳 ${MEDIOS ? `Mis medios (${MEDIOS.length})` : "Elegir mis medios"}</button></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sec sm" data-medios>💳 ${MEDIOS ? `Mis medios (${MEDIOS.length})` : "Elegir mis medios"}</button>${misChip()}</div></div>
     ${ej ? `<div class="note" style="margin-bottom:14px">Estos descuentos son <b>de ejemplo</b>. En la versión real cada uno lleva el enlace a la página oficial y la fecha en que lo verificamos.</div>`
       : `<div class="note ok" style="margin-bottom:14px">✅ Descuentos reales de ${esc(mesTxt(P.relevado))}, relevados el ${esc((P.relevado || "").split("-").reverse().join("/"))} de páginas oficiales, relevamientos y notas periodísticas (cada uno dice su fuente). Cambian seguido: confirmalos antes de pagar.</div>`}
     ${anuncio("descuentos")}
@@ -1411,7 +1418,7 @@ function vPagos() {
 
     <h2 style="font-size:18px;margin:30px 0 10px">La semana de un vistazo <span class="sub" style="font-weight:500">· mayor descuento de cada día${S.ptipo ? " (" + esc(P.tipos[S.ptipo]) + ")" : ""}</span></h2>
     <div class="matrix"><table><thead><tr><th>Comercio</th>${DIAS.map((d, i) => `<th>${DCORTO[i]}${i === HOY ? " · hoy" : ""}</th>`).join("")}</tr></thead><tbody>
-      ${grupos().map(([n, ss]) => `<tr class="grp"><th colspan="8">${n}</th></tr>` + ss.map(s => `<tr><td>${storeChip(s.id)}</td>${DIAS.map((_, i) => { const v = cellPct(s.id, i); return `<td class="${i === HOY ? "tdhoy" : ""}">${v ? `<button class="cell" data-cell="${s.id}|${i}" style="--a:${Math.min(0.3, 0.08 + v / 80).toFixed(2)}" data-hi="${v >= 20 ? 1 : 0}">${v}%</button>` : '<span class="sub">—</span>'}</td>`; }).join("")}</tr>`).join("")).join("")}
+      ${grupos().map(([n, ss]) => [n, ss.filter(s => mio(s.id))]).filter(([, ss]) => ss.length).map(([n, ss]) => `<tr class="grp"><th colspan="8">${n}</th></tr>` + ss.map(s => `<tr><td>${storeChip(s.id)}</td>${DIAS.map((_, i) => { const v = cellPct(s.id, i); return `<td class="${i === HOY ? "tdhoy" : ""}">${v ? `<button class="cell" data-cell="${s.id}|${i}" style="--a:${Math.min(0.3, 0.08 + v / 80).toFixed(2)}" data-hi="${v >= 20 ? 1 : 0}">${v}%</button>` : '<span class="sub">—</span>'}</td>`; }).join("")}</tr>`).join("")).join("")}
     </tbody></table></div>
   </section></div>`;
   $$("[data-day]").forEach(b => b.onclick = () => { S.pday = +b.dataset.day; vPagos(); });
@@ -1641,7 +1648,7 @@ function vConviene() {
   setTab("conviene");
   const items = itemsOf(PLAN);
   const day = S.lday;
-  const head = `<div class="toolbar"><div><h1>📊 ¿Dónde conviene mi compra?</h1><span class="sub">Armá la compra acá (no cambia tu carrito) y comparamos todo en un comercio, mezclando dos, por día y por medio de pago.</span></div></div>`;
+  const head = `<div class="toolbar"><div><h1>📊 ¿Dónde conviene mi compra?</h1><span class="sub">Armá la compra acá (no cambia tu carrito) y comparamos todo en un comercio, mezclando dos, por día y por medio de pago.</span><div class="chips" style="margin-top:10px">${misChip()}</div></div></div>`;
   const editor = `<section class="box"><div class="blk-h"><h2>Productos a comparar <span class="sub" style="font-weight:500">· ${items.length}</span></h2>
       <div style="display:flex;gap:6px;flex-wrap:wrap">${Object.keys(LISTA).length ? `<button class="btn sec sm" id="fromcart">⬇️ Traer mi carrito</button>` : ""}<button class="btn sec sm" type="button" data-pegar>📋 Pegar una lista</button>${items.length ? `<button class="btn sec sm" id="tocart">🛒 Enviar al carrito</button><button class="btn sec sm" id="pclear">Vaciar</button>` : ""}</div></div>
     <div class="psearch"><input id="pq" type="search" placeholder="Sumá un producto: leche, yerba, aceite…" autocomplete="off" aria-label="Buscar producto para sumar"><div class="pres" id="pres" hidden></div></div>
@@ -1668,7 +1675,7 @@ function vConviene() {
         : `<div class="sv">Sin descuentos de medio de pago este día</div>`}
       ${bst.c === "online" ? `<div class="sv">🚚 ${bst.env ? `Incluye envío ${money(bst.env)}` : "Envío gratis con esta compra"}${envLinea(bst.sid)}</div>` : ""}
       ${cartBtn(bst) ? `<div style="margin-top:10px">${cartBtn(bst)}</div>` : ""}</div>`
-    : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>Ningún comercio tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.</p></div>`;
+    : `<div class="sumc box"><div class="k">① Todo en un solo comercio</div><p>${misOn() ? "Ninguno de <b>tus comercios</b>" : "Ningún comercio"} tiene todos los productos. Mirá abajo cuáles faltan en cada uno, o probá mezclando dos.${misOn() ? ` <a href="#" data-solomios>Ver todos los comercios</a>` : ""}</p></div>`;
   const card2 = split ? `<div class="sumc box ${splitGain > 0 ? "good" : ""}"><div class="k">② Mezclando dos comercios</div><div class="t">${split.parts.map(b => esc(optName(b))).join(" + ")}</div><div class="big">${money(split.total)}</div>
       <div class="sub">${bst ? (splitGain > 0 ? `<b class="okc">Ahorrás ${money(splitGain)} (${pct(splitGain, bst.total)}%)</b> frente a todo en ${esc(optName(bst))}, pero tenés que ir a dos lugares. ${pagoDe(split.parts)}` : `No conviene: sale ${money(-splitGain)} más que todo en ${esc(optName(bst))}.`) : "Es la única forma de conseguir todo."}</div></div>`
     : `<div class="sumc box"><div class="k">② Mezclando dos comercios</div><p class="sub">No hay una combinación de dos comercios que tenga todo.</p></div>`;
@@ -2125,7 +2132,7 @@ function vCuenta() {
     <h2>📬 Qué querés recibir por correo</h2>
     <label class="sw"><input type="checkbox" id="cu-sem" ${d.semanal ? "checked" : ""}><span><b>Ofertas de la semana</b><br><span class="sub">Los lunes: lo que bajó, las mejores promos y qué banco o billetera conviene cada día.</span></span></label>
     <label class="sw"><input type="checkbox" id="cu-baj" ${d.bajas ? "checked" : ""}><span><b>Avisos de baja de precio</b><br><span class="sub">Un correo cuando baja un producto que marcaste con la 🔔 (como máximo uno por día).</span></span></label>
-    <label class="sw"><input type="checkbox" id="cu-pro" ${d.promos ? "checked" : ""}><span><b>Promociones bancarias del día</b><br><span class="sub">Cada mañana: los descuentos de hoy en los súper de tu zona, ${MEDIOS ? `con <b>tus ${MEDIOS.length} medios de pago</b>` : "de todos los bancos y billeteras"}. <a href="#" data-medios>${MEDIOS ? "Cambiar mis medios" : "Elegir mis medios"}</a></span></span></label>
+    <label class="sw"><input type="checkbox" id="cu-pro" ${d.promos ? "checked" : ""}><span><b>Promociones bancarias del día</b><br><span class="sub">Cada mañana: los descuentos de hoy ${FAV.size ? `en <b>tus ${FAV.size} comercios</b>` : "en los súper de tu zona"}, ${MEDIOS ? `con <b>tus ${MEDIOS.length} medios de pago</b>` : "de todos los bancos y billeteras"}. <a href="#" data-medios>${MEDIOS ? "Cambiar mis medios" : "Elegir mis medios"}</a></span></span></label>
     <p class="sub" id="cu-est" role="status"></p>
     <h2>🔔 Productos que seguís${enAMBA() ? "" : ` en ${esc(provNombre(PROV))}`}</h2>
     ${ids.length ? `<p>${ids.length} producto${ids.length > 1 ? "s" : ""}${bajaron.length ? ` · <b class="okc">${bajaron.length} bajaron</b>` : ""}. <button class="linkbtn" id="cu-av">Ver la lista</button></p>`
@@ -2610,8 +2617,39 @@ document.addEventListener("click", e => {
 }, true);
 
 /* ---------- mis súper (los que la persona elige como habituales) ---------- */
-let FAV = new Set(LS.get("cs_fav", []));
+let FAV = new Set(LS.get("cs_fav", []));   // «Mis comercios» (antes «tus súper»): vacío = todos
 const saveFav = () => LS.set("cs_fav", [...FAV]);
+/* «Solo mis comercios»: un solo interruptor para toda la web (búsqueda, ofertas, descuentos, ¿dónde conviene?).
+   Se prende solo al elegir comercios y se puede apagar en cada sección con un toque, sin perder la elección. */
+let SOLOMIOS = LS.get("cs_solomios", true) !== false;
+const misOn = () => SOLOMIOS && FAV.size > 0 && D.stores.some(s => FAV.has(s.id));
+const mio = sid => !misOn() || FAV.has(sid);
+function misChip(extra = "") {
+  if (!FAV.size) return `<a href="#" class="chip mischip" data-miscom>${ic("store")} Elegir mis comercios</a>`;
+  return `<span class="misgrp${extra}"><button type="button" class="chip mischip${misOn() ? " on" : ""}" data-solomios aria-pressed="${misOn()}">${ic("store")} ${misOn() ? `Solo mis comercios (${FAV.size})` : "Todos los comercios"}</button><a href="#" class="miseditar" data-miscom>${misOn() ? "cambiar" : `ver solo los míos (${FAV.size})`}</a></span>`;
+}
+function abrirMisComercios() {
+  const cerca = CERCA ? Object.keys(CERCA) : [];
+  const grupos = [["super", "Supermercados"], ["mayorista", "Mayoristas"], ["app", "Apps de compra"]];
+  const orden = (a, b) => (cerca.includes(b.id) - cerca.includes(a.id)) || a.name.localeCompare(b.name, "es");
+  const fila = st => `<label class="wchip"><input type="checkbox" value="${st.id}" ${FAV.has(st.id) ? "checked" : ""}>${badge("s", st.id, st.name, st.color, st.sigla)}<span>${esc(st.name)}${CERCA && CERCA[st.id] ? `<small>${kmTxt(CERCA[st.id].d)}</small>` : ""}${st.viejo ? "<small>precios desactualizados</small>" : ""}</span></label>`;
+  openModal(`<h2>${ic("store")} Mis comercios</h2><p class="sub">Elegí dónde comprás o te queda cómodo ir. Las búsquedas, las ofertas, los descuentos y «¿Dónde conviene?» van a mostrar solo esos comercios (podés ver todos con un toque en cada sección).</p>
+    ${grupos.map(([t, n]) => { const xs = D.stores.filter(s => (s.tipo || "super") === t).sort(orden); return xs.length ? `<h3 class="misg">${n}</h3><div class="wchips st">${xs.map(fila).join("")}</div>` : ""; }).join("")}
+    <div class="mfoot"><button class="btn sec sm" id="mcall">Usar todos</button><button class="btn" id="mcsave">Guardar</button></div>`);
+  $("#mcsave").onclick = () => {
+    FAV = new Set($$("#modal input:checked").map(i => i.value)); saveFav();
+    SOLOMIOS = true; LS.set("cs_solomios", true); comerciosCuenta();
+    closeModal(); toast(FAV.size ? `Listo: ${FAV.size} ${FAV.size === 1 ? "comercio" : "comercios"}` : "Mostrando todos los comercios"); route();
+  };
+  $("#mcall").onclick = () => { FAV = new Set(); saveFav(); comerciosCuenta(); closeModal(); toast("Mostrando todos los comercios"); route(); };
+}
+function comerciosCuenta() {   // viajan a la cuenta: el correo de promos del día usa los mismos comercios
+  if (Cuenta.user && Cuenta.doc) Cuenta.guardar({ comercios: [...FAV].slice(0, 60) }).catch(() => {});
+}
+document.addEventListener("click", e => {
+  if (e.target.closest("[data-miscom]")) { e.preventDefault(); abrirMisComercios(); return; }
+  if (e.target.closest("[data-solomios]")) { SOLOMIOS = !misOn(); LS.set("cs_solomios", SOLOMIOS); toast(misOn() ? `Solo tus ${FAV.size} comercios` : "Mostrando todos los comercios"); route(); }
+});
 
 /* ---------- bienvenida y configuración en 3 preguntas ---------- */
 function modalBienvenida() {
@@ -2660,13 +2698,13 @@ async function wizard(paso) {
   } else {
     const cerca = CERCA ? Object.keys(CERCA) : [];
     const lista = [...D.stores].sort((a, b) => (cerca.includes(b.id) - cerca.includes(a.id)) || a.name.localeCompare(b.name, "es"));
-    openModal(`${head(3)}<h2>3. ¿En qué súper comprás seguido?</h2><p class="sub">Los marcamos con ⭐ y podés filtrar por ellos. Igual te vamos a avisar si en otro lado está más barato.</p>
+    openModal(`${head(3)}<h2>3. ¿En qué comercios comprás?</h2><p class="sub">Las búsquedas, ofertas, descuentos y «¿Dónde conviene?» van a mostrar solo esos (con un toque ves todos). Si no elegís ninguno, comparamos todos.</p>
       <div class="wchips st">${lista.map(st => `<label class="wchip"><input type="checkbox" value="${st.id}" ${FAV.has(st.id) ? "checked" : ""}>${badge("s", st.id, st.name, st.color, st.sigla)}<span>${esc(st.name)}${CERCA && CERCA[st.id] ? `<small>${kmTxt(CERCA[st.id].d)}</small>` : ""}</span></label>`).join("")}</div>
       <div class="mfoot"><button class="btn sec sm" id="wback">← Atrás</button><button class="btn" id="wfin">Terminar ✓</button></div>`);
     $("#wback").onclick = () => wizard(2);
     $("#wfin").onclick = () => {
-      FAV = new Set($$("#modal input:checked").map(i => i.value)); saveFav();
-      openModal(`<div class="wel"><div class="wic">🎉</div><h2>¡Listo!</h2><p>La página ya muestra ${MEDIOS ? "tus descuentos" : "todos los descuentos"}${UBIC ? ", los comercios cerca tuyo" : ""}${FAV.size ? " y tus súper con ⭐" : ""}. Lo podés cambiar cuando quieras desde «Mis medios» y «📍 ubicación».</p>
+      FAV = new Set($$("#modal input:checked").map(i => i.value)); saveFav(); SOLOMIOS = true; LS.set("cs_solomios", true); comerciosCuenta();
+      openModal(`<div class="wel"><div class="wic">🎉</div><h2>¡Listo!</h2><p>La página ya muestra ${MEDIOS ? "tus descuentos" : "todos los descuentos"}${UBIC ? ", los comercios cerca tuyo" : ""}${FAV.size ? ` y solo tus ${FAV.size} comercios` : ""}. Lo podés cambiar cuando quieras desde «Mis medios», «Mis comercios» y «📍 ubicación» (en el menú).</p>
         <div class="wbtns"><button class="btn" id="wtour">🧭 Ver la guía rápida</button><button class="btn sec" data-close>Empezar a comparar</button></div></div>`);
       $("#wtour").onclick = () => { closeModal(); startTour(); };
       route();

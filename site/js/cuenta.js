@@ -137,7 +137,7 @@ const Cuenta = (() => {
         const err = $("#cerr"), acepto = () => { if ($("#cok").checked) return true; err.textContent = "Para seguir tenés que aceptar los términos y la política de privacidad."; return false; };
         const prefs = () => (crear ? { semanal: $("#csem").checked, bajas: $("#cbaj").checked, promos: $("#cpro").checked } : null);
         const fin = async (u, nueva) => {
-          if (nueva || !doc || doc.acepto == null) { const p = prefs() || {}; await guardar({ email: u.email || "", semanal: !!p.semanal || !!(doc && doc.semanal), bajas: !!p.bajas || !!(doc && doc.bajas), promos: !!p.promos || !!(doc && doc.promos), medios: (doc && doc.medios) || LS.get("cs_medios", null) || [], zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
+          if (nueva || !doc || doc.acepto == null) { const p = prefs() || {}; await guardar({ email: u.email || "", semanal: !!p.semanal || !!(doc && doc.semanal), bajas: !!p.bajas || !!(doc && doc.bajas), promos: !!p.promos || !!(doc && doc.promos), medios: (doc && doc.medios) || LS.get("cs_medios", null) || [], comercios: (doc && doc.comercios) || LS.get("cs_fav", []), zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
           closeModal(); listo(u);
           toast(nueva && !u.emailVerified ? "Cuenta creada. Te mandamos un correo para confirmarla." : "¡Listo! Ya ingresaste");
         };
@@ -205,7 +205,7 @@ const Cuenta = (() => {
     if (!cfg()) return;
     if (LS.get("cs_sesion", false) || /#cuenta/.test(location.hash)) cargar().then(async () => {
       const pend = LS.get("cs_login_pend", null);   // volvió de iniciar sesión con Google por redirección
-      if (pend && user) { localStorage.removeItem("cs_login_pend"); if (!doc || doc.acepto == null) await guardar({ email: user.email || "", semanal: !!pend.semanal, bajas: !!pend.bajas, promos: !!pend.promos, medios: LS.get("cs_medios", null) || [], zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
+      if (pend && user) { localStorage.removeItem("cs_login_pend"); if (!doc || doc.acepto == null) await guardar({ email: user.email || "", semanal: !!pend.semanal, bajas: !!pend.bajas, promos: !!pend.promos, medios: LS.get("cs_medios", null) || [], comercios: LS.get("cs_fav", []), zona: zona(), acepto: new Date(), avisos: (doc && doc.avisos) || {} }).catch(() => {}); }
     }).catch(() => {});
   }
 

@@ -43,6 +43,9 @@ const casos = [
   ["la persona activa las promos del día y guarda sus medios", () => assertSucceeds(updateDoc(doc(ana(), "usuarios/ana"), { promos: true, medios: ["bna", "modo"], actualizado: Timestamp.now() }))],
   ["NO guardar promos como texto", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { promos: "sí" }))],
   ["NO guardar medios que no sean una lista", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { medios: "bna" }))],
+  ["la persona guarda sus comercios", () => assertSucceeds(updateDoc(doc(ana(), "usuarios/ana"), { comercios: ["coto", "dia"], actualizado: Timestamp.now() }))],
+  ["NO guardar más de 60 comercios", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { comercios: Array.from({ length: 61 }, (_, i) => "c" + i) }))],
+  ["sin sesión NO se pueden cambiar los comercios", () => assertFails(updateDoc(doc(anon(), "usuarios/ana"), { comercios: ["x"], bajaUsado: TOKEN }))],
   ["NO guardar más de 80 medios", () => assertFails(updateDoc(doc(ana(), "usuarios/ana"), { medios: Array.from({ length: 81 }, (_, i) => "m" + i) }))],
   ["otra persona NO puede activar las promos de ana", () => assertFails(updateDoc(doc(beto(), "usuarios/ana"), { promos: true }))],
   ["baja desde el correo, sin sesión y con la clave: apaga las promos", async () => {

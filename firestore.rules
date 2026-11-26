@@ -8,11 +8,12 @@ service cloud.firestore {
       function esDuenio() { return request.auth != null && request.auth.uid == uid; }
       function valido() {
         let d = request.resource.data;
-        return d.keys().hasOnly(['email', 'semanal', 'bajas', 'promos', 'medios', 'zona', 'acepto', 'avisos', 'actualizado', 'enviados', 'ultimoEnvio', 'ultimoPromos', 'bajaToken', 'bajaUsado'])
+        return d.keys().hasOnly(['email', 'semanal', 'bajas', 'promos', 'medios', 'comercios', 'zona', 'acepto', 'avisos', 'actualizado', 'enviados', 'ultimoEnvio', 'ultimoPromos', 'bajaToken', 'bajaUsado'])
           && (!('semanal' in d) || d.semanal is bool)
           && (!('bajas' in d) || d.bajas is bool)
           && (!('promos' in d) || d.promos is bool)
           && (!('medios' in d) || (d.medios is list && d.medios.size() <= 80))
+          && (!('comercios' in d) || (d.comercios is list && d.comercios.size() <= 60))
           && (!('zona' in d) || (d.zona is string && d.zona.size() <= 10))
           && (!('email' in d) || (d.email is string && d.email.size() <= 200))
           && (!('avisos' in d) || (d.avisos is map && d.avisos.size() <= 300))

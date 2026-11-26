@@ -217,8 +217,9 @@ def promo_mia(pr, medios):
     return not req
 
 
-def promos_de_hoy(datos, tiendas, medios, hoy):
-    """Promos con % de descuento vigentes hoy, en comercios de la zona, que la persona puede usar."""
+def promos_de_hoy(datos, tiendas, medios, hoy, comercios=None):
+    """Promos con % de descuento vigentes hoy, en comercios de la zona (y de «Mis comercios», si los eligió),
+    que la persona puede usar."""
     dia = (hoy.weekday() + 1) % 7   # como getDay() de la web: 0 = domingo
     iso = hoy.isoformat()
     out = []
@@ -227,7 +228,7 @@ def promos_de_hoy(datos, tiendas, medios, hoy):
             continue
         if (pr.get("desde") and pr["desde"] > iso) or (pr.get("hasta") and pr["hasta"] < iso):
             continue
-        st = [s for s in pr.get("stores", []) if s in tiendas]
+        st = [s for s in pr.get("stores", []) if s in tiendas and (not comercios or s in comercios)]
         if st and promo_mia(pr, medios):
             out.append({**pr, "stores": st})
     out.sort(key=lambda p: (-p["pct"], p.get("tope") is not None, -(p.get("tope") or 0)))
@@ -260,7 +261,7 @@ def zona_promos(zona, cache={}):
     return cache[zona]
 
 
-def correo_promos(lista, datos, tiendas, medios, hoy, baja=CUENTA):
+def correo_promos(lista, datos, tiendas, medios, hoy, baja=CUENTA, comercios=None):
     medio = {m["id"]: m["name"] for m in datos.get("medios", [])}
     formas = datos.get("formas_pago", {})
     MAX = 15
@@ -287,6 +288,8 @@ def correo_promos(lista, datos, tiendas, medios, hoy, baja=CUENTA):
     resto = len(lista) - MAX
     titulo = f"💳 {len(lista)} descuento{'s' if len(lista) > 1 else ''} para hoy {DIAS[(hoy.weekday() + 1) % 7]} {hoy.day}/{hoy.month}"
     sub = "con tus medios de pago" if medios else "de todos los bancos y billeteras (elegí tus medios en la web para ver solo los tuyos)"
+    if comercios:
+        sub += f", en tus {len(comercios)} comercios"
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;background:#f4f7f5;font-family:Arial,Helvetica,sans-serif;color:#14231c">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f7f5"><tr><td align="center" style="padding:16px 8px">
@@ -319,11 +322,12 @@ def promos():
             print(f"⚠️ No se pudieron leer las promos de {zona}: {e}")
             continue
         medios = [m for m in (d.get("medios") or []) if isinstance(m, str)]
-        lista = promos_de_hoy(datos, tiendas, medios, hoy)
+        comercios = {c for c in (d.get("comercios") or []) if isinstance(c, str) and c in tiendas}
+        lista = promos_de_hoy(datos, tiendas, medios, hoy, comercios)
         if not lista:
             continue   # sin descuentos para esta persona hoy: no se manda un correo vacío
         baja = enlace_baja(uid, d, ref, "promos")
-        cuerpo, titulo = correo_promos(lista, datos, tiendas, medios, hoy, baja)
+        cuerpo, titulo = correo_promos(lista, datos, tiendas, medios, hoy, baja, comercios)
         print(f"{'(prueba) ' if PRUEBA else ''}{mail}: {len(lista)} promos ({zona}, {len(medios)} medios)")
         brevo({"sender": REMITENTE, "to": [{"email": mail}], "subject": titulo, "htmlContent": cuerpo, "headers": cabeceras(baja), "tags": ["promos"]})
         enviados += 1

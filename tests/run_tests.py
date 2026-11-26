@@ -173,6 +173,7 @@ def test_promos_del_dia():
     assert [p["id"] for p in ea.promos_de_hoy(datos, tiendas, ["galicia"], mie)] == ["b"]   # banco que participa en MODO
     assert [p["id"] for p in ea.promos_de_hoy(datos, tiendas, ["anses", "jubilado"], mie)] == ["e"]
     assert ea.promos_de_hoy(datos, tiendas, ["bna"], _dt.date(2026, 11, 26))[0]["id"] == "c"   # jueves
+    assert [p["id"] for p in ea.promos_de_hoy(datos, tiendas, [], mie, {"dia"})] == ["b"]   # solo «mis comercios»
     html_, titulo = ea.correo_promos(todos, datos, tiendas, [], mie)
     assert "2 descuentos para hoy miércoles 25/11" in titulo and "25%" in html_ and "Banco Nación" in html_ and "tope $" in html_
 

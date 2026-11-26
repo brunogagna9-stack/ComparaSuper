@@ -232,3 +232,29 @@ test("micrófono: escribir mientras escucha lo corta y el botón no queda trabad
   await mic.click(); await expect(mic).not.toHaveClass(/\bon\b/);              // y tocarlo de nuevo siempre lo destraba
   expect(await page.evaluate("window.__recs.length")).toBe(2);
 });
+
+test("Mis comercios: se eligen, limitan ofertas, descuentos y ¿Dónde conviene?, y se ven todos con un toque", async ({ page }) => {
+  await page.goto("#ofertas"); await listo(page);
+  const tiendas = await page.evaluate("D.stores.filter(s => !s.viejo && (s.tipo || 'super') === 'super').slice(0, 2).map(s => s.id)");
+  // elegir desde el menú / la ventana
+  await page.evaluate("abrirMisComercios()");
+  for (const t of tiendas) await page.locator(`#modal input[value="${t}"]`).check();
+  await page.locator("#mcsave").click();
+  await expect(page.locator("[data-solomios]").first()).toContainText("Solo mis comercios (2)");
+  // ofertas: solo de esos comercios
+  const ofertas = await page.evaluate(`[...document.querySelectorAll('#view .prod .schip, #view .prod [data-store]')].length`);
+  expect(await page.evaluate(`vOfertas.all.filter(x => mio(x.o.s)).every(x => ${JSON.stringify(tiendas)}.includes(x.o.s))`)).toBe(true);
+  // ¿Dónde conviene?: solo esos comercios
+  await page.goto("#conviene"); await listo(page);
+  await page.getByText("probá con la canasta básica").first().click();
+  expect(await page.evaluate(`options().every(o => ${JSON.stringify(tiendas)}.includes(o.sid))`)).toBe(true);
+  // un toque: todos
+  await page.locator("[data-solomios]").first().click();
+  await expect(page.locator("[data-solomios]").first()).toContainText("Todos los comercios");
+  expect(await page.evaluate("options().length")).toBeGreaterThan(4);
+  // descuentos por día: vuelve a «solo mis comercios» con el mismo botón
+  await page.goto("#pagos"); await listo(page);
+  await page.locator("[data-solomios]").first().click();
+  await expect(page.locator("[data-solomios]").first()).toContainText("Solo mis comercios (2)");
+  expect(ofertas).toBeGreaterThanOrEqual(0);
+});

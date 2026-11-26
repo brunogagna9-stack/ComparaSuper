@@ -1402,3 +1402,8 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .aporte-l{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:22px 0 4px;padding:12px 14px;border-radius:12px;background:var(--soft,#f2f7f4);font-size:14px;text-align:center}
 .aporte-n{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0;padding:14px 16px;border-radius:14px;background:#fff8e6;border:1px solid #f6dc95}.aporte-n p{margin:0;flex:1 1 280px}
 [data-theme="dark"] .btn.aporte{background:#3a2f12;border-color:#7a5f1c;color:#ffe3a1}[data-theme="dark"] .aporte-n{background:#2a2412;border-color:#5c4a1a}
+/* «Mis comercios» */
+.misgrp{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}.misgrp.enq{margin-left:2px}
+.chip.mischip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none}.chip.mischip .ic{width:16px;height:16px}
+.miseditar{font-size:13px;font-weight:600}
+h3.misg{font-size:14px;margin:14px 0 6px;color:var(--mut)}
