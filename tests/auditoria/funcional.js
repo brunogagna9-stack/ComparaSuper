@@ -18,7 +18,6 @@ const CASOS = [
   ["¿Dónde conviene? no resta descuentos sin medios", async p => !(await p.$eval(".sumc", e => e.textContent)).includes("Pagando con")],
   ["Descuentos por día", async p => { await p.goto(BASE + "#pagos"); await p.waitForSelector(".pcard, .promo, [data-pday]", { timeout: 15000 }); return true; }],
   ["Comparar por kilo", async p => { await ev(p, `(async()=>{const r=await buscarProm("yerba",false);const ps=r.ids.map(i=>BY[i]).filter(p=>tamOK(p)&&p.bu==="kg");CMP=[ps[0].id,ps[1].id];location.hash="#comparar";})()`); await p.waitForSelector(".cmpc"); return /por kg/.test(await p.$eval("#view", e => e.textContent)); }],
-  ["Ranking de cadenas con cobertura", async p => { await p.goto(BASE + "#ranking"); await p.waitForSelector("table", { timeout: 15000 }); return /% del total/.test(await p.$eval("#view", e => e.textContent)); }],
   ["Mapa de sucursales", async p => { await p.goto(BASE + "#mapa"); await p.waitForSelector(".leaflet-container, .maplibregl-canvas, #map", { timeout: 20000 }); return true; }],
   ["Carrito: agregar y ver total", async p => { await ev(p, `(async()=>{const r=await buscarProm("leche",false);LISTA[r.ids[0]]=2;})()`); await p.goto(BASE + "#carrito"); await p.waitForTimeout(800); return /\$/.test(await p.$eval("#view", e => e.textContent)); }],
   ["Modo súper", async p => { await p.goto(BASE + "#super"); await p.waitForTimeout(800); return /chango|súper/i.test(await p.$eval("#view", e => e.textContent)); }],

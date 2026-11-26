@@ -7,7 +7,7 @@ const { chromium, devices } = require("@playwright/test");
 const BASE = process.argv[2] || "https://superbarato.com.ar/";
 const OUT = process.argv[3];
 const ini = () => { for (const [k, v] of Object.entries({ cs_prov: "AR-C", cs_tour: 1, cs_wiz: 1, cs_bienvenida: 1 })) localStorage.setItem(k, JSON.stringify(v)); };
-const SECCIONES = ["#buscar", "#ofertas", "#pagos", "#conviene", "#carrito", "#comparar", "#ranking", "#mapa", "#super", "#cuenta", "#legal", "#inicio"];
+const SECCIONES = ["#buscar", "#ofertas", "#pagos", "#conviene", "#carrito", "#comparar", "#mapa", "#super", "#cuenta", "#legal", "#inicio"];
 const kb = b => Math.round(b / 102.4) / 10;
 
 async function descargas(b, conProv) {   // bytes transferidos (comprimidos) hasta la carga y tras 15 s de calma

@@ -598,7 +598,7 @@ function card(p) {
       ${addCtl(p.id)}</div>
   </article>`;
 }
-function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const tm = $("#tmenu"); if (tm) tm.classList.toggle("on", ["comparar", "mapa", "super", "sugerencias", "como", "ranking"].includes(v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
+function setTab(v) { $$(".tabs a, .bnav a").forEach(a => a.classList.toggle("on", a.dataset.v === v)); const tm = $("#tmenu"); if (tm) tm.classList.toggle("on", ["comparar", "mapa", "super", "sugerencias", "como"].includes(v)); const bm = $("#bmore"); if (bm) bm.classList.toggle("on", ["pagos", "conviene", "carrito", "como", "sugerencias", "legal", "nosotros"].includes(v)); }
 const storeSelect = (id, val, label = "Todos los comercios") => `<select class="sel" id="${id}" aria-label="Comercio"><option value="">${label}</option>${grupos().map(([n, ss]) => `<optgroup label="${n}">${ss.map(s => `<option value="${s.id}" ${val === s.id ? "selected" : ""}>${esc(s.name)}</option>`).join("")}</optgroup>`).join("")}</select>`;
 const canalChips = () => `<div class="chips" role="group" aria-label="Dónde comprar">${[["ambos", "🏬🛒 Local y online"], ["tienda", "🏬 Solo en el local"], ["online", "🛒 Solo online / apps"]].map(([v, t]) => `<button class="chip${S.canal === v ? " on" : ""}" data-canal="${v}">${t}</button>`).join("")}</div>`;
 
@@ -1543,51 +1543,6 @@ async function tuInflacion(items, dias) {
     <p class="sub">Precio de cada producto: el del medio entre los comercios que lo tenían en las dos fechas, sin descuentos.</p>`;
   for (const b of box.querySelectorAll("[data-dias]")) b.onclick = () => tuInflacion(items, +b.dataset.dias);
 }
-/* Ranking de cadenas del mes (data/ranking.json, lo arma la actualización diaria). Índice 100 = precio típico. */
-const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-const mesNombre = m => MESES[+m.slice(5, 7) - 1] + " de " + m.slice(0, 4);
-async function vRanking() {
-  setTab("ranking");
-  const v = $("#view");
-  v.innerHTML = '<div class="wrap"><section class="blk"><h1>🏆 Ranking de cadenas</h1><p class="sub">Cargando…</p></section></div>';
-  const r = await fetch(DIR() + "ranking.json").then(x => x.ok ? x.json() : null).catch(() => null);
-  if (location.hash.slice(1) !== "ranking") return;
-  if (!r || !r.cadenas || !r.cadenas.length) {
-    v.innerHTML = '<div class="wrap"><section class="blk"><h1>🏆 Ranking de cadenas</h1><p>Todavía no hay datos suficientes para armar el ranking de tu zona.</p></section></div>';
-    return;
-  }
-  const ant = r.anterior;
-  const fila = (c, k) => {
-    const dif = c.indice - 100, txt = Math.abs(dif) < 0.5 ? "en el promedio" : `${Math.abs(dif).toLocaleString("es-AR", { maximumFractionDigits: 1 })}% ${dif < 0 ? "más barato" : "más caro"}`;
-    const pa = ant && ant.puestos[c.s], mov = pa ? (pa > k + 1 ? `subió ${pa - k - 1} ${pa - k - 1 === 1 ? "puesto" : "puestos"}` : pa < k + 1 ? `bajó ${k + 1 - pa} ${k + 1 - pa === 1 ? "puesto" : "puestos"}` : "mismo puesto") : "";
-    const raro = c.tipo !== "mayorista" && Math.abs(dif) > 15, cob = c.n / r.productos, poca = cob < 0.3, vieja = ST[c.s] && ST[c.s].viejo;
-    const w = Math.max(4, Math.min(100, 50 + dif * 2.5));
-    return `<tr><th scope="row" class="rk-n">${k + 1}</th>
-      <td class="rk-c">${ST[c.s] ? storeChip(c.s) : `<b>${esc(c.nombre)}</b>`}${raro ? ` <span class="rk-w" title="Diferencia muy grande">⚠️<span class="sr">diferencia muy grande, revisá la nota</span></span>` : ""}${poca ? `<div class="sub">Compara pocos productos: tomalo con cuidado</div>` : ""}${vieja ? `<div class="sub">⚠️ Hoy sus precios están desactualizados</div>` : ""}</td>
-      <td class="rk-i"><b>${c.indice.toLocaleString("es-AR", { minimumFractionDigits: 1 })}</b><div class="rk-bar" aria-hidden="true"><span class="${dif < 0 ? "dn" : "up"}" style="width:${w}%"></span></div></td>
-      <td class="rk-x">${txt}${mov ? `<div class="sub">${mov}</div>` : ""}</td>
-      <td class="rk-p sub">${c.n.toLocaleString("es-AR")}<br>(${Math.round(cob * 100)}% del total)</td></tr>`;
-  };
-  const tabla = (titulo, lista, id) => lista.length ? `<section class="box rk" aria-labelledby="${id}"><h2 id="${id}">${titulo}</h2>
-    <div class="rk-wrap"><table class="rk-t"><caption class="sr">${titulo}: de la más barata a la más cara. Índice 100 es el precio típico.</caption>
-      <thead><tr><th scope="col">Puesto</th><th scope="col">Cadena</th><th scope="col">Índice</th><th scope="col">Frente al promedio</th><th scope="col">Productos</th></tr></thead>
-      <tbody>${lista.map(fila).join("")}</tbody></table></div></section>` : "";
-  const sup = r.cadenas.filter(c => c.tipo !== "mayorista"), may = r.cadenas.filter(c => c.tipo === "mayorista");
-  const varTxt = r.variacion == null ? "" : `<p class="rk-var">En lo que va del mes, los precios ${r.variacion > 0.05 ? `subieron <b>${pct(r.variacion / 100, 2).replace("+", "")}</b>` : r.variacion < -0.05 ? `bajaron <b>${pct(r.variacion / 100, 2).replace("−", "")}</b>` : "se mantuvieron estables"} en promedio.</p>`;
-  const hayRaro = sup.some(c => Math.abs(c.indice - 100) > 15);
-  v.innerHTML = `<div class="wrap">
-    <section class="blk"><h1>🏆 Ranking de cadenas · ${mesNombre(r.mes)}</h1>
-      <p class="sub">Qué cadena cobra menos por los mismos productos, del ${fechaCorta(r.desde)} al ${fechaCorta(r.hasta)} (${r.dias} ${r.dias === 1 ? "día" : "días"} con datos), comparando ${r.productos.toLocaleString("es-AR")} productos que venden al menos 3 cadenas.</p>
-      ${varTxt}</section>
-    ${tabla("Supermercados", sup, "rk-sup")}
-    ${tabla("Mayoristas", may, "rk-may")}
-    <section class="box"><h2>Cómo se calcula</h2>
-      <p>Para cada producto que venden al menos 3 cadenas, comparamos el precio promedio del mes de cada una con el precio del medio entre todas. El <b>índice</b> junta esas comparaciones: <b>100</b> es el precio típico, <b>95</b> quiere decir 5% más barato y <b>105</b>, 5% más caro. Como se compara producto por producto, una cadena no sale más cara solo por vender productos más caros.</p>
-      <p>Usamos el precio de lista (sin descuentos de bancos ni billeteras ni ofertas por cantidad), y solo entran las cadenas con al menos 100 productos comparables. La columna <b>Productos</b> dice con cuántos se calculó cada una: si son pocos (menos del 30% del total), el puesto es menos seguro, porque puede depender de qué productos vende. Los mayoristas van aparte porque muchas veces venden por bulto o con compra mínima.</p>
-      ${hayRaro ? "<p>⚠️ Cuando una cadena se aleja mucho del resto puede ser por precios realmente más bajos o porque los datos que informa a la base oficial están desactualizados. Conviene confirmar en la sucursal.</p>" : ""}
-      ${ant ? "" : "<p class=\"sub\">El cambio de puesto frente al mes anterior aparece cuando haya datos de un mes completo.</p>"}</section>
-  </div>`;
-}
 /* código QR del carrito (qrcode-generator, licencia MIT): para pasarlo de la compu al celular con la cámara */
 let QR_P = null;
 const loadQR = () => QR_P || (QR_P = new Promise((ok, ko) => { const s = document.createElement("script"); s.src = "js/vendor/qrcode.js"; s.onload = () => ok(window.qrcode); s.onerror = () => { QR_P = null; ko(); }; document.head.appendChild(s); }));
@@ -2293,7 +2248,7 @@ function route() {
   const [v0, sec] = v.split("-");
   if (v0 === "nosotros" || v0 === "legal") { (v0 === "nosotros" ? vNosotros : vLegal)(); if (sec) setTimeout(() => { const el = document.getElementById("s-" + sec); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 30); else scrollTo(0, 0); return; }
   if (!READY && TOPR && v === "buscar") setTimeout(() => { const h1 = $("#view h1"); if (h1 && !READY && !$("#cargando")) h1.insertAdjacentHTML("afterend", '<div class="sub" id="cargando">⏳ Mostrando los más comparados mientras cargamos el resto…</div>'); });
-  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, cuenta: vCuenta, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar, ranking: vRanking }[v] || vInicio)();
+  ({ mapa: vMapa, inicio: vInicio, buscar: vBuscar, ofertas: vOfertas, pagos: vPagos, carrito: vCarrito, cuenta: vCuenta, conviene: vConviene, como: vComo, legal: vLegal, sugerencias: vSugerencias, super: vSuper, comparar: vComparar }[v] || vInicio)();
   $("#view").dataset.v = v; closeDrawer.under = h;
   contar(v); cmpBar();
 }
