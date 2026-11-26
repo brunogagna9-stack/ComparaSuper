@@ -178,6 +178,29 @@ def test_promos_del_dia():
     assert "2 descuentos para hoy miércoles 25/11" in titulo and "25%" in html_ and "Banco Nación" in html_ and "tope $" in html_
 
 
+def test_nutricion_lectura():
+    """Ficha de Jumbo y Open Food Facts -> registro para la web (tabla, ingredientes con abreviaturas, aptitudes)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import nutricion as nu
+    p = {"Ingredientes": ["'agua carbonatada', 'azúcar', 'jmaf', 'col 150 d', 'aci 338', 'aro', 'edu sucralosa'"],
+         "Tabla Nutricional": ["{'basic_unit_name': 'ml', 'portion_text': '1 vaso', 'portion_value': 200, 'portion_unit_name': 'ml', "
+                               "'energy_value': 60, 'energy_value_per_portion': 120, 'energy_unit_name': 'kCal', 'sugars_value': 15, "
+                               "'sugars_value_per_portion': 30, 'sugars_unit_name': 'g', 'sodium_value': 12, 'sodium_value_per_portion': 24}"],
+         "Condiciones Alimentarias": ["'cafeína'"],
+         "Sellos": ["[{'certification_type_code': 'vegan', 'certification_type_name': 'Vegano'}]"]}
+    r = nu.para_web(nu.parse_jumbo(p))
+    assert nu.expandir("cons ins 202") == "conservante (INS 202)" and nu.expandir("rai: (ins 500ii)") == "leudante químico (INS 500ii)"
+    assert nu.expandir("ac reg bicarbonato de sodio") == "regulador de acidez (bicarbonato de sodio)" and nu.expandir("sal") == "sal"
+    assert r["ing"] == "agua carbonatada, azúcar, jarabe de maíz de alta fructosa, colorante (150 d), acidulante (338), aromatizante, edulcorante (sucralosa)", r["ing"]
+    assert r["tab"]["base"] == "ml" and r["tab"]["porcion"] == 200 and r["tab"]["filas"][0] == ["Valor energético", 60, 120, "kcal"]
+    assert ["Sodio", 12, 24, "mg"] in r["tab"]["filas"] and r["cond"] == ["cafeína"] and r["apto"] == ["Vegano"]
+    assert nu.parse_jumbo({"Sellos": ["[]"]}) is None                         # sin tabla ni ingredientes: nada
+    o = nu.parse_off({"ingredients_text": "harina de trigo,  azúcar", "nutriments": {"energy-kcal_100g": 450, "sugars_100g": 30,
+                      "fat_100g": "20", "sodium_100g": 0.25, "proteins_100g": 6}})
+    assert o["ing"] == "harina de trigo, azúcar" and ["Sodio", 250.0, None, "mg"] in o["tab"]["filas"]
+    assert nu.parse_off({"nutriments": {"energy-kcal_100g": 1}}) is None       # tabla incompleta y sin ingredientes
+
+
 # escenarios del monitoreo de la actualización (tests/test_monitor.py)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import test_monitor as TM  # noqa: E402

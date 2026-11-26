@@ -1407,3 +1407,15 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .chip.mischip{display:inline-flex;align-items:center;gap:6px;cursor:pointer;text-decoration:none}.chip.mischip .ic{width:16px;height:16px}
 .miseditar{font-size:13px;font-weight:600}
 h3.misg{font-size:14px;margin:14px 0 6px;color:var(--mut)}
+/* «Mis comercios» en la barra: solo en PC (en el celular está en el menú «Más» y en cada sección) */
+@media (max-width:899px){.hbtn.pcsolo{display:none}}
+@media (min-width:900px) and (max-width:1199px){#mbtn .hl,#cbtn .hl{display:none}#mbtn,#cbtn{padding:9px 11px}}
+/* información nutricional en la ficha */
+.nutri .nh{font-size:15px;margin:14px 0 6px}.nutri .nh:first-child{margin-top:6px}
+.ntab{width:100%;border-collapse:collapse;font-size:14px}.ntab th,.ntab td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.ntab th:first-child,.ntab tbody th{text-align:left;font-weight:500}.ntab thead th{font-size:12px;color:var(--mut);font-weight:700;vertical-align:bottom}.ntab small{font-weight:500}
+.ntab tr.nclave th,.ntab tr.nclave td{font-weight:700}
+.ning{font-size:14px;line-height:1.5;margin:0}.nsrc{font-size:12px;margin:6px 0 0}
+.nwarn{margin:12px 0 0;font-weight:700;font-size:14px}.napto{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.napto .chip{cursor:default}
+.nalerta{margin:12px 0 2px;padding:8px 10px;border-radius:10px;background:#fff4d6;color:#5a3d00;font-size:12.5px}
+[data-theme="dark"] .nalerta{background:#3a2f12;color:#ffe3a1}

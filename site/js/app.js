@@ -941,7 +941,9 @@ async function vMapa() {
   intro();
   const centro = UBIC ? [UBIC.lat, UBIC.lon] : (() => { const all = cadenas.flatMap(st => SUC[st.id].filter(sucValida)); if (!all.length) return OBELISCO; return [all.reduce((a, b) => a + b[0], 0) / all.length, all.reduce((a, b) => a + b[1], 0) / all.length]; })();
   $("#mapa").innerHTML = "";
-  const m = L.map("mapa", { zoomControl: true, tap: true, maxZoom: 19, minZoom: 4, gestureHandling: !!window.leafletGestureHandling,
+  // Con mouse (PC) la rueda acerca y aleja directo; en pantallas táctiles sigue pidiendo dos dedos para mover el mapa
+  const conMouse = matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const m = L.map("mapa", { zoomControl: true, tap: true, maxZoom: 19, minZoom: 4, gestureHandling: !!window.leafletGestureHandling && !conMouse, scrollWheelZoom: true,
     gestureHandlingOptions: { duration: 1400, text: { touch: "Usá dos dedos para mover el mapa", scroll: "Usá Ctrl + rueda del mouse para acercar o alejar", scrollMac: "Usá ⌘ + rueda del mouse para acercar o alejar" } } }).setView(centro, UBIC ? 15 : PROV === "AR-C" ? 12 : 9);
   fondoMapa(L, m);
 
@@ -1811,6 +1813,41 @@ function alternativas(p) {
   }
   return out.sort((a, b) => (b.q.offers.length >= 3) - (a.q.offers.length >= 3) || a.u - b.u).slice(0, 3);
 }
+/* ---------- información nutricional e ingredientes (se baja solo al abrir una ficha) ----------
+   data/nutri/j/NN.json = ficha de Jumbo · data/nutri/o/NN.json = Open Food Facts (ODbL). NN = 2 últimos dígitos del código. */
+const NUTRI = new Map();
+const nutriParte = (f, nn) => {
+  const k = f + nn;
+  if (!NUTRI.has(k)) NUTRI.set(k, fetch(`data/nutri/${f}/${nn}.json`).then(r => r.ok ? r.json() : {}).catch(() => { NUTRI.delete(k); return {}; }));
+  return NUTRI.get(k);
+};
+const numAR = v => v == null || v === "" ? "—" : (+v).toLocaleString("es-AR", { maximumFractionDigits: 1 });
+async function nutriFicha(id) {
+  const e = String(id).replace(/^0+/, ""), nn = e.slice(-2).padStart(2, "0");
+  if (!/^\d{8,}$/.test(e)) return;
+  const [j, o] = await Promise.all([nutriParte("j", nn), nutriParte("o", nn)]);
+  if (openProduct.id !== id) return;   // ya se abrió otra ficha
+  const dj = j[e], dof = o[e];
+  const tab = dj?.tab ? [dj.tab, "j"] : dof?.tab ? [dof.tab, "o"] : null;
+  const ing = dj?.ing ? [dj.ing, "j"] : dof?.ing ? [dof.ing, "o"] : null;
+  const box = $("#pnutri"), cont = $("#pnutric");
+  if (!box || !cont || (!tab && !ing)) return;
+  const fuente = f => f === "j" ? "según la ficha del producto en Jumbo" : `de <a href="https://world.openfoodfacts.org/product/${esc(e)}" target="_blank" rel="noopener">Open Food Facts</a> (© Open Food Facts contributors, licencia ODbL)`;
+  let h = "";
+  if (tab) {
+    const [t, f] = tab, por = t.porcion ? `${numAR(t.porcion)} ${esc(t.porcion_u)}${t.porcion_txt ? ` (${esc(t.porcion_txt)})` : ""}` : "";
+    const conPorcion = t.filas.some(r => r[2] != null);
+    h += `<h3 class="nh">Información nutricional</h3><table class="ntab"><thead><tr><th></th><th>Cada 100 ${esc(t.base)}</th>${conPorcion ? `<th>Por porción${por ? `<br><small>${por}</small>` : ""}</th>` : ""}</tr></thead><tbody>
+      ${t.filas.map(([n, v, vp, u]) => `<tr${/Azúcares|saturadas|Sodio|energético/.test(n) ? ' class="nclave"' : ""}><th>${esc(n)}</th><td>${numAR(v)} ${esc(u)}</td>${conPorcion ? `<td>${numAR(vp)} ${esc(u)}</td>` : ""}</tr>`).join("")}</tbody></table>
+      <p class="sub nsrc">Datos ${fuente(f)}.</p>`;
+  }
+  if (ing) h += `<h3 class="nh">Ingredientes</h3><p class="ning">${esc(ing[0])}</p><p class="sub nsrc">Ingredientes ${fuente(ing[1])}.</p>`;
+  if (dj?.cond?.length) h += `<p class="nwarn">⚠️ Contiene: ${dj.cond.map(esc).join(", ")}</p>`;
+  if (dj?.apto?.length) h += `<div class="napto">${dj.apto.map(a => `<span class="chip">${esc(a)}</span>`).join("")}</div>`;
+  h += `<p class="nalerta">Ante alergias, celiaquía u otra condición, confirmá siempre en el envase: la información puede no estar actualizada.</p>`;
+  cont.innerHTML = h; box.hidden = false;
+}
+
 async function openProduct(id) {
   const p = BY[id]; if (!p) return;
   if (!SUC) loadSuc();   // para "Cómo llegar" a la sucursal más cercana
@@ -1867,6 +1904,7 @@ async function openProduct(id) {
       <details class="hist" id="phist" ${openProduct.hist ? "open" : ""}><summary>${ic("history")} Historial de precios</summary>
         <div class="chips hper" role="group" aria-label="Período">${[[7, "7 días"], [30, "30 días"], [0, "Todo"]].map(([d, t]) => `<button type="button" class="chip${(openProduct.dias ?? 30) === d ? " on" : ""}" data-hdias="${d}">${t}</button>`).join("")}</div>
         <div id="chart" class="chart"></div></details>
+      <details class="hist nutri" id="pnutri" hidden ${openProduct.nutri ? "open" : ""}><summary>🥗 Información nutricional e ingredientes</summary><div id="pnutric"></div></details>
       ${anuncio("ficha")}
       <button class="btn sec vermas" id="vermas" aria-expanded="${openProduct.mas}">${openProduct.mas ? "Ocultar supermercados ▲" : `Ver más supermercados (${p.offers.length}) ▼`}</button>
       <div class="slist" id="slist" ${openProduct.mas ? "" : "hidden"}>
@@ -1882,6 +1920,8 @@ async function openProduct(id) {
     if (openProduct.menu) openProduct.fin = flotar($("#pmasb"), $("#pmenu"), "bottom-end"); };
   buenPrecio(p, b.v);
   $("#phist").ontoggle = () => { openProduct.hist = $("#phist").open; if (openProduct.hist) chartU(p, openProduct.dias ?? 30); };
+  $("#pnutri").ontoggle = () => { openProduct.nutri = $("#pnutri").open; };
+  nutriFicha(id);
   if (openProduct.hist) chartU(p, openProduct.dias ?? 30);
   $$("[data-hdias]").forEach(bt => bt.onclick = () => { openProduct.dias = +bt.dataset.hdias; $$("[data-hdias]").forEach(x => x.classList.toggle("on", x === bt)); chartU(p, openProduct.dias); });
   $("#pshare").onclick = async () => {
@@ -2573,7 +2613,7 @@ document.addEventListener("click", e => {
 
 /* ---------- mis súper (los que la persona elige como habituales) ---------- */
 let FAV = new Set(LS.get("cs_fav", []));   // «Mis comercios» (antes «tus súper»): vacío = todos
-const saveFav = () => LS.set("cs_fav", [...FAV]);
+const saveFav = () => { LS.set("cs_fav", [...FAV]); const d = $("#cdot"); if (d) d.hidden = !FAV.size; };
 /* «Solo mis comercios»: un solo interruptor para toda la web (búsqueda, ofertas, descuentos, ¿dónde conviene?).
    Se prende solo al elegir comercios y se puede apagar en cada sección con un toque, sin perder la elección. */
 let SOLOMIOS = LS.get("cs_solomios", true) !== false;
@@ -3002,6 +3042,6 @@ listaCompartida();
     if (viejas.length) partes.push(`⚠️ ${viejas.length === 1 ? "La cadena" : "Las cadenas"} <b>${esc(viejas.join(", "))}</b> no ${viejas.length === 1 ? "informa" : "informan"} precios hace más de ${DIAS_VIEJO} días: ${viejas.length === 1 ? "la mostramos" : "las mostramos"} como «desactualizado» y no ${viejas.length === 1 ? "cuenta" : "cuentan"} para «el más barato».`);
     if (av && partes.length) { av.innerHTML = partes.join("<br>"); av.hidden = false; }
   }
-  $("#mdot").hidden = !MEDIOS;
+  $("#mdot").hidden = !MEDIOS; $("#cdot").hidden = !FAV.size;
   saveLista(); refreshAvisos(); updUbic(); route();
 }).catch(err => { $("#view").innerHTML = `<div class="wrap"><div class="empty" style="margin:40px 0">No se pudieron cargar los precios. Probá recargar la página.<br><span class="sub">${esc(err.message)}</span></div></div>`; });

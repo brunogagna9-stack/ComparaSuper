@@ -59,6 +59,13 @@ jobs:
       - name: Control antes de publicar
         id: control
         run: python scripts/check_data.py
+      # Información nutricional e ingredientes (ficha de Jumbo + Open Food Facts). Cada producto se revisa una vez
+      # por mes, así que son pocos pedidos por día. Si falla, la web sigue con lo que ya tenía.
+      - name: Información nutricional
+        id: nutricion
+        continue-on-error: true
+        timeout-minutes: 40
+        run: python scripts/nutricion.py
       - name: Guardar en la rama "datos"
         id: guardar
         run: |
@@ -68,6 +75,8 @@ jobs:
           cp data/fotos_no.json ../nuevos/data/ 2>/dev/null || true
           cp data/fotos_revisadas.json data/fotos_rotas.json ../nuevos/data/ 2>/dev/null || true
           cp site/data/*.json ../nuevos/site/data/
+          cp -r data/nutricion ../nuevos/data/ 2>/dev/null || true
+          cp -r site/data/nutri ../nuevos/site/data/ 2>/dev/null || true
           cd ../nuevos
           git init -q -b datos
           git config user.name "comparasuper-bot"
@@ -81,7 +90,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/mon"
           cp data/estado_sepa.json site/data/meta.json "$RUNNER_TEMP/mon/" 2>/dev/null || true
           printf '%s\n' "pruebas=${{ steps.pruebas.outcome }}" "online=${{ steps.online.outcome }}" "fotos=${{ steps.fotos.outcome }}" \
-            "armar=${{ steps.armar.outcome }}" "control=${{ steps.control.outcome }}" "guardar=${{ steps.guardar.outcome }}" > "$RUNNER_TEMP/mon/pasos.txt"
+            "armar=${{ steps.armar.outcome }}" "control=${{ steps.control.outcome }}" "nutricion=${{ steps.nutricion.outcome }}" "guardar=${{ steps.guardar.outcome }}" > "$RUNNER_TEMP/mon/pasos.txt"
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: monitor, path: "${{ runner.temp }}/mon", retention-days: 7 }
