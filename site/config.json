@@ -67,7 +67,7 @@
   },
   "_comentario_sugerencias": "Sugerencias públicas con aprobación: ver README, sección 'Sugerencias'. Mientras esté vacío, la página muestra ejemplos y no envía nada.",
   "_comentario_aporte": "Botón de aporte voluntario: link de Cafecito o de cobro de Mercado Pago. Vacío = el botón no se muestra en ningún lado.",
-  "aporte": "",
+  "aporte": "https://cafecito.app/kyroli",
   "goatcounter": "comparasuper",
   "publicidad": [],
   "_publicidad_ejemplo": {
