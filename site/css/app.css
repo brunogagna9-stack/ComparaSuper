@@ -1396,3 +1396,9 @@ table.rk-t thead th{font-size:12px;text-transform:uppercase;letter-spacing:.03em
 .cvlista{margin-top:10px}.cvlista summary{cursor:pointer;font-weight:700;color:var(--gtx);padding:10px 2px;list-style:none;display:flex;align-items:center;gap:6px}
 .cvlista summary::-webkit-details-marker{display:none}.cvlista summary::before{content:"▸";transition:transform var(--t-menu) var(--ease)}
 .cvlista[open] summary::before{transform:rotate(90deg)}.cvlista[open]>:not(summary){animation:sube var(--t-panel) var(--ease) both}
+/* aporte voluntario: visible, sin tapar nada */
+.btn.aporte{background:#fff4d6;border-color:#f1c75b;color:#5a3d00}.btn.aporte:hover{background:#ffe9ad}
+.faporte{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.faporte span{font-size:13px;opacity:.85}
+.aporte-l{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px;margin:22px 0 4px;padding:12px 14px;border-radius:12px;background:var(--soft,#f2f7f4);font-size:14px;text-align:center}
+.aporte-n{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin:16px 0;padding:14px 16px;border-radius:14px;background:#fff8e6;border:1px solid #f6dc95}.aporte-n p{margin:0;flex:1 1 280px}
+[data-theme="dark"] .btn.aporte{background:#3a2f12;border-color:#7a5f1c;color:#ffe3a1}[data-theme="dark"] .aporte-n{background:#2a2412;border-color:#5c4a1a}

@@ -205,6 +205,7 @@ async function load() {
     fetch(DIR() + "meta.json").then(r => (r.ok ? r.json() : null)).catch(() => null), fetch(PROV ? `data/p/${PCARP()}/promos.json` : "data/promos.json").then(r => (r.ok ? r.json() : Promise.reject())).catch(() => fetch("data/promos.json").then(r => r.json())),
     fetch("config.json").then(r => r.json()).catch(() => ({}))]);
   P = p; CFG = c || {};
+  aporteListo();
   if (m) { calcFuera(m.stores); m.stores = m.stores.filter(s => !FUERA.has(s.id)); D = { ...m, products: [] }; loadProducts().catch(() => {}); loadTop(); }
   else { const full = await fetch(DIR() + "products.json").then(r => r.json()); D = { ...full, products: [] }; PROD_P = Promise.resolve(prepProducts(full)); }
   D.stores.sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));   // siempre en orden alfabético
@@ -807,6 +808,19 @@ function reportarError(msg, src) {
 }
 addEventListener("error", e => { if (e.message) reportarError(e.message, `${e.filename}:${e.lineno}`); });
 addEventListener("unhandledrejection", e => reportarError(e.reason && (e.reason.message || e.reason), "promesa"));
+/* ---------- aporte voluntario ("Invitanos un café"): siempre a la vista, pero sin tapar nada ni interrumpir ----------
+   Pie de página, Conocenos y una línea al final de «¿Dónde conviene?». Nada de ventanas emergentes. El link se carga
+   en site/config.json ("aporte"); mientras esté vacío no hay a dónde mandar el aporte y no se muestra. */
+const aporteUrl = () => { const u = (CFG.aporte || "").trim(); return /^https:\/\//.test(u) ? u : ""; };
+const aporteBtn = (txt = "☕ Invitanos un café", cls = "btn sm aporte") => aporteUrl() ? `<a class="${cls}" data-aporte href="${esc(aporteUrl())}" target="_blank" rel="noopener">${txt}</a>` : "";
+function aporteListo() {
+  const u = aporteUrl();
+  for (const f of [$("#faporte"), $("#baporte")]) if (f) f.hidden = !u;
+  if (u) $$("[data-aporte]").forEach(a => { a.href = u; });
+}
+document.addEventListener("click", e => { if (e.target.closest("[data-aporte]")) contar("aporte-click"); });
+const aporteLinea = ahorro => aporteUrl() ? `<p class="aporte-l"><span>💚 ${ahorro >= 1000 ? `Eligiendo bien, en esta compra te ahorrás hasta <b>${money(ahorro)}</b>. ` : ""}SuperBarato es gratis y se sostiene con aportes voluntarios.</span> ${aporteBtn()}</p>` : "";
+
 function contar(v) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} }); }
 /* eventos: clics hacia las tiendas (prueba del tráfico que mandamos a cada súper) y a la publicidad */
 function evento(path, title) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path, title, event: true }); } catch {} }); }
@@ -1034,7 +1048,7 @@ function vNosotros() {
   setTab("nosotros");
   const zona = enAMBA() ? "CABA y el Gran Buenos Aires" : provNombre(PROV);
   const faq = [
-    ["¿Es gratis?", "Sí. No cobramos nada, no hace falta crear una cuenta y no vendemos productos: te mostramos dónde conviene y el botón «Ver» te lleva a la tienda de cada comercio."],
+    ["¿Es gratis?", "Sí. No cobramos nada, no hace falta crear una cuenta y no vendemos productos: te mostramos dónde conviene y el botón «Ver» te lleva a la tienda de cada comercio." + (aporteUrl() ? " Se sostiene con aportes voluntarios de quienes la usan." : "")],
     ["¿Por qué el precio de mi sucursal es distinto?", "Mostramos el precio más común entre las sucursales de cada cadena en tu provincia. Algunas sucursales tienen precios propios, así que puede variar un poco."],
     ["¿Los descuentos se suman entre sí?", "En general no: cada banco o billetera tiene su tope y sus condiciones. En cada descuento te decimos el tope, los días y cómo hay que pagar para que se aplique."],
     ["¿Cada cuánto se actualizan los precios?", "Todos los días. Los precios de las sucursales salen de la base oficial que las cadenas informan a diario."],
@@ -1046,6 +1060,7 @@ function vNosotros() {
     <h1>👋 Conocenos</h1>
     <p>SuperBarato nació con una idea simple: que hacer las compras del súper cueste menos. Juntamos en un solo lugar los precios de los supermercados y mayoristas, sus ofertas y los descuentos de bancos, billeteras y tarjetas de cada día, para que sepas <b>dónde, qué día y cómo pagar</b> para gastar menos.</p>
     <p>Es un <b>proyecto independiente</b>: no tiene relación comercial con los comercios, las apps ni los bancos que aparecen, y ningún comercio paga para salir primero.</p>
+    ${aporteUrl() ? `<div class="aporte-n"><p><b>☕ Apoyá el proyecto.</b> SuperBarato es gratis, sin publicidad que estorbe y sin que ningún comercio pague para salir primero. Se sostiene con aportes voluntarios: si te ayudó a ahorrar, podés invitarnos un café.</p>${aporteBtn("☕ Invitanos un café", "btn aporte")}</div>` : ""}
     <h2 id="s-acerca">Acerca de</h2>
     <ul>
       <li><b>Qué comparamos:</b> el mismo producto (por código de barras) en cada cadena de ${esc(zona)}, en el local y online.</li>
@@ -1706,7 +1721,7 @@ function vConviene() {
       return `<p class="note">💡 Algunos productos tienen su precio más bajo online en ${txt}. Acá sumamos el envío, y con eso conviene otra opción. Si retirás en la sucursal, mirá su fila en la tabla sin contar el envío.</p>`;
     })()}
     <div class="sumgrid">${card1}${card2}${card3}${card4}</div>${barras}
-    ${splitTable}${optTable}</div>`;
+    ${splitTable}${optTable}${aporteLinea(bst && worst ? worst.total - bst.total : 0)}</div>`;
   bindPlanner();
   $$("[data-ld]").forEach(b => b.onclick = e => { e.preventDefault(); S.lday = +b.dataset.ld; vConviene(); });
 }
