@@ -1,6 +1,6 @@
 {
- "_comentario": "Descuentos por medio de pago. Se cargan A MANO desde la página oficial del banco, billetera o súper, con 'fuente' (enlace) y 'verificado' (fecha). check_data.py rechaza promos reales sin fuente. dias: 0=domingo ... 6=sábado. tope en pesos (null = sin tope). periodo_tope: dia|semana|mes|compra. canal: tienda|online|ambos. pago: claves de 'formas_pago' (cómo hay que pagar para que aplique). ejemplo=true: promo inventada del prototipo, reemplazar antes de publicar. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
- "relevado": "2026-11-08",
+ "_comentario": "Descuentos por medio de pago. Se cargan A MANO desde la página oficial del banco, billetera o súper, con 'fuente' (enlace) y 'verificado' (fecha). check_data.py rechaza promos reales sin fuente. dias: 0=domingo ... 6=sábado. tope en pesos (null = sin tope). periodo_tope: dia|semana|mes|compra. canal: tienda|online|ambos. pago: claves de 'formas_pago' (cómo hay que pagar para que aplique). ejemplo=true: promo inventada del prototipo, reemplazar antes de publicar. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa. requiere: otros medios o condiciones que hay que tener además del principal (por ejemplo, ser jubilado); esas promos solo se usan en los cálculos si la persona los marcó en 'Mis medios'. fuente_tipo: oficial | relevamiento | prensa.",
+ "relevado": "2026-11-26",
  "tipos": {
   "banco": "Bancos",
   "billetera": "Billeteras virtuales",
@@ -69,14 +69,12 @@
   {
    "id": "bna",
    "name": "Banco Nación",
-   "tipo": "banco",
-   "promos_url": "https://semananacion.com.ar/semananacion/buscador?categoria=supermercados"
+   "tipo": "banco"
   },
   {
    "id": "ciudad",
    "name": "Banco Ciudad",
-   "tipo": "banco",
-   "promos_url": "https://www.bancociudad.com.ar/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "columbia",
@@ -86,26 +84,22 @@
   {
    "id": "comafi",
    "name": "Banco Comafi",
-   "tipo": "banco",
-   "promos_url": "https://www.comafi.com.ar/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "credicoop",
    "name": "Credicoop",
-   "tipo": "banco",
-   "promos_url": "https://www.bancocredicoop.coop/personas/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "hipotecario",
    "name": "Banco Hipotecario",
-   "tipo": "banco",
-   "promos_url": "https://www.hipotecario.com.ar/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "icbc",
    "name": "ICBC",
-   "tipo": "banco",
-   "promos_url": "https://www.beneficios.icbc.com.ar/promo/super"
+   "tipo": "banco"
   },
   {
    "id": "patagonia",
@@ -115,14 +109,12 @@
   {
    "id": "supervielle",
    "name": "Supervielle",
-   "tipo": "banco",
-   "promos_url": "https://www.supervielle.com.ar/personas/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "galicia",
    "name": "Galicia",
-   "tipo": "banco",
-   "promos_url": "https://www.galicia.ar/personas/buscador-de-promociones"
+   "tipo": "banco"
   },
   {
    "id": "bbva",
@@ -132,8 +124,7 @@
   {
    "id": "santander",
    "name": "Santander",
-   "tipo": "banco",
-   "promos_url": "https://www.santander.com.ar/personas/beneficios"
+   "tipo": "banco"
   },
   {
    "id": "provincia",
@@ -143,68 +134,57 @@
   {
    "id": "macro",
    "name": "Banco Macro",
-   "tipo": "banco",
-   "promos_url": "https://www.macro.com.ar/beneficios/supermercados"
+   "tipo": "banco"
   },
   {
    "id": "cencopay",
    "name": "CencoPay",
-   "tipo": "billetera",
-   "promos_url": "https://cencopay.ar/promociones/"
+   "tipo": "billetera"
   },
   {
    "id": "cuentacarrefour",
    "name": "Carrefour Banco (cuenta digital)",
-   "tipo": "billetera",
-   "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
+   "tipo": "billetera"
   },
   {
    "id": "cuentadni",
    "name": "Cuenta DNI",
-   "tipo": "billetera",
-   "promos_url": "https://www.bancoprovincia.com.ar/cuentadni/"
+   "tipo": "billetera"
   },
   {
    "id": "mp",
    "name": "Mercado Pago",
-   "tipo": "billetera",
-   "promos_url": "https://promociones.mercadopago.com.ar/"
+   "tipo": "billetera"
   },
   {
    "id": "modo",
    "name": "MODO",
-   "tipo": "billetera",
-   "promos_url": "https://www.modo.com.ar/promos"
+   "tipo": "billetera"
   },
   {
    "id": "naranjax",
    "name": "Naranja X",
-   "tipo": "billetera",
-   "promos_url": "https://www.naranjax.com/promociones"
+   "tipo": "billetera"
   },
   {
    "id": "personalpay",
    "name": "Personal Pay",
-   "tipo": "billetera",
-   "promos_url": "https://www.personal.com.ar/pay/beneficios"
+   "tipo": "billetera"
   },
   {
    "id": "naranja",
    "name": "Tarjeta Naranja (Plan Z)",
-   "tipo": "tarjeta",
-   "promos_url": "https://www.naranjax.com/promociones"
+   "tipo": "tarjeta"
   },
   {
    "id": "tcarrefour",
    "name": "Tarjeta Carrefour (crédito)",
-   "tipo": "tarjeta",
-   "promos_url": "https://www.carrefour.com.ar/descuentos-bancarios"
+   "tipo": "tarjeta"
   },
   {
    "id": "tci",
    "name": "Tarjeta Coto TCI",
-   "tipo": "tarjeta",
-   "promos_url": "https://www.coto.com.ar/terminos-descuentos"
+   "tipo": "tarjeta"
   },
   {
    "id": "credito",
@@ -219,14 +199,12 @@
   {
    "id": "clublanacion",
    "name": "Club La Nación",
-   "tipo": "programa",
-   "promos_url": "https://club.lanacion.com.ar/"
+   "tipo": "programa"
   },
   {
    "id": "comunidadcoto",
    "name": "Comunidad Coto",
-   "tipo": "programa",
-   "promos_url": "https://www.coto.com.ar/terminos-descuentos"
+   "tipo": "programa"
   },
   {
    "id": "jubilados",
@@ -236,14 +214,12 @@
   {
    "id": "masclub",
    "name": "MasClub (ChangoMás)",
-   "tipo": "programa",
-   "promos_url": "https://www.masonline.com.ar/masclub"
+   "tipo": "programa"
   },
   {
    "id": "micarrefour",
    "name": "Mi Carrefour",
-   "tipo": "programa",
-   "promos_url": "https://www.carrefour.com.ar/mi-carrefour"
+   "tipo": "programa"
   },
   {
    "id": "todos",
@@ -1255,7 +1231,7 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://www.convi.ar/promos-bancarias/coto",
    "fuente_tipo": "relevamiento",
    "verificado": "2026-11-13",
@@ -1286,7 +1262,7 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://www.convi.ar/promos-bancarias/coto",
    "fuente_tipo": "relevamiento",
    "verificado": "2026-11-13",
@@ -2344,7 +2320,7 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://www.bancoprovincia.com.ar/Noticias/MasNoticias/todas-las-promociones-de-cuenta-dni-en-supermercados-3031",
    "fuente_tipo": "oficial",
    "verificado": "2026-11-06",
@@ -2541,7 +2517,7 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
    "fuente_tipo": "prensa",
    "verificado": "2026-11-02",
@@ -2608,7 +2584,7 @@
    "cuotas": 3,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
    "fuente_tipo": "prensa",
    "verificado": "2026-11-02",
@@ -2668,7 +2644,7 @@
    "cuotas": null,
    "requiere": [],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
    "fuente_tipo": "prensa",
    "verificado": "2026-11-01",
@@ -3174,10 +3150,349 @@
     "jubilados"
    ],
    "desde": "2026-11-01",
-   "hasta": "2026-12-31",
+   "hasta": "2026-11-30",
    "fuente": "https://calcularsueldo.com.ar/finanzas/16394/supermercados-banco-nacion-renueva-descuentos-en-tus-compras-de-noviembre-2026.html",
    "fuente_tipo": "prensa",
    "verificado": "2026-11-01",
+   "ejemplo": false,
+   "bancos": []
+  },
+  {
+   "id": "d001",
+   "medio": "modo",
+   "stores": [
+    "coto"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 25,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Sin tope, solo en sucursales pagando con el QR de MODO o de la app del banco (no NFC, no online, no American Express). Excluye productos con otras promociones, carnes, pollo y otros productos. Vigente hasta el 28/02/2027.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.modo.com.ar/promos/coto-noviembre26",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "bna",
+    "santander",
+    "bbva",
+    "galicia",
+    "credicoop",
+    "supervielle",
+    "comafi",
+    "icbc",
+    "macro",
+    "ciudad",
+    "hipotecario",
+    "columbia"
+   ]
+  },
+  {
+   "id": "d002",
+   "medio": "modo",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": 25000,
+   "periodo_tope": "mes",
+   "minimo": 75000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "nfc",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco. QR, botón de pago online o MODO Contactless.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.modo.com.ar/promos/changomas-noviembre26",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "bna",
+    "santander",
+    "bbva",
+    "galicia",
+    "credicoop",
+    "supervielle",
+    "comafi",
+    "icbc",
+    "macro",
+    "ciudad",
+    "hipotecario",
+    "columbia"
+   ]
+  },
+  {
+   "id": "d003",
+   "medio": "modo",
+   "stores": [
+    "changomas"
+   ],
+   "dias": [
+    0
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 30000,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo",
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo en MasGo, presencial (QR de MODO o MODO Contactless en Android). El tope es por banco.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.modo.com.ar/promos/masgo-nov26",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "bna",
+    "santander",
+    "bbva",
+    "galicia",
+    "credicoop",
+    "supervielle",
+    "comafi",
+    "icbc",
+    "macro",
+    "ciudad",
+    "hipotecario",
+    "columbia"
+   ]
+  },
+  {
+   "id": "d004",
+   "medio": "modo",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    5,
+    6
+   ],
+   "pct": 20,
+   "tope": 20000,
+   "periodo_tope": "mes",
+   "minimo": 35000,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.modo.com.ar/promos/superdia-noviembre26",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "bna",
+    "santander",
+    "bbva",
+    "galicia",
+    "credicoop",
+    "supervielle",
+    "comafi",
+    "icbc",
+    "macro",
+    "ciudad",
+    "hipotecario",
+    "columbia"
+   ]
+  },
+  {
+   "id": "d005",
+   "medio": "cuentadni",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1
+   ],
+   "pct": 20,
+   "tope": null,
+   "periodo_tope": null,
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "nfc"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con tarjeta de crédito Visa cargada en la app, pagando por NFC. Sin tope.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "provincia"
+   ]
+  },
+  {
+   "id": "d006",
+   "medio": "columbia",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    1,
+    5
+   ],
+   "pct": 20,
+   "tope": 10000,
+   "periodo_tope": "compra",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Con crédito Visa o Mastercard de Banco Columbia, en 1 pago. Vigente hasta el 31/03/2027.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": []
+  },
+  {
+   "id": "d007",
+   "medio": "naranjax",
+   "stores": [
+    "dia"
+   ],
+   "dias": [
+    2
+   ],
+   "pct": 20,
+   "tope": 3000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "credito_fisica",
+    "debito_fisica",
+    "online_tarjeta"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Plan Inicial. Con Plan Turbo: 25% (tope $9.500); con Plan Épico: 30% (tope $12.000). Tarjeta Naranja X o débito Visa Naranja X.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://calcularsueldo.com.ar/finanzas/16411/promos-dia-noviembre-2026.html",
+   "fuente_tipo": "prensa",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": []
+  },
+  {
+   "id": "d008",
+   "medio": "modo",
+   "stores": [
+    "josimar"
+   ],
+   "dias": [
+    5
+   ],
+   "pct": 20,
+   "tope": 6000,
+   "periodo_tope": "semana",
+   "minimo": 0,
+   "canal": "ambos",
+   "pago": [
+    "qr_modo",
+    "nfc",
+    "online_billetera"
+   ],
+   "reintegro": "reintegro",
+   "nota": "El tope es por banco y por semana.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-01",
+   "hasta": "2026-12-31",
+   "fuente": "https://www.modo.com.ar/promos/josimar-noviembre-2611",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
+   "ejemplo": false,
+   "bancos": [
+    "bna",
+    "santander",
+    "bbva",
+    "galicia",
+    "credicoop",
+    "supervielle",
+    "comafi",
+    "icbc",
+    "macro",
+    "ciudad",
+    "hipotecario",
+    "columbia"
+   ]
+  },
+  {
+   "id": "d009",
+   "medio": "credicoop",
+   "stores": [
+    "nini"
+   ],
+   "dias": [
+    6
+   ],
+   "pct": 30,
+   "tope": 13500,
+   "periodo_tope": "dia",
+   "minimo": 0,
+   "canal": "tienda",
+   "pago": [
+    "qr_modo"
+   ],
+   "reintegro": "reintegro",
+   "nota": "Solo el sábado 26/12. Con tarjetas Cabal Credicoop por QR de MODO; si cobrás el sueldo en Credicoop: 40%, tope $18.000.",
+   "cuotas": null,
+   "requiere": [],
+   "desde": "2026-12-26",
+   "hasta": "2026-12-26",
+   "fuente": "https://www.nini.com.ar/promociones",
+   "fuente_tipo": "oficial",
+   "verificado": "2026-11-26",
    "ejemplo": false,
    "bancos": []
   }
