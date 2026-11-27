@@ -101,5 +101,9 @@
     "appId": "1:966638885867:web:197bc9b0d6278dd412d7ae",
     "appCheck": "6Lf72CMuAAAAAGGd1YYF6MBHI9w-fE_x5b4SLuw1"
   },
-  "_comentario_firebase": "Cuentas de usuario (Firebase Authentication + Firestore). Esta configuración es pública por diseño; la seguridad la dan las reglas de firestore.rules y los dominios autorizados en Firebase."
+  "_comentario_firebase": "Cuentas de usuario (Firebase Authentication + Firestore). Esta configuración es pública por diseño; la seguridad la dan las reglas de firestore.rules y los dominios autorizados en Firebase.",
+  "_comentario_afiliados": "Enlaces de afiliado: por cada comercio con programa de afiliados, poné su enlace con {url} donde va la dirección de destino (la red de afiliados te da el formato). Ejemplo: \"carrefour\": \"https://red.example/r?id=TU_ID&url={url}\". Se aplica solo al tocar 'Ver en la tienda', 'Buscar en la tienda' o 'Armar el carrito'. Nunca cambia precios ni orden. Vacío = desactivado.",
+  "afiliados": {},
+  "_comentario_referidos": "Enlaces de invitación de billeteras o bancos: por id del medio de pago, {\"url\": \"...\", \"texto\": \"¿No tenés X? Registrate gratis\"}. Se muestra solo a quien no marcó ese medio como suyo, al lado del descuento. Vacío = desactivado. Revisá antes que las condiciones del programa permitan publicarlo en una web.",
+  "referidos": {}
 }

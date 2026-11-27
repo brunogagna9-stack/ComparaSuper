@@ -1419,3 +1419,5 @@ h3.misg{font-size:14px;margin:14px 0 6px;color:var(--mut)}
 .nwarn{margin:12px 0 0;font-weight:700;font-size:14px}.napto{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}.napto .chip{cursor:default}
 .nalerta{margin:12px 0 2px;padding:8px 10px;border-radius:10px;background:#fff4d6;color:#5a3d00;font-size:12.5px}
 [data-theme="dark"] .nalerta{background:#3a2f12;color:#ffe3a1}
+
+.refl{display:inline-block;margin-top:6px;font-size:13px;color:var(--mut,#64748b)}

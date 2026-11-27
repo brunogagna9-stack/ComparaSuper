@@ -826,6 +826,25 @@ const aporteLinea = ahorro => aporteUrl() ? `<p class="aporte-l"><span>💚 ${ah
 function contar(v) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path: "/" + v, title: document.title }); } catch {} }); }
 /* eventos: clics hacia las tiendas (prueba del tráfico que mandamos a cada súper) y a la publicidad */
 function evento(path, title) { const p = gc(); if (p) p.then(() => { try { window.goatcounter.count({ path, title, event: true }); } catch {} }); }
+/* ---------- ENLACES DE AFILIADO Y REFERIDOS (config.json → "afiliados" y "referidos") ----------
+   afiliados: {idComercio: "https://red-de-afiliados/...{url}..."}. Al tocar "Ver en la tienda", "Buscar en la tienda" o
+   "Armar el carrito", el enlace pasa por la red de afiliados; si la persona compra, el comercio paga una comisión.
+   Al usuario no le cambia el precio, y nunca cambia el orden de precios ni cuál es el más barato (se aplica recién al tocar). */
+const afil = sid => { const t = (CFG.afiliados || {})[sid]; return typeof t === "string" && t.includes("{url}") ? t : ""; };
+const hayAfil = () => Object.keys(CFG.afiliados || {}).some(afil);
+function afilLink(e) {
+  const a = e.target.closest && e.target.closest("a[data-salida]"); if (!a) return;
+  const [tipo, sid] = a.dataset.salida.split("|"), t = tipo !== "bases" && afil(sid);
+  if (!t || a.dataset.afil) return;
+  a.dataset.afil = 1; a.href = t.replace("{url}", encodeURIComponent(a.href)); a.rel = "sponsored noopener";
+}
+document.addEventListener("click", afilLink, true);
+document.addEventListener("auxclick", afilLink, true);   // clic con la rueda (abrir en otra pestaña)
+/* referidos: {idMedio: {url, texto}}. Se ofrece solo a quien NO marcó ese medio como suyo, al lado de sus descuentos. */
+const referido = id => { const r = (CFG.referidos || {})[id]; return r && r.url && !(MEDIOS || []).includes(id) ? r : null; };
+const referidoLink = pr => { const id = P.medioBy[pr.medio] ? pr.medio : null, r = id && referido(id); if (!r) return "";
+  return `<a class="linkbtn refl" data-ref="${esc(id)}" href="${esc(r.url)}" target="_blank" rel="sponsored noopener" title="Enlace de invitación: si te registrás, SuperBarato puede recibir un premio. A vos no te cuesta nada.">${esc(r.texto || `¿No tenés ${medioName(pr)}? Registrate gratis`)} ↗</a>`; };
+document.addEventListener("click", e => { const r = e.target.closest("a[data-ref]"); if (r) evento(`referido-clic-${r.dataset.ref}`, `Clic en referido ${r.dataset.ref}`); }, true);
 document.addEventListener("click", e => {
   const a = e.target.closest("a[data-salida]");
   if (a) { const [tipo, sid] = a.dataset.salida.split("|"); evento(`salida-${tipo}-${sid || "tienda"}`, `Clic a ${ST[sid] ? ST[sid].name : sid} (${tipo === "carrito" ? "armar carrito" : tipo === "producto" ? "ver producto" : "buscar en tienda"})`); }
@@ -1063,7 +1082,7 @@ function vNosotros() {
   $("#view").innerHTML = `<div class="wrap legal nosotros"><section class="blk first">
     <h1>👋 Conocenos</h1>
     <p>SuperBarato nació con una idea simple: que hacer las compras del súper cueste menos. Juntamos en un solo lugar los precios de los supermercados y mayoristas, sus ofertas y los descuentos de bancos, billeteras y tarjetas de cada día, para que sepas <b>dónde, qué día y cómo pagar</b> para gastar menos.</p>
-    <p>Es un <b>proyecto independiente</b>: no tiene relación comercial con los comercios, las apps ni los bancos que aparecen, y ningún comercio paga para salir primero.</p>
+    <p>Es un <b>proyecto independiente</b>: ${hayAfil() || Object.keys(CFG.referidos || {}).length ? "algunos enlaces a tiendas online o a billeteras son de afiliado o de invitación: si comprás o te registrás, SuperBarato puede recibir una comisión. A vos no te cuesta más, y nunca cambia los precios, el orden ni cuál es el más barato." : "no tiene relación comercial con los comercios, las apps ni los bancos que aparecen, y ningún comercio paga para salir primero."}${hayAfil() || Object.keys(CFG.referidos || {}).length ? " Ningún comercio paga para salir primero." : ""}</p>
     ${aporteUrl() ? `<div class="aporte-n"><p><b>☕ Apoyá el proyecto.</b> SuperBarato es gratis, sin publicidad que estorbe y sin que ningún comercio pague para salir primero. Se sostiene con aportes voluntarios: si te ayudó a ahorrar, podés invitarnos un café.</p>${aporteBtn("☕ Invitanos un café", "btn aporte")}</div>` : ""}
     <h2 id="s-acerca">Acerca de</h2>
     <ul>
@@ -1372,7 +1391,7 @@ function promoCard(pr) {
       <div class="pp">${pr.pct ? pr.pct + "%" : pr.cuotas + " cuotas"}</div></div>
     <div class="stores">${pr.stores.filter(s => ST[s]).map(s => storeChip(s)).join(" ")}</div>
     ${acumBadge(pr)}
-    ${bases(pr).length ? `<div class="basesrow">${basesBtns(pr)}</div>` : ""}
+    ${bases(pr).length ? `<div class="basesrow">${basesBtns(pr)}</div>` : ""}${referidoLink(pr)}
     ${pr.stores.filter(s => ST[s] && ST[s].lista && ST[s].lista.length).map(s => `<div class="sub adher">Adheridos en ${esc(provCorto(PROV))}: ${ST[s].lista.map(esc).join(", ")}</div>`).join("")}
     ${(pr.bancos || []).length ? `<div class="bancos"><span class="sub">${pr.medio === "cuentadni" ? "Billetera de" : "Vale con tarjetas de"}:</span> ${pr.bancos.map(b => P.medioBy[b]).filter(Boolean).map(m => `<span class="bk" title="${esc(m.name)}">${medioBadge(m)}</span>`).join("")}</div>` : ""}
     <div class="howpay"><div class="k">Cómo pagar para que aplique</div>
